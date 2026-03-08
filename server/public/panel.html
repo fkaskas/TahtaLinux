@@ -342,6 +342,63 @@
       font-size: 15px; font-weight: 600; margin-top: 12px;
     }
 
+    /* ===== Ders Saatleri Toggle Switch ===== */
+    .ders-switch {
+      position: relative; display: inline-block; width: 50px; height: 26px;
+    }
+    .ders-switch input { opacity: 0; width: 0; height: 0; }
+    .ders-slider {
+      position: absolute; cursor: pointer; inset: 0;
+      background-color: var(--surface2); border-radius: 26px;
+      transition: 0.3s;
+    }
+    .ders-slider:before {
+      content: ""; position: absolute; height: 20px; width: 20px;
+      left: 3px; bottom: 3px; background-color: white;
+      border-radius: 50%; transition: 0.3s;
+    }
+    .ders-switch input:checked + .ders-slider { background-color: var(--success); }
+    .ders-switch input:checked + .ders-slider:before { transform: translateX(24px); }
+
+    /* Ders Saatleri Grid - izole tasarım */
+    #icerik-ders-saatleri .yonetim-panel {
+      overflow: hidden;
+    }
+    #dersSaatleriListesi {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 10px;
+    }
+    .ders-saat-kart {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 10px 8px; text-align: center;
+      min-width: 0; overflow: hidden;
+    }
+    .ders-saat-kart label {
+      display: block; font-size: 12px; color: var(--text3);
+      font-weight: 600; margin-bottom: 6px;
+    }
+    .ders-saat-kart .saat-input-wrap {
+      overflow: hidden; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--bg);
+    }
+    .ders-saat-kart .saat-input-wrap:focus-within {
+      border-color: var(--accent);
+    }
+    .ders-saat-kart input[type="time"] {
+      display: block; width: 100%; height: 38px; line-height: 38px;
+      padding: 0; margin: 0; border: none; background: transparent;
+      color: var(--text); font-size: 14px; text-align: center;
+      outline: none; -webkit-appearance: none; appearance: none;
+    }
+    .ders-saat-kart input[type="time"]::-webkit-calendar-picker-indicator {
+      display: none;
+    }
+    .ders-saat-kart input[type="time"]::-webkit-inner-spin-button,
+    .ders-saat-kart input[type="time"]::-webkit-clear-button {
+      display: none;
+    }
+
     /* ===== Desktop (768px+) ===== */
     @media (min-width: 768px) {
       .header { padding: 14px 24px; }
@@ -539,6 +596,42 @@
         </table>
       </div>
     </div>
+
+    <!-- Ders Saatleri Sekmesi -->
+    <div class="sekme-icerik" id="icerik-ders-saatleri">
+      <div class="yonetim-panel">
+        <h2><i class="fas fa-clock"></i> Ders Çıkış Saatleri</h2>
+        <p style="color:var(--text3);font-size:13px;margin-bottom:16px;">
+          Tahtaların otomatik kilitlenmesi için ders çıkış saatlerini belirleyin. Belirlenen saatlerde tahtalar otomatik kilitlenecektir.
+        </p>
+
+        <div class="form-satir" style="flex-direction:column;">
+          <div class="alan" style="min-width:100%;">
+            <label style="font-size:14px;font-weight:600;color:var(--text);">Ders Saatleri Kilitleme</label>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:6px;">
+              <label class="ders-switch">
+                <input type="checkbox" id="dersSaatleriAktif" onchange="dersSaatleriAktifDegistir()" />
+                <span class="ders-slider"></span>
+              </label>
+              <span id="dersSaatleriDurumYazi" style="font-size:14px;color:var(--text2);">Pasif</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="gizli" id="dersSaatleriKurumAlan" style="margin-bottom:16px;">
+          <label style="font-size:12px;color:var(--text2);font-weight:500;margin-bottom:5px;display:block;">Kurum Seç</label>
+          <select id="dersSaatleriKurumSec" onchange="dersSaatleriYukle()" style="padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;width:100%;max-width:400px;">
+          </select>
+        </div>
+
+        <div id="dersSaatleriListesi">
+        </div>
+
+        <button class="btn-ekle" style="margin-top:16px;" onclick="dersSaatleriKaydet()">
+          <i class="fas fa-save"></i> Tümünü Kaydet
+        </button>
+      </div>
+    </div>
   </div>
 
   <div class="sekmeler" id="sekmeler">
@@ -553,6 +646,9 @@
     </div>
     <div class="sekme gizli" data-sekme="kurum-yonetim" id="sekme-kurum-yonetim">
       <span class="sekme-icon"><i class="fas fa-building"></i></span> Kurumlar
+    </div>
+    <div class="sekme gizli" data-sekme="ders-saatleri" id="sekme-ders-saatleri">
+      <span class="sekme-icon"><i class="fas fa-clock"></i></span> Ders Saatleri
     </div>
   </div>
 </div>
@@ -747,6 +843,7 @@
       document.getElementById("sekme-kullanici-yonetim").classList.remove("gizli");
       document.getElementById("btnTopluKilitle").classList.remove("gizli");
       document.getElementById("btnTopluAc").classList.remove("gizli");
+      document.getElementById("sekme-ders-saatleri").classList.remove("gizli");
     }
 
     // Superadmin için kurum yönetimi ve ek alanlar
@@ -755,6 +852,7 @@
       document.getElementById("tahtaKurumAlan").classList.remove("gizli");
       document.getElementById("kullaniciKurumAlan").classList.remove("gizli");
       document.getElementById("rolSuperadmin").classList.remove("gizli");
+      document.getElementById("dersSaatleriKurumAlan").classList.remove("gizli");
       // Tablo başlıklarına kurum sütunu ekle
       document.getElementById("tahtaYonetimBaslik").innerHTML = "<th>Tahta ID</th><th>Tahta Adı</th><th>Kurum</th><th>Durum</th><th>Çevrimiçi</th><th>Son Bağlantı</th><th></th>";
       document.getElementById("kullaniciYonetimBaslik").innerHTML = "<th>Kullanıcı Adı</th><th>Ad Soyad</th><th>Rol</th><th>Kurum</th><th>Kayıt Tarihi</th><th></th>";
@@ -773,6 +871,7 @@
         if (el.dataset.sekme === "tahta-yonetim") tahtaYonetimYukle();
         if (el.dataset.sekme === "kullanici-yonetim") kullaniciYonetimYukle();
         if (el.dataset.sekme === "kurum-yonetim") kurumYonetimYukle();
+        if (el.dataset.sekme === "ders-saatleri") dersSaatleriYukle();
       });
     });
 
@@ -1313,7 +1412,7 @@
       if (!yanit.ok) return;
       const liste = await yanit.json();
 
-      ["tahtaKurumSec", "kullaniciKurumSec"].forEach((id) => {
+      ["tahtaKurumSec", "kullaniciKurumSec", "dersSaatleriKurumSec"].forEach((id) => {
         const sel = document.getElementById(id);
         if (!sel) return;
         sel.innerHTML = liste.map((k) =>
@@ -1492,6 +1591,97 @@
       sifreModalKapat();
     } catch (err) {
       bildirimGoster("Şifre değiştirilemedi", "hata");
+    }
+  }
+
+  // ===================== Ders Çıkış Saatleri =====================
+  async function dersSaatleriYukle() {
+    try {
+      let url = "/api/ders-saatleri";
+      if (kullanici.rol === "superadmin") {
+        const kurumSec = document.getElementById("dersSaatleriKurumSec");
+        if (kurumSec && kurumSec.value) {
+          url += "?kurum_id=" + encodeURIComponent(kurumSec.value);
+        }
+      }
+
+      const yanit = await fetch(url, {
+        headers: { Authorization: "Bearer " + token }
+      });
+      if (!yanit.ok) {
+        bildirimGoster("Ders saatleri alınamadı", "hata");
+        return;
+      }
+      const veri = await yanit.json();
+
+      // Aktif/pasif durumu
+      const aktifCheckbox = document.getElementById("dersSaatleriAktif");
+      aktifCheckbox.checked = veri.aktif === 1;
+      document.getElementById("dersSaatleriDurumYazi").textContent = veri.aktif === 1 ? "Aktif" : "Pasif";
+
+      // Saatleri haritaya çevir
+      const saatMap = {};
+      if (Array.isArray(veri.saatler)) {
+        veri.saatler.forEach(s => { saatMap[s.sira] = s.saat; });
+      }
+
+      // 10 saat inputu oluştur
+      const liste = document.getElementById("dersSaatleriListesi");
+      liste.innerHTML = "";
+      for (let i = 1; i <= 10; i++) {
+        const kart = document.createElement("div");
+        kart.className = "ders-saat-kart";
+        kart.innerHTML = `
+          <label>${i}. Ders Çıkışı</label>
+          <div class="saat-input-wrap">
+            <input type="time" id="dersSaat_${i}" value="${saatMap[i] || ""}" />
+          </div>
+        `;
+        liste.appendChild(kart);
+      }
+    } catch (err) {
+      bildirimGoster("Ders saatleri yüklenemedi", "hata");
+    }
+  }
+
+  function dersSaatleriAktifDegistir() {
+    const aktif = document.getElementById("dersSaatleriAktif").checked;
+    document.getElementById("dersSaatleriDurumYazi").textContent = aktif ? "Aktif" : "Pasif";
+  }
+
+  async function dersSaatleriKaydet() {
+    const aktif = document.getElementById("dersSaatleriAktif").checked;
+    const saatler = [];
+    for (let i = 1; i <= 10; i++) {
+      const input = document.getElementById("dersSaat_" + i);
+      if (input) {
+        saatler.push({ sira: i, saat: input.value || "" });
+      }
+    }
+
+    const body = { aktif: aktif ? 1 : 0, saatler };
+    if (kullanici.rol === "superadmin") {
+      const kurumSec = document.getElementById("dersSaatleriKurumSec");
+      if (kurumSec && kurumSec.value) body.kurum_id = parseInt(kurumSec.value);
+    }
+
+    try {
+      const yanit = await fetch("/api/ders-saatleri", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token
+        },
+        body: JSON.stringify(body)
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) {
+        bildirimGoster(veri.hata, "hata");
+        return;
+      }
+      bildirimGoster("Ders saatleri kaydedildi", "basari");
+    } catch (err) {
+      bildirimGoster("Ders saatleri kaydedilemedi", "hata");
     }
   }
 

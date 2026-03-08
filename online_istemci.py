@@ -20,6 +20,7 @@ class OnlineIstemci(QObject):
     baglanti_durumu_sinyali = pyqtSignal(bool)  # True=bağlı, False=koptu
     hata_sinyali = pyqtSignal(str)  # Sunucudan gelen hata mesajı
     durum_bilgisi_sinyali = pyqtSignal(int, int)  # durum, ses
+    ders_saatleri_sinyali = pyqtSignal(dict)  # {"aktif": 0/1, "saatler": [...]}
 
     def __init__(self, kurum_kodu, tahta_adi, tahta_id="", anahtar="", parent=None):
         super().__init__(parent)
@@ -86,6 +87,11 @@ class OnlineIstemci(QObject):
             self._durum = durum
             self._ses = ses
             self.durum_bilgisi_sinyali.emit(durum, ses)
+
+        @sio.on("ders_saatleri")
+        def ders_saatleri_geldi(veri):
+            if isinstance(veri, dict):
+                self.ders_saatleri_sinyali.emit(veri)
 
         return sio
 

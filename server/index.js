@@ -84,6 +84,24 @@ async function veritabaniBaslat() {
     await db.execute(`ALTER TABLE kullanicilar MODIFY COLUMN rol ENUM('superadmin', 'yonetici', 'ogretmen') NOT NULL DEFAULT 'ogretmen'`);
   } catch (e) { /* zaten güncel */ }
 
+  // Ders çıkış saatleri tablosu
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS ders_saatleri (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      kurum_id INT NOT NULL,
+      sira TINYINT NOT NULL,
+      saat VARCHAR(5) NOT NULL DEFAULT '',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY unik_kurum_sira (kurum_id, sira),
+      FOREIGN KEY (kurum_id) REFERENCES kurumlar(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB
+  `);
+
+  // Kurumlara ders saatleri aktif/pasif sütunu ekle
+  try {
+    await db.execute(`ALTER TABLE kurumlar ADD COLUMN ders_saatleri_aktif TINYINT NOT NULL DEFAULT 0`);
+  } catch (e) { /* sütun zaten var */ }
+
   console.log("Veritabanı tabloları hazır.");
 }
 
@@ -595,6 +613,83 @@ app.delete("/api/kurumlar/:id", authMiddleware, superadminMiddleware, async (req
   }
 });
 
+// ===================== Ders Çıkış Saatleri =====================
+
+// Ders saatlerini getir
+app.get("/api/ders-saatleri", authMiddleware, async (req, res) => {
+  try {
+    const kurumId = req.query.kurum_id && req.kullanici.rol === "superadmin"
+      ? req.query.kurum_id
+      : req.kullanici.kurum_id;
+
+    const [saatler] = await db.execute(
+      "SELECT sira, saat FROM ders_saatleri WHERE kurum_id = ? ORDER BY sira",
+      [kurumId]
+    );
+
+    const [kurumRows] = await db.execute(
+      "SELECT ders_saatleri_aktif FROM kurumlar WHERE id = ?",
+      [kurumId]
+    );
+
+    const aktif = kurumRows.length > 0 ? kurumRows[0].ders_saatleri_aktif : 0;
+
+    res.json({ aktif, saatler });
+  } catch (err) {
+    console.error("Ders saatleri getirme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Ders saatlerini kaydet/güncelle
+app.post("/api/ders-saatleri", authMiddleware, adminMiddleware, async (req, res) => {
+  const { saatler, aktif, kurum_id } = req.body;
+
+  const kurumId = (kurum_id && req.kullanici.rol === "superadmin")
+    ? kurum_id
+    : req.kullanici.kurum_id;
+
+  try {
+    // aktif/pasif durumu güncelle
+    if (aktif !== undefined) {
+      await db.execute(
+        "UPDATE kurumlar SET ders_saatleri_aktif = ? WHERE id = ?",
+        [aktif ? 1 : 0, kurumId]
+      );
+    }
+
+    // Saatleri kaydet
+    if (Array.isArray(saatler)) {
+      for (const item of saatler) {
+        const sira = parseInt(item.sira);
+        const saat = (item.saat || "").trim();
+        if (sira < 1 || sira > 10) continue;
+        // HH:MM format doğrulama
+        if (saat && !/^\d{2}:\d{2}$/.test(saat)) continue;
+
+        await db.execute(
+          `INSERT INTO ders_saatleri (kurum_id, sira, saat) VALUES (?, ?, ?)
+           ON DUPLICATE KEY UPDATE saat = VALUES(saat)`,
+          [kurumId, sira, saat]
+        );
+      }
+    }
+
+    // Bağlı tahtaları güncelle
+    const dersSaatleriVerisi = await dersSaatleriAl(kurumId);
+    Object.entries(bagliTahtalar).forEach(([sid, bilgi]) => {
+      if (bilgi.kurumId === parseInt(kurumId)) {
+        io.to(sid).emit("ders_saatleri", dersSaatleriVerisi);
+      }
+    });
+
+    res.json({ mesaj: "Ders saatleri kaydedildi" });
+  } catch (err) {
+    console.error("Ders saatleri kaydetme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
 // ===================== Doğrulama Kodu Üretici =====================
 const KILIT_GIZLI_ANAHTAR = "tahta_ekran_secret_2024";
 const KOD_UZUNLUGU = 4;
@@ -744,6 +839,14 @@ io.on("connection", (socket) => {
       console.log(
         `[KAYIT] Tahta: ${veri.tahtaAdi || tahtaId} (Kurum: ${tahta.kurum_kodu})${ilkBaglanti ? " [İLK BAĞLANTI]" : ""}`
       );
+
+      // Ders çıkış saatlerini tahtaya gönder
+      try {
+        const dersSaatleriVerisi = await dersSaatleriAl(tahta.kurum_id);
+        socket.emit("ders_saatleri", dersSaatleriVerisi);
+      } catch (e) {
+        console.error("Ders saatleri gönderilemedi:", e);
+      }
 
       // Panellere güncel listeyi gönder
       await panellereGonder(tahta.kurum_id);
@@ -1037,6 +1140,19 @@ async function tahtaBul(tahtaId, kurumId, rol) {
     );
   }
   return rows.length > 0 ? rows[0] : null;
+}
+
+async function dersSaatleriAl(kurumId) {
+  const [saatler] = await db.execute(
+    "SELECT sira, saat FROM ders_saatleri WHERE kurum_id = ? ORDER BY sira",
+    [kurumId]
+  );
+  const [kurumRows] = await db.execute(
+    "SELECT ders_saatleri_aktif FROM kurumlar WHERE id = ?",
+    [kurumId]
+  );
+  const aktif = kurumRows.length > 0 ? kurumRows[0].ders_saatleri_aktif : 0;
+  return { aktif, saatler };
 }
 
 function tahtayaKomutGonder(tahtaId, aksiyon) {

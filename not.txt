@@ -249,3 +249,11 @@ tahta veritabanında KILIT_GIZLI_ANAHTAR  veriside tutulmalı bunun için vtye a
 Db de anahtar yoksa açılışta tahta adı kurum kodu ve anahtarı isteyen ve dbye kaydeden bir kurulum ekranı ile başlayalım her türlü dbki anahtar kullanılsın sabit veri olmasın
 
 şimdi online tarafında şunu istiyorum öncelikle online tarafı mysql veritabanı kullanacak. kurum koduna göre farklı kurumların farklı tahtaları olacak. vtde tahtalar ayrı kurumlar ayrı tabloda olacak tahta tablosuylla ilişliki kurum tablosu bulunacak. birde kullanıcı tablosu bulunacak kullanıcıların bir öğretmen birde yönetici roller bulunacak. sistem tamamen giriş yaparak kullanılacak. yönetici giriş yaptığında tahta kurulumunda üretilen idlerle kaydedecek diğer bilgiler tahta bağlandığında güncellenecek. id si kayıtlı olmayan tahta online sisteme bağlanamayacak. öğretmen ve yönetci rolleri tahtaları açma kilitleme ses açma kapama işlemlerini yapabilecekler
+
+
+panel tarafında 10 tane ders çıkış saati kaydedebileceğimiz  bir ayar oluştur bunu her birini kaydedebilip güncelleyebilelim bu işi yönetici ve süper yçönetici yapabilsin. Bu saatler tahta sunucuya bağlandığında alınsın ve veri tabanına kaydedilsin. Bu saatlerin amacı tahtalar bu saatlere geldiğinde online ya da ofline da olsalar kilitlensinler istiyorum. Tabi bu durumu saatleri girdiğimiz yerde bir ayar seçeneği ekleyerek aktif ya da pasif edebilelim bu ayarda tahta bağlandığında alınsın ve buna göre davransın. Tahta tarafında daha önceden belirlenen kilitlenme süresi yine aktif kalsın hangi süre önce gerçekleşirse ona göre davransın yani ders çıkış saati olmadan kilitlenme süre biterse yine kapansın.
+
+
+sunucuyu baz alan kilitlenmede şöyle bir sorun var tahta tarafında tahta kilidi açılsada sunucuyu baz alıp tekrar kilitleniyor?????
+
+tahta kilit durumu tahta online ise sunucuyı baz almasını söylemiştim şöyle bir durum var tahta online iken kilit doğrulama ile açıldıysa bu durumda sunucuyu değil yereli baz alıp sunucuyu da güncellesin

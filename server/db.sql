@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS kurumlar (
     id INT AUTO_INCREMENT PRIMARY KEY,
     kurum_kodu VARCHAR(20) NOT NULL UNIQUE,
     kurum_adi VARCHAR(255) NOT NULL,
+    ders_saatleri_aktif TINYINT NOT NULL DEFAULT 0, -- 0=pasif, 1=aktif
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
@@ -37,5 +38,16 @@ CREATE TABLE IF NOT EXISTS kullanicilar (
     ad_soyad VARCHAR(255) NOT NULL,
     rol ENUM('superadmin', 'yonetici', 'ogretmen') NOT NULL DEFAULT 'ogretmen',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (kurum_id) REFERENCES kurumlar(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Ders çıkış saatleri tablosu (kurumla ilişkili, 10 saat)
+CREATE TABLE IF NOT EXISTS ders_saatleri (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    kurum_id INT NOT NULL,
+    sira TINYINT NOT NULL,               -- 1-10 arası ders sırası
+    saat VARCHAR(5) NOT NULL DEFAULT '',  -- HH:MM formatında
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unik_kurum_sira (kurum_id, sira),
     FOREIGN KEY (kurum_id) REFERENCES kurumlar(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;

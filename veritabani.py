@@ -67,6 +67,20 @@ class VeritabaniYoneticisi:
                     conn.execute("DROP TABLE tahta_durum")
                 except sqlite3.OperationalError:
                     pass  # Eski tablo yok
+                # Ders çıkış saatleri tablosu
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS ders_saatleri (
+                        sira INTEGER NOT NULL PRIMARY KEY,
+                        saat TEXT NOT NULL DEFAULT ''
+                    )
+                """)
+                # Ayarlar tablosu (ders_saatleri_aktif vb.)
+                conn.execute("""
+                    CREATE TABLE IF NOT EXISTS ayarlar (
+                        anahtar TEXT PRIMARY KEY,
+                        deger TEXT NOT NULL DEFAULT ''
+                    )
+                """)
                 conn.commit()
             finally:
                 conn.close()
@@ -205,5 +219,52 @@ class VeritabaniYoneticisi:
                 return None
             except sqlite3.OperationalError:
                 return None
+            finally:
+                conn.close()
+
+    def ders_saatleri_kaydet(self, saatler, aktif):
+        """Ders çıkış saatlerini ve aktif durumunu kaydet
+        saatler: [{"sira": 1, "saat": "09:40"}, ...]
+        aktif: 0 veya 1
+        """
+        with self._kilit:
+            conn = self._baglan()
+            try:
+                for item in saatler:
+                    sira = int(item.get("sira", 0))
+                    saat = item.get("saat", "")
+                    if sira < 1 or sira > 10:
+                        continue
+                    conn.execute(
+                        "INSERT OR REPLACE INTO ders_saatleri (sira, saat) VALUES (?, ?)",
+                        (sira, saat)
+                    )
+                conn.execute(
+                    "INSERT OR REPLACE INTO ayarlar (anahtar, deger) VALUES (?, ?)",
+                    ("ders_saatleri_aktif", str(aktif))
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+    def ders_saatleri_al(self):
+        """Ders çıkış saatlerini getir. Döndürür: {"aktif": 0/1, "saatler": ["09:40", ...]}"""
+        with self._kilit:
+            conn = self._baglan()
+            try:
+                satirlar = conn.execute(
+                    "SELECT sira, saat FROM ders_saatleri ORDER BY sira"
+                ).fetchall()
+                saatler = [dict(s) for s in satirlar] if satirlar else []
+
+                ayar = conn.execute(
+                    "SELECT deger FROM ayarlar WHERE anahtar = ?",
+                    ("ders_saatleri_aktif",)
+                ).fetchone()
+                aktif = int(ayar["deger"]) if ayar else 0
+
+                return {"aktif": aktif, "saatler": saatler}
+            except sqlite3.OperationalError:
+                return {"aktif": 0, "saatler": []}
             finally:
                 conn.close()

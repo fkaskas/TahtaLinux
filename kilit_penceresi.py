@@ -335,7 +335,14 @@ class Kilit(QMainWindow):
         self._online.ses_ac_sinyali.connect(self._online_ses_ac)
         self._online.baglanti_durumu_sinyali.connect(self._online_baglanti_degisti)
         self._online.durum_bilgisi_sinyali.connect(self._online_durum_senkronize)
+        self._online.ders_saatleri_sinyali.connect(self._ders_saatleri_guncelle)
         self._online.baslat()
+
+        # Ders çıkış saatleri kontrolü (her 15 saniyede bir kontrol et)
+        self._son_tetiklenen_ders_saati = ""
+        self._ders_saati_zamanlayici = QTimer(self)
+        self._ders_saati_zamanlayici.timeout.connect(self._ders_saati_kontrol)
+        self._ders_saati_zamanlayici.start(15000)
 
         # Başlangıçta DB durumuna göre kilitle veya açık bırak
         self._baslangic_durumu_uygula()
@@ -676,6 +683,45 @@ class Kilit(QMainWindow):
             self._online_kilitle()
         elif durum == 0:
             self._online_kilidi_ac()
+
+    def _ders_saatleri_guncelle(self, veri):
+        """Sunucudan gelen ders çıkış saatlerini yerel DB'ye kaydet"""
+        try:
+            aktif = veri.get("aktif", 0)
+            saatler = veri.get("saatler", [])
+            self._vt.ders_saatleri_kaydet(saatler, aktif)
+            print(f"[DERS SAATLERİ] Güncellendi: aktif={aktif}, {len(saatler)} saat")
+        except Exception as e:
+            print(f"[DERS SAATLERİ] Kaydetme hatası: {e}")
+
+    def _ders_saati_kontrol(self):
+        """Her 15 saniyede bir ders çıkış saati kontrolü yap"""
+        try:
+            veri = self._vt.ders_saatleri_al()
+            if not veri or veri.get("aktif", 0) != 1:
+                return
+
+            simdi = QTime.currentTime()
+            simdi_str = simdi.toString("HH:mm")
+
+            for item in veri.get("saatler", []):
+                saat = item.get("saat", "")
+                if not saat:
+                    continue
+                if saat == simdi_str and saat != self._son_tetiklenen_ders_saati:
+                    self._son_tetiklenen_ders_saati = saat
+                    print(f"[DERS SAATİ] Ders çıkış saati geldi: {saat} — kilitleniyor")
+                    if self._kilit_acma_istendi:
+                        self._aktif_dialog_kapat()
+                        self._tekrar_kilitle()
+                    return
+
+            # Dakika değiştiğinde son tetiklenen saati sıfırla
+            if simdi_str != self._son_tetiklenen_ders_saati:
+                # Saatlerden hiçbiri eşleşmiyorsa sıfırlamaya gerek yok
+                pass
+        except Exception as e:
+            print(f"[DERS SAATİ] Kontrol hatası: {e}")
 
     def _baslangic_durumu_uygula(self):
         """Başlangıçta daima kilitli başla ve DB izleme başlat"""
