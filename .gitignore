@@ -1,0 +1,5 @@
+# Paket klasörü ve içeriği git'e eklenmesin
+paket/
+__pycache__/
+*.pyc
+tahta_kilit.db

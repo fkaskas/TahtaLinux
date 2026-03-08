@@ -1,0 +1,1591 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>Tahta Kilit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #334155;
+      --border: #334155;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --success: #22c55e;
+      --success-hover: #16a34a;
+      --warn: #f59e0b;
+      --text: #f1f5f9;
+      --text2: #94a3b8;
+      --text3: #64748b;
+      --radius: 12px;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { height: 100%; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100%;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ===== Giriş Ekranı ===== */
+    .giris-wrapper {
+      display: flex; justify-content: center; align-items: center;
+      min-height: 100vh; padding: 20px;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    }
+    .giris-kutu {
+      background: var(--surface); padding: 32px 24px; border-radius: 20px;
+      width: 100%; max-width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .giris-logo { text-align: center; font-size: 48px; margin-bottom: 8px; }
+    .giris-kutu h1 { text-align: center; color: var(--text); margin-bottom: 4px; font-size: 22px; font-weight: 700; }
+    .giris-kutu p { text-align: center; color: var(--text3); margin-bottom: 28px; font-size: 14px; }
+    .giris-kutu label { display: block; margin-bottom: 6px; font-size: 13px; color: var(--text2); font-weight: 500; }
+    .giris-kutu input {
+      width: 100%; padding: 14px 16px; border-radius: var(--radius); border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); font-size: 16px; margin-bottom: 16px;
+      transition: border-color 0.2s;
+    }
+    .giris-kutu input:focus { outline: none; border-color: var(--accent); }
+    .giris-kutu button {
+      width: 100%; padding: 14px; border: none; border-radius: var(--radius);
+      background: var(--accent); color: #fff; font-size: 16px; font-weight: 600;
+      cursor: pointer; transition: background 0.2s;
+    }
+    .giris-kutu button:active { background: var(--accent-hover); transform: scale(0.98); }
+    .giris-hata { color: var(--danger); text-align: center; font-size: 13px; margin-top: 12px; display: none; }
+    .hatirla-satir {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 18px;
+      font-size: 14px; color: var(--text2); cursor: pointer; user-select: none;
+    }
+    .hatirla-satir input[type="checkbox"] {
+      width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer;
+      border-radius: 4px; margin: 0; flex-shrink: 0;
+    }
+    .hatirla-satir span {
+      line-height: 1; transform: translateY(-5px);
+    }
+
+    /* ===== Genel ===== */
+    .gizli { display: none !important; }
+
+    /* ===== Header ===== */
+    .header {
+      background: var(--surface); padding: 12px 16px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 50;
+    }
+    .header-sol { display: flex; align-items: center; gap: 10px; }
+    .header-sol h1 { font-size: 18px; font-weight: 700; color: var(--text); }
+    .header-sol .durum {
+      font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600;
+    }
+    .bagli { background: rgba(34,197,94,0.15); color: var(--success); }
+    .bagli-degil { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .header-sag { display: flex; align-items: center; gap: 8px; }
+    .header .kullanici-bilgi { display: none; }
+    .btn-header {
+      width: 36px; height: 36px; border-radius: 10px; border: none;
+      background: var(--surface2); color: var(--text2); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 16px;
+      transition: background 0.2s;
+    }
+    .btn-header:active { background: var(--border); }
+
+    /* ===== Alt Sekmeler (Mobil Tab Bar) ===== */
+    .sekmeler {
+      display: flex; background: var(--surface);
+      border-top: 1px solid var(--border);
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+      padding-bottom: var(--safe-bottom);
+    }
+    .sekme {
+      flex: 1; padding: 10px 4px 8px; cursor: pointer;
+      font-size: 10px; font-weight: 600; color: var(--text3);
+      text-align: center; transition: color 0.2s;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .sekme-icon { font-size: 20px; }
+    .sekme.aktif { color: var(--accent); }
+
+    .sekme-icerik { display: none; }
+    .sekme-icerik.aktif { display: block; }
+
+    .sayfa-icerik { padding-bottom: calc(70px + var(--safe-bottom)); }
+
+    /* ===== Toolbar ===== */
+    .toolbar {
+      padding: 12px 16px; display: flex; gap: 8px; align-items: center;
+      position: sticky; top: 53px; z-index: 40; background: var(--bg);
+    }
+    .toolbar button {
+      flex: 1; padding: 10px 12px; border: none; border-radius: var(--radius);
+      cursor: pointer; font-size: 13px; font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      transition: transform 0.1s;
+    }
+    .toolbar button:active { transform: scale(0.96); }
+    .btn-kilitle { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .btn-ac { background: rgba(34,197,94,0.15); color: var(--success); }
+    .toolbar .sayi {
+      font-size: 12px; color: var(--text3); white-space: nowrap;
+      margin-left: auto; font-weight: 600;
+    }
+
+    /* ===== Tahta Grid ===== */
+    .grid {
+      display: flex; flex-direction: column; gap: 10px;
+      padding: 16px 16px;
+    }
+    .kart {
+      background: var(--surface); border-radius: var(--radius);
+      padding: 16px; border: 1px solid var(--border);
+      transition: border-color 0.2s;
+    }
+    .kart .baslik { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .kart .baslik h3 { font-size: 15px; font-weight: 600; }
+    .badge-grp { display: flex; gap: 4px; flex-wrap: wrap; }
+    .kart .durum-badge, .cevrimici-badge {
+      font-size: 11px; padding: 3px 10px; border-radius: 20px; font-weight: 600;
+    }
+    .acik { background: rgba(34,197,94,0.12); color: var(--success); }
+    .kilitli { background: rgba(239,68,68,0.12); color: var(--danger); }
+    .cevrimici { background: rgba(34,197,94,0.12); color: var(--success); }
+    .cevrimdisi { background: rgba(100,116,139,0.2); color: var(--text3); }
+    .kart .bilgi { font-size: 12px; color: var(--text3); margin-bottom: 12px; line-height: 1.7; }
+    .kart .aksiyonlar { display: flex; gap: 8px; }
+    .kart .aksiyonlar button {
+      flex: 1; padding: 10px; border: none; border-radius: 10px;
+      cursor: pointer; font-size: 13px; font-weight: 600;
+      transition: transform 0.1s;
+    }
+    .kart .aksiyonlar button:active { transform: scale(0.96); }
+    .bos-mesaj { text-align: center; padding: 60px 20px; color: var(--text3); }
+    .bos-mesaj h2 { margin-bottom: 8px; font-size: 17px; color: var(--text2); }
+    .bos-mesaj p { font-size: 14px; }
+
+    /* ===== Yönetim Panelleri ===== */
+    .yonetim-panel { padding: 16px; }
+    .yonetim-panel h2 { font-size: 18px; color: var(--text); margin-bottom: 16px; font-weight: 700; }
+    .form-satir {
+      display: flex; flex-direction: column; gap: 12px;
+      margin-bottom: 20px; background: var(--surface);
+      padding: 16px; border-radius: var(--radius); border: 1px solid var(--border);
+    }
+    .form-satir .alan { display: flex; flex-direction: column; gap: 5px; }
+    .form-satir label { font-size: 12px; color: var(--text2); font-weight: 500; }
+    .form-satir input, .form-satir select {
+      padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); font-size: 15px; width: 100%;
+      min-width: 0;
+    }
+    .form-satir input:focus, .form-satir select:focus { outline: none; border-color: var(--accent); }
+    .btn-ekle {
+      padding: 12px 20px; border: none; border-radius: 10px;
+      background: var(--accent); color: #fff; font-size: 15px;
+      font-weight: 600; cursor: pointer; width: 100%;
+      transition: background 0.2s;
+    }
+    .btn-ekle:active { background: var(--accent-hover); }
+
+    .yonetim-panel h3 { font-size: 14px; color: var(--text2); margin-bottom: 10px; font-weight: 600; }
+
+    /* ===== Tablolar -> Mobil Kart ===== */
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    thead { display: none; }
+    tr {
+      display: block; background: var(--surface); border-radius: var(--radius);
+      margin-bottom: 10px; padding: 14px; border: 1px solid var(--border);
+    }
+    td {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 4px 0; font-size: 13px; color: var(--text);
+      border: none;
+    }
+    td::before {
+      content: attr(data-label);
+      font-weight: 600; color: var(--text3); font-size: 12px; margin-right: 12px;
+      flex-shrink: 0;
+    }
+    .btn-sil {
+      padding: 8px 16px; border: 1px solid var(--danger); background: transparent;
+      color: var(--danger); border-radius: 8px; cursor: pointer; font-size: 13px;
+      font-weight: 600; width: 100%; margin-top: 6px;
+    }
+    .btn-sil:active { background: var(--danger); color: #fff; }
+    .btn-duzenle {
+      padding: 8px 16px; border: 1px solid var(--accent); background: transparent;
+      color: var(--accent); border-radius: 8px; cursor: pointer; font-size: 13px;
+      font-weight: 600; width: 100%; margin-top: 6px;
+    }
+    .btn-duzenle:active { background: var(--accent); color: #fff; }
+    .islem-butonlar { display: flex; gap: 6px; flex-wrap: wrap; }
+    .modal select {
+      width: 100%; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); font-size: 16px; margin-bottom: 14px;
+    }
+    .modal select:focus { outline: none; border-color: var(--accent); }
+
+    /* ===== Bildirimler ===== */
+    .bildirim {
+      position: fixed; top: 12px; left: 16px; right: 16px;
+      padding: 14px 18px; border-radius: var(--radius);
+      font-size: 14px; font-weight: 600; z-index: 9999;
+      animation: bildirimGir 0.3s ease;
+      text-align: center;
+    }
+    .bildirim.basari { background: var(--success); color: #fff; }
+    .bildirim.hata { background: var(--danger); color: #fff; }
+    @keyframes bildirimGir { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ===== Modal ===== */
+    .modal-arka {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 100;
+      justify-content: center; align-items: flex-end;
+    }
+    .modal-arka.goster { display: flex; }
+    .modal {
+      background: var(--surface); padding: 24px;
+      border-radius: 20px 20px 0 0; width: 100%;
+      max-width: 480px; padding-bottom: calc(24px + var(--safe-bottom));
+      animation: modalUp 0.3s ease;
+    }
+    @keyframes modalUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+    .modal h3 { color: var(--text); margin-bottom: 20px; font-size: 18px; font-weight: 700; }
+    .modal label { display: block; margin-bottom: 5px; font-size: 13px; color: var(--text2); font-weight: 500; }
+    .modal input {
+      width: 100%; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); font-size: 16px; margin-bottom: 14px;
+    }
+    .modal input:focus { outline: none; border-color: var(--accent); }
+    .modal-butonlar { display: flex; gap: 10px; margin-top: 8px; }
+    .modal-butonlar button {
+      flex: 1; padding: 14px; border: none; border-radius: 10px;
+      cursor: pointer; font-size: 15px; font-weight: 600;
+    }
+    .btn-kaydet { background: var(--accent); color: #fff; }
+    .btn-iptal { background: var(--surface2); color: var(--text2); }
+
+    /* ===== Kullanıcı Bilgi Drawer ===== */
+    .kullanici-drawer {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 100;
+      justify-content: center; align-items: flex-end;
+    }
+    .kullanici-drawer.goster { display: flex; }
+    .drawer-icerik {
+      background: var(--surface); padding: 24px;
+      border-radius: 20px 20px 0 0; width: 100%; max-width: 480px;
+      padding-bottom: calc(24px + var(--safe-bottom));
+      animation: modalUp 0.3s ease;
+    }
+    .drawer-icerik h3 { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+    .drawer-bilgi { font-size: 14px; color: var(--text2); margin-bottom: 8px; line-height: 1.8; }
+    .drawer-bilgi strong { color: var(--text); }
+    .drawer-butonlar { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+    .drawer-butonlar button {
+      width: 100%; padding: 14px; border: none; border-radius: 10px;
+      cursor: pointer; font-size: 15px; font-weight: 600;
+    }
+    .btn-sifre-drawer { background: var(--surface2); color: var(--text); }
+    .btn-cikis-drawer { background: rgba(239,68,68,0.12); color: var(--danger); }
+    .btn-kapat-drawer { background: var(--surface2); color: var(--text3); }
+
+    /* ===== QR Tarayıcı Modal ===== */
+    .qr-modal-arka {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.8); z-index: 200;
+      justify-content: center; align-items: flex-end;
+    }
+    .qr-modal-arka.goster { display: flex; }
+    .qr-modal {
+      background: var(--surface); padding: 20px;
+      border-radius: 20px 20px 0 0; width: 100%;
+      max-width: 480px; padding-bottom: calc(20px + var(--safe-bottom));
+      animation: modalUp 0.3s ease;
+    }
+    .qr-modal h3 { color: var(--text); margin-bottom: 16px; font-size: 18px; font-weight: 700; text-align: center; }
+    .qr-modal .qr-aciklama { color: var(--text3); font-size: 13px; text-align: center; margin-bottom: 14px; }
+    #qrOkuyucu { width: 100%; border-radius: var(--radius); overflow: hidden; }
+    #qrOkuyucu video { border-radius: var(--radius); }
+    .qr-sonuc {
+      text-align: center; padding: 16px; margin-top: 12px;
+      border-radius: var(--radius); font-size: 14px; font-weight: 600;
+      display: none;
+    }
+    .qr-sonuc.basarili { background: rgba(34,197,94,0.15); color: var(--success); display: block; }
+    .qr-sonuc.hata { background: rgba(239,68,68,0.15); color: var(--danger); display: block; }
+    .qr-sonuc.bilgi { background: rgba(59,130,246,0.15); color: var(--accent); display: block; }
+    .btn-qr-kapat {
+      width: 100%; padding: 14px; border: none; border-radius: 10px;
+      background: var(--surface2); color: var(--text2); cursor: pointer;
+      font-size: 15px; font-weight: 600; margin-top: 12px;
+    }
+
+    /* ===== Desktop (768px+) ===== */
+    @media (min-width: 768px) {
+      .header { padding: 14px 24px; }
+      .header .kullanici-bilgi {
+        display: inline; font-size: 13px; color: var(--text2);
+      }
+      .header .kullanici-bilgi strong { color: var(--text); }
+      .sekmeler {
+        border-top: 1px solid var(--border); border-bottom: none;
+        padding-bottom: 0;
+      }
+      .sekme {
+        flex: 1; flex-direction: row; gap: 6px;
+        padding: 12px 20px; font-size: 13px;
+      }
+      .sekme-icon { font-size: 16px; }
+      .toolbar { padding: 14px 24px; }
+      .toolbar .sayi { margin-left: auto; }
+      .toolbar button { flex: unset; padding: 10px 22px; }
+      .grid {
+        display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 14px; padding: 16px 24px;
+      }
+      .yonetim-panel { padding: 20px 24px; }
+      .form-satir {
+        flex-direction: row; flex-wrap: wrap; align-items: flex-end;
+      }
+      .form-satir .alan { min-width: 180px; }
+      .form-satir input, .form-satir select { min-width: 180px; font-size: 13px; }
+      .btn-ekle { width: auto; padding: 12px 24px; font-size: 13px; }
+      thead { display: table-header-group; }
+      th { color: var(--text3); font-weight: 600; background: var(--surface); padding: 10px 14px; font-size: 13px; border-bottom: 1px solid var(--border); text-align: left; }
+      tr { display: table-row; background: none; border-radius: 0; margin-bottom: 0; padding: 0; border: none; }
+      td { display: table-cell; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 13px; }
+      td::before { display: none; }
+      .btn-sil { width: auto; margin-top: 0; padding: 5px 14px; }
+      .btn-duzenle { width: auto; margin-top: 0; padding: 5px 14px; }
+      .islem-butonlar { flex-wrap: nowrap; }
+      .modal-arka { align-items: center; }
+      .modal { border-radius: 16px; max-width: 420px; padding-bottom: 24px; }
+      .qr-modal-arka { align-items: center; }
+      .qr-modal { border-radius: 16px; max-width: 420px; padding-bottom: 20px; }
+      .kullanici-drawer { align-items: center; }
+      .drawer-icerik { border-radius: 16px; max-width: 420px; padding-bottom: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== GİRİŞ EKRANI ===== -->
+<div id="girisEkrani" class="giris-wrapper">
+  <div class="giris-kutu">
+    <div class="giris-logo"><i class="fas fa-chalkboard"></i></div>
+    <h1>Tahta Kilit</h1>
+    <p>Yönetim paneline giriş yapın</p>
+    <label>Kullanıcı Adı</label>
+    <input type="text" id="girisKullanici" placeholder="Kullanıcı adınız" autocomplete="username" />
+    <label>Şifre</label>
+    <input type="password" id="girisSifre" placeholder="Şifreniz" autocomplete="current-password" />
+    <label class="hatirla-satir">
+      <input type="checkbox" id="beniHatirla" />
+      <span>Beni hatırla</span>
+    </label>
+    <button onclick="girisYap()"><i class="fas fa-sign-in-alt"></i> Giriş Yap</button>
+    <div class="giris-hata" id="girisHata"></div>
+  </div>
+</div>
+
+<!-- ===== ANA PANEL ===== -->
+<div id="anaPanel" class="gizli">
+
+  <div class="header">
+    <div class="header-sol">
+      <h1>Tahta Kilit</h1>
+      <span class="durum bagli-degil" id="durumBadge">Bağlanıyor</span>
+    </div>
+    <div class="header-sag">
+      <span class="kullanici-bilgi">
+        <strong id="kullaniciAd"></strong>
+        <span id="kullaniciRol" style="color:var(--accent)"></span>
+        &nbsp;·&nbsp; <span id="kurumAdi"></span>
+      </span>
+      <button class="btn-header" onclick="qrTarayiciAc()" title="QR ile Kilit Aç"><i class="fas fa-qrcode"></i></button>
+      <button class="btn-header" onclick="kullaniciDrawerAc()" title="Profil"><i class="fas fa-user-circle"></i></button>
+    </div>
+  </div>
+
+  <div class="sayfa-icerik">
+    <!-- Tahtalar Sekmesi -->
+    <div class="sekme-icerik aktif" id="icerik-tahtalar">
+      <div class="toolbar">
+        <button class="btn-kilitle gizli" id="btnTopluKilitle" onclick="topluKilitle()"><i class="fas fa-lock"></i> Kilitle</button>
+        <button class="btn-ac gizli" id="btnTopluAc" onclick="topluAc()"><i class="fas fa-lock-open"></i> Aç</button>
+        <span class="sayi" id="tahtaSayisi">0 tahta</span>
+      </div>
+      <div class="grid" id="tahtaGrid">
+        <div class="bos-mesaj">
+          <h2>Henüz tahta eklenmemiş</h2>
+          <p>Yönetici tahta ekledikten sonra burada görünecek.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tahta Yönetimi Sekmesi -->
+    <div class="sekme-icerik" id="icerik-tahta-yonetim">
+      <div class="yonetim-panel">
+        <h2>Tahta Kayıt</h2>
+        <div class="form-satir">
+          <div class="alan gizli" id="tahtaKurumAlan">
+            <label>Kurum</label>
+            <select id="tahtaKurumSec"></select>
+          </div>
+          <div class="alan">
+            <label>Tahta ID (UUID)</label>
+            <input type="text" id="yeniTahtaId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
+          </div>
+          <div class="alan">
+            <label>Tahta Adı (opsiyonel)</label>
+            <input type="text" id="yeniTahtaAdi" placeholder="Örn: 5-A Sınıfı" />
+          </div>
+          <button class="btn-ekle" onclick="tahtaEkle()"><i class="fas fa-plus"></i> Tahta Ekle</button>
+        </div>
+        <h3>Kayıtlı Tahtalar</h3>
+        <table>
+          <thead>
+            <tr id="tahtaYonetimBaslik"><th>Tahta ID</th><th>Tahta Adı</th><th>Durum</th><th>Çevrimiçi</th><th>Son Bağlantı</th><th></th></tr>
+          </thead>
+          <tbody id="tahtaYonetimTablo"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Kullanıcı Yönetimi Sekmesi -->
+    <div class="sekme-icerik" id="icerik-kullanici-yonetim">
+      <div class="yonetim-panel">
+        <h2>Kullanıcı Ekle</h2>
+        <div class="form-satir">
+          <div class="alan gizli" id="kullaniciKurumAlan">
+            <label>Kurum</label>
+            <select id="kullaniciKurumSec"></select>
+          </div>
+          <div class="alan">
+            <label>Kullanıcı Adı</label>
+            <input type="text" id="yeniKullaniciAdi" placeholder="kullanici" />
+          </div>
+          <div class="alan">
+            <label>Ad Soyad</label>
+            <input type="text" id="yeniAdSoyad" placeholder="Ad Soyad" />
+          </div>
+          <div class="alan">
+            <label>Şifre</label>
+            <input type="password" id="yeniSifre" placeholder="En az 6 karakter" />
+          </div>
+          <div class="alan">
+            <label>Rol</label>
+            <select id="yeniRol">
+              <option value="ogretmen">Öğretmen</option>
+              <option value="yonetici">Yönetici</option>
+              <option value="superadmin" class="gizli" id="rolSuperadmin">Süper Yönetici</option>
+            </select>
+          </div>
+          <button class="btn-ekle" onclick="kullaniciEkle()"><i class="fas fa-plus"></i> Kullanıcı Ekle</button>
+        </div>
+        <h3>Kullanıcılar</h3>
+        <table>
+          <thead>
+            <tr id="kullaniciYonetimBaslik"><th>Kullanıcı Adı</th><th>Ad Soyad</th><th>Rol</th><th>Kayıt Tarihi</th><th></th></tr>
+          </thead>
+          <tbody id="kullaniciTablo"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Kurum Yönetimi Sekmesi -->
+    <div class="sekme-icerik" id="icerik-kurum-yonetim">
+      <div class="yonetim-panel">
+        <h2>Kurum Yönetimi</h2>
+        <div class="form-satir">
+          <div class="alan">
+            <label>Kurum Kodu</label>
+            <input type="text" id="yeniKurumKodu" placeholder="Örn: 755555" />
+          </div>
+          <div class="alan">
+            <label>Kurum Adı</label>
+            <input type="text" id="yeniKurumAdi" placeholder="Örn: Atatürk İlkokulu" />
+          </div>
+          <button class="btn-ekle" onclick="kurumEkle()"><i class="fas fa-plus"></i> Kurum Ekle</button>
+        </div>
+        <h3>Kayıtlı Kurumlar</h3>
+        <table>
+          <thead>
+            <tr><th>Kurum Kodu</th><th>Kurum Adı</th><th>Kayıt Tarihi</th><th></th></tr>
+          </thead>
+          <tbody id="kurumTablo"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="sekmeler" id="sekmeler">
+    <div class="sekme aktif" data-sekme="tahtalar">
+      <span class="sekme-icon"><i class="fas fa-tv"></i></span> Tahtalar
+    </div>
+    <div class="sekme gizli" data-sekme="tahta-yonetim" id="sekme-tahta-yonetim">
+      <span class="sekme-icon"><i class="fas fa-cogs"></i></span> Tahta İşlem
+    </div>
+    <div class="sekme gizli" data-sekme="kullanici-yonetim" id="sekme-kullanici-yonetim">
+      <span class="sekme-icon"><i class="fas fa-users"></i></span> Kullanıcılar
+    </div>
+    <div class="sekme gizli" data-sekme="kurum-yonetim" id="sekme-kurum-yonetim">
+      <span class="sekme-icon"><i class="fas fa-building"></i></span> Kurumlar
+    </div>
+  </div>
+</div>
+
+<!-- QR Tarayıcı Modal -->
+<div class="qr-modal-arka" id="qrModal" onclick="qrTarayiciKapat()">
+  <div class="qr-modal" onclick="event.stopPropagation()">
+    <h3><i class="fas fa-qrcode"></i> QR Kod Tara</h3>
+    <p class="qr-aciklama">Tahtadaki QR kodu kameraya gösterin, kilit otomatik açılacak.</p>
+    <div id="qrOkuyucu"></div>
+    <div class="qr-sonuc" id="qrSonuc"></div>
+    <button class="btn-qr-kapat" onclick="qrTarayiciKapat()">Kapat</button>
+  </div>
+</div>
+
+<!-- Kullanıcı Drawer -->
+<div class="kullanici-drawer" id="kullaniciDrawer" onclick="kullaniciDrawerKapat(event)">
+  <div class="drawer-icerik" onclick="event.stopPropagation()">
+    <h3>Profil</h3>
+    <div class="drawer-bilgi">
+      <strong id="drawerAd"></strong><br>
+      <span id="drawerRol"></span><br>
+      <span id="drawerKurum"></span>
+    </div>
+    <div class="drawer-butonlar">
+      <button class="btn-sifre-drawer" onclick="kullaniciDrawerKapat(); sifreDegistirAc();"><i class="fas fa-key"></i> Şifre Değiştir</button>
+      <button class="btn-cikis-drawer" onclick="cikisYap()"><i class="fas fa-sign-out-alt"></i> Çıkış Yap</button>
+      <button class="btn-kapat-drawer" onclick="kullaniciDrawerKapat()"><i class="fas fa-times"></i> Kapat</button>
+    </div>
+  </div>
+</div>
+
+<!-- Kurum Düzenle Modal -->
+<div class="modal-arka" id="kurumDuzenleModal" onclick="kurumDuzenleKapat()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3><i class="fas fa-building"></i> Kurum Düzenle</h3>
+    <input type="hidden" id="kurumDuzenleId" />
+    <label>Kurum Kodu</label>
+    <input type="text" id="kurumDuzenleKodu" placeholder="Kurum kodu" />
+    <label>Kurum Adı</label>
+    <input type="text" id="kurumDuzenleAdi" placeholder="Kurum adı" />
+    <div class="modal-butonlar">
+      <button class="btn-iptal" onclick="kurumDuzenleKapat()">İptal</button>
+      <button class="btn-kaydet" onclick="kurumGuncelle()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tahta Düzenle Modal -->
+<div class="modal-arka" id="tahtaDuzenleModal" onclick="tahtaDuzenleKapat()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3><i class="fas fa-edit"></i> Tahta Düzenle</h3>
+    <input type="hidden" id="tahtaDuzenleId" />
+    <label>Tahta Adı</label>
+    <input type="text" id="tahtaDuzenleAdi" placeholder="Tahta adı" />
+    <div class="gizli" id="tahtaDuzenleKurumAlan">
+      <label>Kurum</label>
+      <select id="tahtaDuzenleKurumSec"></select>
+    </div>
+    <div class="modal-butonlar">
+      <button class="btn-iptal" onclick="tahtaDuzenleKapat()">İptal</button>
+      <button class="btn-kaydet" onclick="tahtaGuncelle()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Kullanıcı Düzenle Modal -->
+<div class="modal-arka" id="kullaniciDuzenleModal" onclick="kullaniciDuzenleKapat()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3><i class="fas fa-user-edit"></i> Kullanıcı Düzenle</h3>
+    <input type="hidden" id="kullaniciDuzenleId" />
+    <label>Ad Soyad</label>
+    <input type="text" id="kullaniciDuzenleAdSoyad" placeholder="Ad Soyad" />
+    <label>Rol</label>
+    <select id="kullaniciDuzenleRol">
+      <option value="ogretmen">Öğretmen</option>
+      <option value="yonetici">Yönetici</option>
+      <option value="superadmin" class="gizli" id="duzenleRolSuperadmin">Süper Yönetici</option>
+    </select>
+    <div class="gizli" id="kullaniciDuzenleKurumAlan">
+      <label>Kurum</label>
+      <select id="kullaniciDuzenleKurumSec"></select>
+    </div>
+    <label>Yeni Şifre (boş bırakılırsa değişmez)</label>
+    <input type="password" id="kullaniciDuzenleSifre" placeholder="Yeni şifre (opsiyonel)" />
+    <div class="modal-butonlar">
+      <button class="btn-iptal" onclick="kullaniciDuzenleKapat()">İptal</button>
+      <button class="btn-kaydet" onclick="kullaniciGuncelle()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Şifre Değiştir Modal -->
+<div class="modal-arka" id="sifreModal" onclick="sifreModalKapat()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3>Şifre Değiştir</h3>
+    <label>Mevcut Şifre</label>
+    <input type="password" id="mevcutSifre" />
+    <label>Yeni Şifre</label>
+    <input type="password" id="yeniSifreInput" />
+    <label>Yeni Şifre (Tekrar)</label>
+    <input type="password" id="yeniSifreTekrar" />
+    <div class="modal-butonlar">
+      <button class="btn-iptal" onclick="sifreModalKapat()">İptal</button>
+      <button class="btn-kaydet" onclick="sifreDegistir()">Değiştir</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ===================== Durum =====================
+  let token = null;
+  let kullanici = null;
+  let socket = null;
+  let tahtaListesi = [];
+
+  // ===================== Kullanıcı Drawer =====================
+  function kullaniciDrawerAc() {
+    document.getElementById("drawerAd").textContent = kullanici.ad_soyad;
+    document.getElementById("drawerRol").textContent =
+      kullanici.rol === "superadmin" ? "Süper Yönetici" :
+      kullanici.rol === "yonetici" ? "Yönetici" : "Öğretmen";
+    document.getElementById("drawerKurum").textContent = kullanici.kurum_adi || kullanici.kurum_kodu;
+    document.getElementById("kullaniciDrawer").classList.add("goster");
+  }
+  function kullaniciDrawerKapat(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById("kullaniciDrawer").classList.remove("goster");
+  }
+
+  // ===================== Giriş =====================
+  async function girisYap() {
+    const kullanici_adi = document.getElementById("girisKullanici").value.trim();
+    const sifre = document.getElementById("girisSifre").value;
+    const hataEl = document.getElementById("girisHata");
+
+    if (!kullanici_adi || !sifre) {
+      hataEl.textContent = "Kullanıcı adı ve şifre gerekli";
+      hataEl.style.display = "block";
+      return;
+    }
+
+    try {
+      const bpiHatirla = document.getElementById("beniHatirla").checked;
+
+      const yanit = await fetch("/api/giris", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kullanici_adi, sifre, bpiHatirla }),
+      });
+
+      const veri = await yanit.json();
+
+      if (!yanit.ok) {
+        hataEl.textContent = veri.hata || "Giriş başarısız";
+        hataEl.style.display = "block";
+        return;
+      }
+
+      token = veri.token;
+      kullanici = veri.kullanici;
+      oturumKaydet(bpiHatirla);
+      panelBaslat();
+    } catch (err) {
+      hataEl.textContent = "Sunucuya bağlanılamadı";
+      hataEl.style.display = "block";
+    }
+  }
+
+  // Enter tuşu ile giriş
+  document.getElementById("girisSifre").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") girisYap();
+  });
+  document.getElementById("girisKullanici").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") girisYap();
+  });
+
+  // ===================== Oturum Başlat =====================
+  function panelBaslat() {
+    document.getElementById("girisEkrani").classList.add("gizli");
+    document.getElementById("anaPanel").classList.remove("gizli");
+
+    document.getElementById("kullaniciAd").textContent = kullanici.ad_soyad;
+    document.getElementById("kullaniciRol").textContent =
+      kullanici.rol === "superadmin" ? "(Süper Yönetici)" :
+      kullanici.rol === "yonetici" ? "(Yönetici)" : "(Öğretmen)";
+    document.getElementById("kurumAdi").textContent = kullanici.kurum_adi || kullanici.kurum_kodu;
+
+    // Yönetici sekmelerini ve toplu butonları göster
+    if (kullanici.rol === "yonetici" || kullanici.rol === "superadmin") {
+      document.getElementById("sekme-tahta-yonetim").classList.remove("gizli");
+      document.getElementById("sekme-kullanici-yonetim").classList.remove("gizli");
+      document.getElementById("btnTopluKilitle").classList.remove("gizli");
+      document.getElementById("btnTopluAc").classList.remove("gizli");
+    }
+
+    // Superadmin için kurum yönetimi ve ek alanlar
+    if (kullanici.rol === "superadmin") {
+      document.getElementById("sekme-kurum-yonetim").classList.remove("gizli");
+      document.getElementById("tahtaKurumAlan").classList.remove("gizli");
+      document.getElementById("kullaniciKurumAlan").classList.remove("gizli");
+      document.getElementById("rolSuperadmin").classList.remove("gizli");
+      // Tablo başlıklarına kurum sütunu ekle
+      document.getElementById("tahtaYonetimBaslik").innerHTML = "<th>Tahta ID</th><th>Tahta Adı</th><th>Kurum</th><th>Durum</th><th>Çevrimiçi</th><th>Son Bağlantı</th><th></th>";
+      document.getElementById("kullaniciYonetimBaslik").innerHTML = "<th>Kullanıcı Adı</th><th>Ad Soyad</th><th>Rol</th><th>Kurum</th><th>Kayıt Tarihi</th><th></th>";
+      kurumSeciciYukle();
+    }
+
+    // Sekme olayları
+    document.querySelectorAll(".sekme").forEach((el) => {
+      el.addEventListener("click", () => {
+        document.querySelectorAll(".sekme").forEach((s) => s.classList.remove("aktif"));
+        document.querySelectorAll(".sekme-icerik").forEach((s) => s.classList.remove("aktif"));
+        el.classList.add("aktif");
+        document.getElementById("icerik-" + el.dataset.sekme).classList.add("aktif");
+
+        // Yönetim verilerini yükle
+        if (el.dataset.sekme === "tahta-yonetim") tahtaYonetimYukle();
+        if (el.dataset.sekme === "kullanici-yonetim") kullaniciYonetimYukle();
+        if (el.dataset.sekme === "kurum-yonetim") kurumYonetimYukle();
+      });
+    });
+
+    // Socket.IO bağlantısı
+    socketBaslat();
+  }
+
+  // ===================== Socket.IO =====================
+  function socketBaslat() {
+    socket = io();
+    const durumBadge = document.getElementById("durumBadge");
+
+    socket.on("connect", () => {
+      durumBadge.textContent = "Bağlı";
+      durumBadge.className = "durum bagli";
+      socket.emit("panel_kayit", token);
+    });
+
+    socket.on("disconnect", () => {
+      durumBadge.textContent = "Bağlantı Kesildi";
+      durumBadge.className = "durum bagli-degil";
+    });
+
+    socket.on("hata", (veri) => {
+      bildirimGoster(veri.mesaj, "hata");
+      cikisYap();
+    });
+
+    socket.on("tahta_listesi", (liste) => {
+      if (!Array.isArray(liste)) return;
+      tahtaListesi = liste;
+      tahtalarGuncelle(liste);
+    });
+  }
+
+  // ===================== Tahtalar Görünümü =====================
+  function tahtalarGuncelle(liste) {
+    const grid = document.getElementById("tahtaGrid");
+    const sayi = document.getElementById("tahtaSayisi");
+
+    const cevrimiciSayi = liste.filter((t) => t.cevrimici).length;
+    sayi.textContent = `${liste.length} tahta · ${cevrimiciSayi} çevrimiçi`;
+
+    if (liste.length === 0) {
+      grid.innerHTML = `<div class="bos-mesaj"><h2>Henüz tahta eklenmemiş</h2><p>Yönetici tahta ekledikten sonra burada görünecek.</p></div>`;
+      return;
+    }
+
+    grid.innerHTML = liste
+      .map(
+        (t) => `
+      <div class="kart" style="opacity: ${t.cevrimici ? 1 : 0.5}">
+        <div class="baslik">
+          <h3>${esc(t.tahta_adi || t.id.substring(0, 8))}</h3>
+          <div class="badge-grp">
+            <span class="cevrimici-badge ${t.cevrimici ? "cevrimici" : "cevrimdisi"}">
+              ${t.cevrimici ? "<i class='fas fa-circle' style='font-size:8px'></i> Çevrimiçi" : "<i class='fas fa-circle' style='font-size:8px'></i> Çevrimdışı"}
+            </span>
+            <span class="durum-badge ${t.durum === 1 ? "kilitli" : "acik"}">
+              ${t.durum === 1 ? "<i class='fas fa-lock'></i> Kilitli" : "<i class='fas fa-lock-open'></i> Açık"}
+            </span>
+          </div>
+        </div>
+        <div class="bilgi">
+          ${kullanici && kullanici.rol === "superadmin" && t.kurum_adi ? "<i class='fas fa-school'></i> " + esc(t.kurum_adi) + "<br>" : ""}
+          Ses: ${t.ses ? "<i class='fas fa-volume-up'></i> Açık" : "<i class='fas fa-volume-mute'></i> Kapalı"}
+          ${t.ip_adresi ? " · IP: " + esc(t.ip_adresi) : ""}
+          ${t.kilit_kalan != null && t.kilit_kalan >= 0 && t.cevrimici ? "<br><i class='fas fa-clock'></i> Kilitlenmeye " + kapanmaFormat(t.kilit_kalan) : ""}
+          ${t.son_baglanti ? "<br>Son: " + tarihFormat(t.son_baglanti) : ""}
+        </div>
+        <div class="aksiyonlar">
+          ${
+            t.durum === 0
+              ? `<button class="btn-kilitle" onclick="kilitle('${esc(t.id)}')" ${!t.cevrimici ? "disabled style='opacity:0.4'" : ""}><i class="fas fa-lock"></i> Kilitle</button>`
+              : `<button class="btn-ac" onclick="ac('${esc(t.id)}')" ${!t.cevrimici ? "disabled style='opacity:0.4'" : ""}><i class="fas fa-lock-open"></i> Aç</button>`
+          }
+          ${
+            t.ses === 1
+              ? `<button style="background:rgba(245,158,11,0.15);color:#f59e0b${!t.cevrimici ? ";opacity:0.4" : ""}" onclick="sesKapat('${esc(t.id)}')" ${!t.cevrimici ? "disabled" : ""}><i class="fas fa-volume-mute"></i> Ses Kapat</button>`
+              : `<button style="background:rgba(34,197,94,0.15);color:#22c55e${!t.cevrimici ? ";opacity:0.4" : ""}" onclick="sesAc('${esc(t.id)}')" ${!t.cevrimici ? "disabled" : ""}><i class="fas fa-volume-up"></i> Ses Aç</button>`
+          }
+        </div>
+      </div>
+    `
+      )
+      .join("");
+  }
+
+  // ===================== Tahta Komutları =====================
+  function kilitle(id) { socket.emit("kilitle", id); }
+  function ac(id) { socket.emit("kilidi_ac", id); }
+  function sesKapat(id) { socket.emit("ses_kapat", id); }
+  function sesAc(id) { socket.emit("ses_ac", id); }
+  function topluKilitle() { socket.emit("tumu_kilitle"); }
+  function topluAc() { socket.emit("tumu_ac"); }
+
+  // ===================== QR Tarayıcı =====================
+  let qrScanner = null;
+
+  function qrTarayiciAc() {
+    document.getElementById("qrModal").classList.add("goster");
+    const sonucEl = document.getElementById("qrSonuc");
+    sonucEl.className = "qr-sonuc";
+    sonucEl.textContent = "";
+
+    qrScanner = new Html5Qrcode("qrOkuyucu");
+    qrScanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      (decodedText) => {
+        qrKodOkundu(decodedText);
+      },
+      () => {}
+    ).catch((err) => {
+      const sonucEl = document.getElementById("qrSonuc");
+      sonucEl.className = "qr-sonuc hata";
+      sonucEl.textContent = "Kamera açılamadı. Kamera izni verildiğinden emin olun.";
+    });
+  }
+
+  function qrTarayiciKapat() {
+    if (qrScanner) {
+      qrScanner.stop().then(() => {
+        try { qrScanner.clear(); } catch(e) {}
+        qrScanner = null;
+      }).catch(() => {
+        try { qrScanner.clear(); } catch(e) {}
+        qrScanner = null;
+      });
+    }
+    document.getElementById("qrModal").classList.remove("goster");
+  }
+
+  async function qrKodOkundu(okunanMetin) {
+    if (!okunanMetin) return;
+
+    // Tarayıcıyı durdur ve temizle
+    if (qrScanner) {
+      try { await qrScanner.stop(); } catch(e) {}
+      try { qrScanner.clear(); } catch(e) {}
+      qrScanner = null;
+    }
+
+    const sonucEl = document.getElementById("qrSonuc");
+
+    // QR verisini ayrıştır (JSON: {uuid, challenge})
+    let tahtaId = null;
+    let challengeKodu = null;
+    try {
+      const veri = JSON.parse(okunanMetin);
+      tahtaId = veri.uuid || null;
+      challengeKodu = veri.challenge || null;
+    } catch (e) {
+      tahtaId = okunanMetin;
+    }
+
+    // Tahta listesinde var mı kontrol et
+    const tahta = tahtaId ? tahtaListesi.find(t => t.id === tahtaId) : null;
+
+    if (tahta && tahta.cevrimici && socket && socket.connected && challengeKodu) {
+      // Tahta çevrimiçi: Challenge doğrulamalı kilit açma
+      sonucEl.className = "qr-sonuc bilgi";
+      sonucEl.innerHTML = "<i class='fas fa-spinner fa-spin'></i> Challenge doğrulanıyor...";
+      socket.emit("kilidi_ac_qr", { tahtaId: tahtaId, challenge: challengeKodu }, function(sonuc) {
+        if (sonuc && sonuc.basarili) {
+          sonucEl.className = "qr-sonuc basarili";
+          sonucEl.innerHTML = "<i class='fas fa-lock-open'></i> " + esc(tahta.tahta_adi || tahta.id.substring(0, 8)) + " kilidi açıldı!";
+          bildirimGoster((tahta.tahta_adi || "Tahta") + " kilidi açıldı", "basari");
+        } else {
+          sonucEl.className = "qr-sonuc hata";
+          sonucEl.innerHTML = "<i class='fas fa-times-circle'></i> " + esc(sonuc && sonuc.hata ? sonuc.hata : "Challenge doğrulanamadı");
+          bildirimGoster(sonuc && sonuc.hata ? sonuc.hata : "QR doğrulama başarısız", "hata");
+        }
+        setTimeout(() => { qrTarayiciKapat(); }, 2500);
+      });
+    } else if (tahta && tahta.cevrimici && socket && socket.connected && !challengeKodu) {
+      // Challenge kodu olmayan QR — reddedilir
+      sonucEl.className = "qr-sonuc hata";
+      sonucEl.innerHTML = "<i class='fas fa-times-circle'></i> QR kodunda challenge bilgisi bulunamadı.";
+      bildirimGoster("Geçersiz QR kodu", "hata");
+      setTimeout(() => { qrTarayiciKapat(); }, 2500);
+    } else if (challengeKodu) {
+      // Tahta çevrimdışı veya bulunamadı — doğrulama kodu üret
+      sonucEl.className = "qr-sonuc bilgi";
+      sonucEl.innerHTML = "<i class='fas fa-spinner fa-spin'></i> Doğrulama kodu hesaplanıyor...";
+      try {
+        const yanit = await fetch("/api/dogrulama-kodu", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+          body: JSON.stringify({ challenge: challengeKodu, tahtaId: tahtaId })
+        });
+        const veri = await yanit.json();
+        if (yanit.ok && veri.yanit) {
+          const tahtaAdi = tahta ? (tahta.tahta_adi || tahta.id.substring(0, 8)) : "Tahta";
+          sonucEl.className = "qr-sonuc bilgi";
+          sonucEl.innerHTML = `<i class="fas fa-key"></i> <strong>${tahtaAdi}</strong> çevrimdışı<br>` +
+            `<span style="font-size:2em;font-weight:bold;letter-spacing:6px;display:block;margin:8px 0">${veri.yanit}</span>` +
+            `<small>Bu yanıt kodunu kilit ekranına girin</small>`;
+        } else {
+          sonucEl.className = "qr-sonuc hata";
+          sonucEl.textContent = veri.hata || "Doğrulama kodu üretilemedi.";
+        }
+      } catch (e) {
+        sonucEl.className = "qr-sonuc hata";
+        sonucEl.textContent = "Sunucuya bağlanılamadı.";
+      }
+      // 10 sn sonra tekrar taramaya başla
+      setTimeout(() => {
+        sonucEl.className = "qr-sonuc";
+        sonucEl.textContent = "";
+        if (document.getElementById("qrModal").classList.contains("goster") && qrScanner) {
+          qrScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, qrKodOkundu, () => {}).catch(() => {});
+        }
+      }, 10000);
+    } else {
+      sonucEl.className = "qr-sonuc hata";
+      sonucEl.textContent = "Bu QR kod tanınmadı. Tahta sisteme kayıtlı değil.";
+      setTimeout(() => {
+        sonucEl.className = "qr-sonuc";
+        sonucEl.textContent = "";
+        if (document.getElementById("qrModal").classList.contains("goster") && qrScanner) {
+          qrScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, qrKodOkundu, () => {}).catch(() => {});
+        }
+      }, 2000);
+    }
+  }
+
+  // ===================== Tahta Yönetimi (Admin) =====================
+  async function tahtaYonetimYukle() {
+    try {
+      const yanit = await fetch("/api/tahtalar", {
+        headers: { Authorization: "Bearer " + token },
+      });
+
+      if (!yanit.ok) {
+        const hata = await yanit.json().catch(() => ({}));
+        bildirimGoster(hata.hata || "Tahta listesi alınamadı", "hata");
+        return;
+      }
+
+      const liste = await yanit.json();
+      const tbody = document.getElementById("tahtaYonetimTablo");
+
+      if (!Array.isArray(liste) || liste.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="${kullanici.rol === 'superadmin' ? 7 : 6}" style="text-align:center;color:#888">Kayıtlı tahta yok</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = liste
+        .map(
+          (t) => `
+          <tr>
+            <td data-label="Tahta ID" style="font-family:monospace;font-size:11px;word-break:break-all">${esc(t.id)}</td>
+            <td data-label="Tahta Adı">${esc(t.tahta_adi || "-")}</td>
+            ${kullanici.rol === "superadmin" ? `<td data-label="Kurum">${esc(t.kurum_adi || "-")}</td>` : ""}
+            <td data-label="Durum">${t.durum === 1 ? "<i class='fas fa-lock'></i> Kilitli" : "<i class='fas fa-lock-open'></i> Açık"}</td>
+            <td data-label="Çevrimiçi">${t.cevrimici ? "<i class='fas fa-circle' style='color:var(--success);font-size:10px'></i> Evet" : "<i class='fas fa-circle' style='color:var(--danger);font-size:10px'></i> Hayır"}</td>
+            <td data-label="Son Bağlantı">${t.son_baglanti ? tarihFormat(t.son_baglanti) : "-"}</td>
+            <td><div class="islem-butonlar">
+              <button class="btn-duzenle" onclick="tahtaDuzenleAc('${esc(t.id)}', '${esc(t.tahta_adi || '')}', ${t.kurum_id || 0})"><i class="fas fa-edit"></i> Düzenle</button>
+              <button class="btn-sil" onclick="tahtaSil('${esc(t.id)}')"><i class="fas fa-trash-alt"></i> Sil</button>
+            </div></td>
+          </tr>`
+        )
+        .join("");
+    } catch (err) {
+      bildirimGoster("Tahta listesi alınamadı", "hata");
+    }
+  }
+
+  async function tahtaEkle() {
+    const tahta_id = document.getElementById("yeniTahtaId").value.trim();
+    const tahta_adi = document.getElementById("yeniTahtaAdi").value.trim();
+
+    if (!tahta_id) {
+      bildirimGoster("Tahta ID gerekli", "hata");
+      return;
+    }
+
+    const body = { tahta_id, tahta_adi };
+    if (kullanici.rol === "superadmin") {
+      const kurumSec = document.getElementById("tahtaKurumSec");
+      if (kurumSec.value) body.kurum_id = parseInt(kurumSec.value);
+    }
+
+    try {
+      const yanit = await fetch("/api/tahtalar", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const veri = await yanit.json();
+      if (!yanit.ok) {
+        bildirimGoster(veri.hata, "hata");
+        return;
+      }
+
+      bildirimGoster("Tahta başarıyla eklendi", "basari");
+      document.getElementById("yeniTahtaId").value = "";
+      document.getElementById("yeniTahtaAdi").value = "";
+      tahtaYonetimYukle();
+    } catch (err) {
+      bildirimGoster("Tahta eklenemedi", "hata");
+    }
+  }
+
+  async function tahtaSil(id) {
+    if (!confirm("Bu tahtayı silmek istediğinize emin misiniz?")) return;
+
+    try {
+      const yanit = await fetch("/api/tahtalar/" + encodeURIComponent(id), {
+        method: "DELETE",
+        headers: { Authorization: "Bearer " + token },
+      });
+
+      const veri = await yanit.json();
+      if (!yanit.ok) {
+        bildirimGoster(veri.hata, "hata");
+        return;
+      }
+
+      bildirimGoster("Tahta silindi", "basari");
+      tahtaYonetimYukle();
+    } catch (err) {
+      bildirimGoster("Tahta silinemedi", "hata");
+    }
+  }
+
+  // ===================== Kullanıcı Yönetimi (Admin) =====================
+  async function kullaniciYonetimYukle() {
+    try {
+      const yanit = await fetch("/api/kullanicilar", {
+        headers: { Authorization: "Bearer " + token },
+      });
+      const liste = await yanit.json();
+      const tbody = document.getElementById("kullaniciTablo");
+
+      if (liste.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#888">Kullanıcı yok</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = liste
+        .map(
+          (k) => `
+          <tr>
+            <td data-label="Kullanıcı Adı">${esc(k.kullanici_adi)}</td>
+            <td data-label="Ad Soyad">${esc(k.ad_soyad)}</td>
+            <td data-label="Rol">${k.rol === "superadmin" ? "Süper Yönetici" : k.rol === "yonetici" ? "Yönetici" : "Öğretmen"}</td>
+            ${kullanici.rol === "superadmin" ? `<td data-label="Kurum">${esc(k.kurum_adi || "-")}</td>` : ""}
+            <td data-label="Kayıt Tarihi">${tarihFormat(k.created_at)}</td>
+            <td>
+              ${k.id !== kullanici.id ? `<div class="islem-butonlar">
+                ${(kullanici.rol === 'superadmin' || k.rol === 'ogretmen') ? `<button class="btn-duzenle" onclick="kullaniciDuzenleAc(${k.id}, '${esc(k.ad_soyad)}', '${esc(k.rol)}', ${k.kurum_id || 0})"><i class="fas fa-user-edit"></i> Düzenle</button>` : ''}
+                <button class="btn-sil" onclick="kullaniciSil(${k.id})"><i class="fas fa-trash-alt"></i> Sil</button>
+              </div>` : '<span style="color:var(--text3)">Siz</span>'}
+            </td>
+          </tr>`
+        )
+        .join("");
+    } catch (err) {
+      bildirimGoster("Kullanıcı listesi alınamadı", "hata");
+    }
+  }
+
+  async function kullaniciEkle() {
+    const kullanici_adi = document.getElementById("yeniKullaniciAdi").value.trim();
+    const ad_soyad = document.getElementById("yeniAdSoyad").value.trim();
+    const sifre = document.getElementById("yeniSifre").value;
+    const rol = document.getElementById("yeniRol").value;
+
+    if (!kullanici_adi || !ad_soyad || !sifre) {
+      bildirimGoster("Tüm alanları doldurun", "hata");
+      return;
+    }
+
+    const body = { kullanici_adi, ad_soyad, sifre, rol };
+    if (kullanici.rol === "superadmin") {
+      const kurumSec = document.getElementById("kullaniciKurumSec");
+      if (kurumSec.value) body.kurum_id = parseInt(kurumSec.value);
+    }
+
+    try {
+      const yanit = await fetch("/api/kullanicilar", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify(body),
+      });
+
+      const veri = await yanit.json();
+      if (!yanit.ok) {
+        bildirimGoster(veri.hata, "hata");
+        return;
+      }
+
+      bildirimGoster("Kullanıcı eklendi", "basari");
+      document.getElementById("yeniKullaniciAdi").value = "";
+      document.getElementById("yeniAdSoyad").value = "";
+      document.getElementById("yeniSifre").value = "";
+      kullaniciYonetimYukle();
+    } catch (err) {
+      bildirimGoster("Kullanıcı eklenemedi", "hata");
+    }
+  }
+
+  async function kullaniciSil(id) {
+    if (!confirm("Bu kullanıcıyı silmek istediğinize emin misiniz?")) return;
+
+    try {
+      const yanit = await fetch("/api/kullanicilar/" + id, {
+        method: "DELETE",
+        headers: { Authorization: "Bearer " + token },
+      });
+
+      const veri = await yanit.json();
+      if (!yanit.ok) {
+        bildirimGoster(veri.hata, "hata");
+        return;
+      }
+
+      bildirimGoster("Kullanıcı silindi", "basari");
+      kullaniciYonetimYukle();
+    } catch (err) {
+      bildirimGoster("Kullanıcı silinemedi", "hata");
+    }
+  }
+
+  // ===================== Tahta Düzenle =====================
+  function tahtaDuzenleAc(id, adi, kurumId) {
+    document.getElementById('tahtaDuzenleId').value = id;
+    document.getElementById('tahtaDuzenleAdi').value = adi;
+    if (kullanici.rol === 'superadmin') {
+      document.getElementById('tahtaDuzenleKurumAlan').classList.remove('gizli');
+      const sec = document.getElementById('tahtaDuzenleKurumSec');
+      // Kurum seçiciyi kopyala
+      const kaynak = document.getElementById('tahtaKurumSec');
+      sec.innerHTML = kaynak.innerHTML;
+      sec.value = kurumId;
+    }
+    document.getElementById('tahtaDuzenleModal').classList.add('goster');
+  }
+
+  function tahtaDuzenleKapat() {
+    document.getElementById('tahtaDuzenleModal').classList.remove('goster');
+  }
+
+  async function tahtaGuncelle() {
+    const id = document.getElementById('tahtaDuzenleId').value;
+    const tahta_adi = document.getElementById('tahtaDuzenleAdi').value.trim();
+    const body = { tahta_adi };
+    if (kullanici.rol === 'superadmin') {
+      const kurumSec = document.getElementById('tahtaDuzenleKurumSec');
+      if (kurumSec.value) body.kurum_id = parseInt(kurumSec.value);
+    }
+    try {
+      const yanit = await fetch('/api/tahtalar/' + encodeURIComponent(id), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify(body)
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+      bildirimGoster('Tahta güncellendi', 'basari');
+      tahtaDuzenleKapat();
+      tahtaYonetimYukle();
+    } catch (err) { bildirimGoster('Tahta güncellenemedi', 'hata'); }
+  }
+
+  // ===================== Kullanıcı Düzenle =====================
+  function kullaniciDuzenleAc(id, adSoyad, rol, kurumId) {
+    document.getElementById('kullaniciDuzenleId').value = id;
+    document.getElementById('kullaniciDuzenleAdSoyad').value = adSoyad;
+    document.getElementById('kullaniciDuzenleRol').value = rol;
+    document.getElementById('kullaniciDuzenleSifre').value = '';
+    // Superadmin rol seçeneğini göster/gizle
+    const saOpt = document.getElementById('duzenleRolSuperadmin');
+    if (kullanici.rol === 'superadmin') {
+      saOpt.classList.remove('gizli');
+      document.getElementById('kullaniciDuzenleKurumAlan').classList.remove('gizli');
+      const sec = document.getElementById('kullaniciDuzenleKurumSec');
+      const kaynak = document.getElementById('kullaniciKurumSec');
+      sec.innerHTML = kaynak.innerHTML;
+      sec.value = kurumId;
+    } else {
+      saOpt.classList.add('gizli');
+      // Yönetici sadece öğretmen rolü atayabilir, seçimi kilitle
+      document.getElementById('kullaniciDuzenleRol').disabled = true;
+    }
+    document.getElementById('kullaniciDuzenleModal').classList.add('goster');
+  }
+
+  function kullaniciDuzenleKapat() {
+    document.getElementById('kullaniciDuzenleModal').classList.remove('goster');
+    document.getElementById('kullaniciDuzenleRol').disabled = false;
+  }
+
+  async function kullaniciGuncelle() {
+    const id = document.getElementById('kullaniciDuzenleId').value;
+    const ad_soyad = document.getElementById('kullaniciDuzenleAdSoyad').value.trim();
+    const rol = document.getElementById('kullaniciDuzenleRol').value;
+    const sifre = document.getElementById('kullaniciDuzenleSifre').value;
+    if (!ad_soyad) { bildirimGoster('Ad soyad gerekli', 'hata'); return; }
+    const body = { ad_soyad, rol };
+    if (sifre) body.sifre = sifre;
+    if (kullanici.rol === 'superadmin') {
+      const kurumSec = document.getElementById('kullaniciDuzenleKurumSec');
+      if (kurumSec.value) body.kurum_id = parseInt(kurumSec.value);
+    }
+    try {
+      const yanit = await fetch('/api/kullanicilar/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify(body)
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+      bildirimGoster('Kullanıcı güncellendi', 'basari');
+      kullaniciDuzenleKapat();
+      kullaniciYonetimYukle();
+    } catch (err) { bildirimGoster('Kullanıcı güncellenemedi', 'hata'); }
+  }
+
+  // ===================== Şifre Değiştir =====================
+
+  // ===================== Kurum Yönetimi (Superadmin) =====================
+  async function kurumSeciciYukle() {
+    try {
+      const yanit = await fetch("/api/kurumlar", {
+        headers: { Authorization: "Bearer " + token },
+      });
+      if (!yanit.ok) return;
+      const liste = await yanit.json();
+
+      ["tahtaKurumSec", "kullaniciKurumSec"].forEach((id) => {
+        const sel = document.getElementById(id);
+        if (!sel) return;
+        sel.innerHTML = liste.map((k) =>
+          `<option value="${k.id}">${esc(k.kurum_kodu)} - ${esc(k.kurum_adi)}</option>`
+        ).join("");
+      });
+    } catch (err) {
+      console.error("Kurum listesi alınamadı", err);
+    }
+  }
+
+  async function kurumYonetimYukle() {
+    try {
+      const yanit = await fetch("/api/kurumlar", {
+        headers: { Authorization: "Bearer " + token },
+      });
+      if (!yanit.ok) {
+        bildirimGoster("Kurum listesi alınamadı", "hata");
+        return;
+      }
+      const liste = await yanit.json();
+      const tbody = document.getElementById("kurumTablo");
+
+      if (!Array.isArray(liste) || liste.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">Kayıtlı kurum yok</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = liste.map((k) => `
+        <tr>
+          <td data-label="Kurum Kodu">${esc(k.kurum_kodu)}</td>
+          <td data-label="Kurum Adı">${esc(k.kurum_adi)}</td>
+          <td data-label="Kayıt Tarihi">${tarihFormat(k.created_at)}</td>
+          <td><div class="islem-butonlar">
+            <button class="btn-duzenle" onclick="kurumDuzenleAc(${k.id}, '${esc(k.kurum_kodu)}', '${esc(k.kurum_adi)}')"><i class="fas fa-edit"></i> Düzenle</button>
+            <button class="btn-sil" onclick="kurumSil(${k.id})"><i class="fas fa-trash-alt"></i> Sil</button>
+          </div></td>
+        </tr>
+      `).join("");
+    } catch (err) {
+      bildirimGoster("Kurum listesi alınamadı", "hata");
+    }
+  }
+
+  async function kurumEkle() {
+    const kurum_kodu = document.getElementById("yeniKurumKodu").value.trim();
+    const kurum_adi = document.getElementById("yeniKurumAdi").value.trim();
+
+    if (!kurum_kodu || !kurum_adi) {
+      bildirimGoster("Kurum kodu ve adı gerekli", "hata");
+      return;
+    }
+
+    try {
+      const yanit = await fetch("/api/kurumlar", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({ kurum_kodu, kurum_adi }),
+      });
+
+      const veri = await yanit.json();
+      if (!yanit.ok) {
+        bildirimGoster(veri.hata, "hata");
+        return;
+      }
+
+      bildirimGoster("Kurum eklendi", "basari");
+      document.getElementById("yeniKurumKodu").value = "";
+      document.getElementById("yeniKurumAdi").value = "";
+      kurumYonetimYukle();
+      kurumSeciciYukle();
+    } catch (err) {
+      bildirimGoster("Kurum eklenemedi", "hata");
+    }
+  }
+
+  // ===================== Kurum Düzenle =====================
+  function kurumDuzenleAc(id, kodu, adi) {
+    document.getElementById('kurumDuzenleId').value = id;
+    document.getElementById('kurumDuzenleKodu').value = kodu;
+    document.getElementById('kurumDuzenleAdi').value = adi;
+    document.getElementById('kurumDuzenleModal').classList.add('goster');
+  }
+
+  function kurumDuzenleKapat() {
+    document.getElementById('kurumDuzenleModal').classList.remove('goster');
+  }
+
+  async function kurumGuncelle() {
+    const id = document.getElementById('kurumDuzenleId').value;
+    const kurum_kodu = document.getElementById('kurumDuzenleKodu').value.trim();
+    const kurum_adi = document.getElementById('kurumDuzenleAdi').value.trim();
+    if (!kurum_kodu || !kurum_adi) { bildirimGoster('Kurum kodu ve adı gerekli', 'hata'); return; }
+    try {
+      const yanit = await fetch('/api/kurumlar/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ kurum_kodu, kurum_adi })
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+      bildirimGoster('Kurum güncellendi', 'basari');
+      kurumDuzenleKapat();
+      kurumYonetimYukle();
+      kurumSeciciYukle();
+    } catch (err) { bildirimGoster('Kurum güncellenemedi', 'hata'); }
+  }
+
+  async function kurumSil(id) {
+    if (!confirm("Bu kurumu silmek istediğinize emin misiniz? Kuruma bağlı tüm tahtalar ve kullanıcılar da silinecektir!")) return;
+
+    try {
+      const yanit = await fetch("/api/kurumlar/" + id, {
+        method: "DELETE",
+        headers: { Authorization: "Bearer " + token },
+      });
+
+      const veri = await yanit.json();
+      if (!yanit.ok) {
+        bildirimGoster(veri.hata, "hata");
+        return;
+      }
+
+      bildirimGoster("Kurum silindi", "basari");
+      kurumYonetimYukle();
+      kurumSeciciYukle();
+    } catch (err) {
+      bildirimGoster("Kurum silinemedi", "hata");
+    }
+  }
+
+  function sifreDegistirAc() {
+    document.getElementById("sifreModal").classList.add("goster");
+  }
+  function sifreModalKapat() {
+    document.getElementById("sifreModal").classList.remove("goster");
+    document.getElementById("mevcutSifre").value = "";
+    document.getElementById("yeniSifreInput").value = "";
+    document.getElementById("yeniSifreTekrar").value = "";
+  }
+
+  async function sifreDegistir() {
+    const mevcut = document.getElementById("mevcutSifre").value;
+    const yeni = document.getElementById("yeniSifreInput").value;
+    const tekrar = document.getElementById("yeniSifreTekrar").value;
+
+    if (!mevcut || !yeni) {
+      bildirimGoster("Tüm alanları doldurun", "hata");
+      return;
+    }
+    if (yeni !== tekrar) {
+      bildirimGoster("Yeni şifreler eşleşmiyor", "hata");
+      return;
+    }
+
+    try {
+      const yanit = await fetch("/api/sifre-degistir", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + token,
+        },
+        body: JSON.stringify({ mevcut_sifre: mevcut, yeni_sifre: yeni }),
+      });
+
+      const veri = await yanit.json();
+      if (!yanit.ok) {
+        bildirimGoster(veri.hata, "hata");
+        return;
+      }
+
+      bildirimGoster("Şifre değiştirildi", "basari");
+      sifreModalKapat();
+    } catch (err) {
+      bildirimGoster("Şifre değiştirilemedi", "hata");
+    }
+  }
+
+  // ===================== Oturum Yardımcıları =====================
+  function oturumKaydet(kalici) {
+    const depo = kalici ? localStorage : sessionStorage;
+    depo.setItem("token", token);
+    depo.setItem("kullanici", JSON.stringify(kullanici));
+    if (kalici) {
+      localStorage.setItem("hatirla", "1");
+    } else {
+      localStorage.removeItem("hatirla");
+      localStorage.removeItem("token");
+      localStorage.removeItem("kullanici");
+    }
+  }
+
+  function oturumOku() {
+    if (localStorage.getItem("hatirla") === "1") {
+      return { token: localStorage.getItem("token"), kullanici: localStorage.getItem("kullanici") };
+    }
+    return { token: sessionStorage.getItem("token"), kullanici: sessionStorage.getItem("kullanici") };
+  }
+
+  function oturumTemizle() {
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("kullanici");
+    localStorage.removeItem("token");
+    localStorage.removeItem("kullanici");
+    localStorage.removeItem("hatirla");
+  }
+
+  // ===================== Çıkış =====================
+  function cikisYap() {
+    token = null;
+    kullanici = null;
+    oturumTemizle();
+    if (socket) {
+      socket.disconnect();
+      socket = null;
+    }
+    // Açık modal/drawer varsa kapat
+    document.getElementById("kullaniciDrawer").classList.remove("goster");
+    document.getElementById("sifreModal").classList.remove("goster");
+    document.getElementById("anaPanel").classList.add("gizli");
+    document.getElementById("girisEkrani").classList.remove("gizli");
+    document.getElementById("girisSifre").value = "";
+    document.getElementById("girisHata").style.display = "none";
+  }
+
+  // ===================== Yardımcılar =====================
+  function esc(str) {
+    if (!str) return "";
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function tarihFormat(d) {
+    if (!d) return "-";
+    try {
+      return new Date(d).toLocaleString("tr-TR", {
+        day: "2-digit", month: "2-digit", year: "numeric",
+        hour: "2-digit", minute: "2-digit",
+      });
+    } catch { return d; }
+  }
+
+  function kapanmaFormat(saniye) {
+    if (saniye <= 0) return "az kaldı";
+    const dk = Math.floor(saniye / 60);
+    const sn = saniye % 60;
+    if (dk > 0) return dk + " dk " + (sn > 0 ? sn + " sn" : "");
+    return sn + " sn";
+  }
+
+  function bildirimGoster(mesaj, tip) {
+    const el = document.createElement("div");
+    el.className = "bildirim " + tip;
+    el.textContent = mesaj;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }
+
+  // ===================== Sayfa Yüklendiğinde =====================
+  (function () {
+    const oturum = oturumOku();
+    if (oturum.token && oturum.kullanici) {
+      token = oturum.token;
+      kullanici = JSON.parse(oturum.kullanici);
+      panelBaslat();
+    }
+  })();
+</script>
+
+</body>
+</html>
