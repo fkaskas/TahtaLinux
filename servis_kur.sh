@@ -32,6 +32,13 @@ kur() {
         echo "[✓] cifs-utils kuruldu"
     fi
 
+    # VLC ve python3-vlc kontrolü (video oynatma için gerekli)
+    if ! dpkg -s vlc &>/dev/null || ! dpkg -s python3-vlc &>/dev/null; then
+        echo "[*] VLC kuruluyor (video desteği)..."
+        apt install -y vlc python3-vlc
+        echo "[✓] VLC kuruldu"
+    fi
+
     # Veritabanı dizinini oluştur ve izinleri ayarla (sadece root okuyabilsin)
     mkdir -p /var/lib/tahta-kilit
     chmod 700 /var/lib/tahta-kilit

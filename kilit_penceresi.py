@@ -19,8 +19,7 @@ from PyQt5.QtCore import Qt, QTimer, QEvent, QUrl, QTime, QDate, QLocale, QSize,
 from PyQt5.QtGui import QFont, QCursor, QPixmap, QPainter, QColor, QBrush, QPainterPath, QIcon, QRegion, QPalette, QFontDatabase
 import qtawesome as qta
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings, QWebEngineProfile
-from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
-from PyQt5.QtMultimediaWidgets import QVideoWidget
+import vlc
 import qrcode
 
 from sabitler import BETIK_DIZINI, YENILEME_ARALIGI_SANIYE, VARSAYILAN_KURUM_KODU
@@ -817,8 +816,8 @@ class Kilit(QMainWindow):
         self.releaseKeyboard()
 
         # Videoyu duraklat
-        if self._video_katmani and hasattr(self, '_media_player'):
-            self._media_player.pause()
+        if self._video_katmani and hasattr(self, '_vlc_list_player') and self._vlc_list_player:
+            self._vlc_list_player.pause()
 
         self.hide()
 
@@ -1107,14 +1106,18 @@ class Kilit(QMainWindow):
 
     def _video_yenile(self):
         """Mevcut video katmanını temizle ve yeniden oluştur"""
-        if hasattr(self, '_media_player') and self._media_player:
-            self._media_player.stop()
-            self._media_player.deleteLater()
-            self._media_player = None
-        if hasattr(self, '_video_widget') and self._video_widget:
-            self._video_alani_yerlesim.removeWidget(self._video_widget)
-            self._video_widget.deleteLater()
-            self._video_widget = None
+        if hasattr(self, '_vlc_list_player') and self._vlc_list_player:
+            self._vlc_list_player.stop()
+            self._vlc_list_player = None
+        if hasattr(self, '_vlc_player') and self._vlc_player:
+            self._vlc_player = None
+        if hasattr(self, '_vlc_instance') and self._vlc_instance:
+            self._vlc_instance.release()
+            self._vlc_instance = None
+        if hasattr(self, '_video_frame') and self._video_frame:
+            self._video_alani_yerlesim.removeWidget(self._video_frame)
+            self._video_frame.deleteLater()
+            self._video_frame = None
         self._video_katmani = None
         self._video_gizli = False
         self._video_toggle_btn.hide()
@@ -1149,88 +1152,77 @@ class Kilit(QMainWindow):
         t.start()
 
     def _video_katman_olustur(self, video_klasoru, video_dosyalari):
-        """Video katmanını UI thread'inde oluştur (native QMediaPlayer)"""
+        """Video katmanını UI thread'inde oluştur (VLC tabanlı)"""
         self._video_dosyalari = video_dosyalari
         self._video_klasoru = video_klasoru
 
-        # Layout'un hesaplanması için processEvents çağır
         QApplication.processEvents()
 
-        # Native video widget
-        self._video_widget = QVideoWidget()
-        self._video_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        self._video_widget.setMinimumSize(1, 1)
-        self._video_widget.setStyleSheet("background-color: black;")
-        self._video_widget.setAspectRatioMode(Qt.KeepAspectRatio)
-        self._video_alani_yerlesim.addWidget(self._video_widget)
-        # Alt kenardan negatif margin: video widget alttan taşar, artefakt kırpılır
-        self._video_alani_yerlesim.setContentsMargins(0, 0, 0, -4)
+        # VLC çıktı frame'i
+        self._video_frame = QFrame()
+        self._video_frame.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self._video_frame.setMinimumSize(1, 1)
+        self._video_frame.setStyleSheet("background-color: black;")
+        self._video_alani_yerlesim.addWidget(self._video_frame)
+        self._video_alani_yerlesim.setContentsMargins(0, 0, 0, 0)
 
-        # Playlist oluştur
-        self._playlist = QMediaPlaylist()
+        # VLC instance ve media list player
+        self._vlc_instance = vlc.Instance('--no-xlib', '--quiet', '--no-video-title-show')
+        self._vlc_list_player = self._vlc_instance.media_list_player_new()
+        self._vlc_player = self._vlc_list_player.get_media_player()
+
+        # Media list oluştur
+        media_list = self._vlc_instance.media_list_new()
         for dosya in video_dosyalari:
             tam_yol = os.path.join(video_klasoru, dosya)
-            self._playlist.addMedia(QMediaContent(QUrl.fromLocalFile(tam_yol)))
-        self._playlist.setPlaybackMode(QMediaPlaylist.Loop)
+            media_list.add_media(self._vlc_instance.media_new(tam_yol))
+        self._vlc_list_player.set_media_list(media_list)
+        self._vlc_list_player.set_playback_mode(vlc.PlaybackMode.loop)
 
-        # Media player
-        self._media_player = QMediaPlayer()
-        self._media_player.setVideoOutput(self._video_widget)
-        self._media_player.setPlaylist(self._playlist)
-
-        # Medya durumu değiştiğinde otomatik oynat (servis modunda geç yüklenme sorunu için)
-        self._media_player.mediaStatusChanged.connect(self._video_durum_degisti)
-
-        self._video_katmani = True  # Video mevcut flagı
-
-        # Önce video sayfasına geç (widget görünür olmalı), sonra oynat
+        self._video_katmani = True
         self._video_gizli = False
         self._icerik_yigini.setCurrentWidget(self._video_alani)
 
-        # Video widget'ını açıkça boyutlandır (servis modunda boot sorunu için)
         QApplication.processEvents()
         self._video_boyut_ayarla()
-        # Gecikmeli tekrar boyutlandır (layout geç hazırlanabilir)
         QTimer.singleShot(300, self._video_boyut_ayarla)
         QTimer.singleShot(1000, self._video_boyut_ayarla)
         QTimer.singleShot(3000, self._video_boyut_ayarla)
-        QTimer.singleShot(500, self._media_player.play)
+        # VLC'ye pencere kimliğini ver ve oynat
+        QTimer.singleShot(500, self._vlc_oynat)
 
-        # Sidebar'daki video toggle butonunu görünür yap
         self._video_toggle_btn.show()
 
-    def _video_boyut_ayarla(self):
-        """Video widget'ını açıkça üst konteyner boyutuna sığdır"""
-        if not hasattr(self, '_video_widget') or not self._video_widget:
+    def _vlc_oynat(self):
+        """VLC'ye X11 pencere kimliğini ver ve oynatmayı başlat"""
+        if not hasattr(self, '_vlc_player') or not self._vlc_player:
             return
-        # Ekran geometrisini kontrol et ve gerekirse pencereyi yeniden boyutlandır
+        if not hasattr(self, '_video_frame') or not self._video_frame:
+            return
+        win_id = int(self._video_frame.winId())
+        self._vlc_player.set_xwindow(win_id)
+        self._vlc_list_player.play()
+
+    def _video_boyut_ayarla(self):
+        """Video frame'ini üst konteyner boyutuna sığdır"""
+        if not hasattr(self, '_video_frame') or not self._video_frame:
+            return
         ekran = QApplication.primaryScreen()
         if ekran:
             geometri = ekran.geometry()
             if self.geometry() != geometri:
                 self.setGeometry(geometri)
                 self.showFullScreen()
-        # Layout'u yeniden hesapla
         QApplication.processEvents()
-        # Video widget'ı video alanından biraz daha uzun yap (alt artefaktı kırp)
         alan_boyut = self._video_alani.size()
         if alan_boyut.width() > 100 and alan_boyut.height() > 100:
-            self._video_widget.setGeometry(0, 0, alan_boyut.width(), alan_boyut.height() + 4)
-        self._video_widget.updateGeometry()
+            self._video_frame.resize(alan_boyut)
+        self._video_frame.updateGeometry()
         self._video_alani.updateGeometry()
-
-    def _video_durum_degisti(self, durum):
-        """Medya durumu değiştiğinde kontrol et, yüklendiyse oynat"""
-        try:
-            if durum == QMediaPlayer.LoadedMedia or durum == QMediaPlayer.BufferedMedia:
-                if not self._video_gizli and self._media_player.state() != QMediaPlayer.PlayingState:
-                    self._media_player.play()
-            elif durum == QMediaPlayer.InvalidMedia:
-                # Geçersiz medya, sonraki videoya geç
-                if hasattr(self, '_playlist') and self._playlist.mediaCount() > 1:
-                    self._playlist.next()
-        except Exception:
-            pass
+        # VLC'ye pencere kimliğini güncelle
+        if hasattr(self, '_vlc_player') and self._vlc_player:
+            win_id = int(self._video_frame.winId())
+            self._vlc_player.set_xwindow(win_id)
 
     def _video_gizle_goster(self):
         """Video katmanını gizle veya göster"""
@@ -1238,17 +1230,15 @@ class Kilit(QMainWindow):
             return
 
         if self._video_gizli:
-            # Göster ve oynat
             self._icerik_yigini.setCurrentWidget(self._video_alani)
-            if hasattr(self, '_media_player'):
-                self._media_player.play()
+            if hasattr(self, '_vlc_list_player') and self._vlc_list_player:
+                self._vlc_list_player.play()
             self._video_toggle_btn.setIcon(qta.icon('fa5s.eye-slash', color='#95a5a6'))
             self._video_toggle_btn.setToolTip("Videoyu Gizle")
             self._video_gizli = False
         else:
-            # Duraklat ve web'e geç
-            if hasattr(self, '_media_player'):
-                self._media_player.pause()
+            if hasattr(self, '_vlc_list_player') and self._vlc_list_player:
+                self._vlc_list_player.pause()
             self._icerik_yigini.setCurrentWidget(self._web_alani)
             self._video_toggle_btn.setIcon(qta.icon('fa5s.eye', color='#95a5a6'))
             self._video_toggle_btn.setToolTip("Videoyu Göster")
@@ -1311,8 +1301,8 @@ class Kilit(QMainWindow):
             pass
 
         # Videoyu duraklat
-        if self._video_katmani and hasattr(self, '_media_player'):
-            self._media_player.pause()
+        if self._video_katmani and hasattr(self, '_vlc_list_player') and self._vlc_list_player:
+            self._vlc_list_player.pause()
 
         self.hide()
 
@@ -1487,8 +1477,8 @@ class Kilit(QMainWindow):
         self.showFullScreen()
 
         # Videoyu devam ettir
-        if self._video_katmani and hasattr(self, '_media_player') and not self._video_gizli:
-            self._media_player.play()
+        if self._video_katmani and hasattr(self, '_vlc_list_player') and self._vlc_list_player and not self._video_gizli:
+            self._vlc_list_player.play()
 
         QTimer.singleShot(500, self._girisleri_yakala)
         self._odak_zamanlayici.start(1000)
