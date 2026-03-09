@@ -33,6 +33,40 @@ bagla() {
     read -rp "Mount noktası (Örn: /mnt/video): " MOUNT_NOKTASI
     MOUNT_NOKTASI="${MOUNT_NOKTASI:-/mnt/video}"
 
+    echo "SMB Sürümü seçin:"
+    echo "  1) Otomatik (varsayılan)"
+    echo "  2) 3.0"
+    echo "  3) 3.1.1"
+    echo "  4) 2.1"
+    echo "  5) 2.0"
+    echo "  6) 1.0"
+    read -rp "Seçim [1]: " SMB_SURUM_SEC
+    case "${SMB_SURUM_SEC:-1}" in
+        2) SMB_SURUM=",vers=3.0" ;;
+        3) SMB_SURUM=",vers=3.1.1" ;;
+        4) SMB_SURUM=",vers=2.1" ;;
+        5) SMB_SURUM=",vers=2.0" ;;
+        6) SMB_SURUM=",vers=1.0" ;;
+        *) SMB_SURUM="" ;;
+    esac
+
+    echo "Kimlik doğrulama yöntemi:"
+    echo "  1) ntlmssp (varsayılan)"
+    echo "  2) ntlmv2"
+    echo "  3) ntlm"
+    echo "  4) none"
+    read -rp "Seçim [1]: " SEC_SEC
+    case "${SEC_SEC:-1}" in
+        2) SEC_PARAM=",sec=ntlmv2" ;;
+        3) SEC_PARAM=",sec=ntlm" ;;
+        4) SEC_PARAM=",sec=none" ;;
+        *) SEC_PARAM=",sec=ntlmssp" ;;
+    esac
+
+    read -rp "Domain/Workgroup (boş bırakılabilir): " DOMAIN
+    DOMAIN_PARAM=""
+    [ -n "$DOMAIN" ] && DOMAIN_PARAM=",domain=$DOMAIN"
+
     # Doğrulama
     if [ -z "$SUNUCU" ] || [ -z "$PAYLASIM" ]; then
         echo "Hata: Sunucu IP ve paylaşım adı zorunludur!"
@@ -45,12 +79,31 @@ bagla() {
 
     # Seçenekleri oluştur
     if [ -z "$KULLANICI" ]; then
-        SECENEKLER="guest,uid=1000,gid=1000,iocharset=utf8,_netdev,x-systemd.automount,x-systemd.after=network-online.target"
+        SECENEKLER="guest,uid=1000,gid=1000,iocharset=utf8,file_mode=0777,dir_mode=0777,nofail,_netdev,x-systemd.automount,x-systemd.after=network-online.target$SMB_SURUM$SEC_PARAM$DOMAIN_PARAM"
+        MOUNT_SECENEKLER="guest,uid=1000,gid=1000,iocharset=utf8,file_mode=0777,dir_mode=0777$SMB_SURUM$SEC_PARAM$DOMAIN_PARAM"
     else
-        SECENEKLER="username=$KULLANICI,password=$SIFRE,uid=1000,gid=1000,iocharset=utf8,_netdev,x-systemd.automount,x-systemd.after=network-online.target"
+        SECENEKLER="username=$KULLANICI,password=$SIFRE,uid=1000,gid=1000,iocharset=utf8,file_mode=0777,dir_mode=0777,nofail,_netdev,x-systemd.automount,x-systemd.after=network-online.target$SMB_SURUM$SEC_PARAM$DOMAIN_PARAM"
+        MOUNT_SECENEKLER="username=$KULLANICI,password=$SIFRE,uid=1000,gid=1000,iocharset=utf8,file_mode=0777,dir_mode=0777$SMB_SURUM$SEC_PARAM$DOMAIN_PARAM"
     fi
 
     FSTAB_SATIR="//$SUNUCU/$PAYLASIM  $MOUNT_NOKTASI  cifs  $SECENEKLER  0  0  $ETIKET"
+
+    # Önce doğrudan mount ile test et
+    echo "[*] Bağlantı test ediliyor..."
+    echo "    Komut: mount -t cifs //$SUNUCU/$PAYLASIM $MOUNT_NOKTASI"
+    if ! mount -t cifs "//$SUNUCU/$PAYLASIM" "$MOUNT_NOKTASI" -o "$MOUNT_SECENEKLER" 2>&1; then
+        echo ""
+        echo "[✗] Doğrudan mount başarısız!"
+        read -rp "Yine de fstab'a kaydedilsin mi? (e/h): " fstab_cevap
+        if [[ ! "$fstab_cevap" =~ ^[eE]$ ]]; then
+            echo "[ı] İşlem iptal edildi. Farklı seçenekler deneyin."
+            exit 1
+        fi
+    else
+        echo "[✓] Bağlantı başarılı!"
+        # Test mountı kaldır, fstab üzerinden bağlanacak
+        umount "$MOUNT_NOKTASI" 2>/dev/null || true
+    fi
 
     # Eski tahta-smb satırını temizle
     if grep -q "$ETIKET" /etc/fstab; then
@@ -61,6 +114,14 @@ bagla() {
     # fstab'a ekle
     echo "$FSTAB_SATIR" >> /etc/fstab
     echo "[✓] fstab'a eklendi"
+
+    # systemd automount birimlerini yeniden yükle
+    systemctl daemon-reload
+    echo "[✓] systemd daemon-reload yapıldı"
+
+    # remote-fs.target etkinleştir
+    systemctl enable remote-fs.target 2>/dev/null || true
+    echo "[✓] remote-fs.target etkinleştirildi"
 
     # Mount et
     mount -a

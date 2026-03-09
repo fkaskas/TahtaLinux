@@ -3,7 +3,7 @@
 
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
                              QPushButton, QLabel, QMessageBox, QFileDialog,
-                             QHBoxLayout, QCheckBox)
+                             QHBoxLayout, QCheckBox, QComboBox)
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 import subprocess
@@ -17,7 +17,7 @@ class SmbBaglamaPenceresi(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Tahta Kilit — Ağ Klasörü Bağlama (SMB)")
-        self.setFixedSize(500, 520)
+        self.setFixedSize(500, 650)
         self.setWindowFlags(Qt.Dialog | Qt.WindowStaysOnTopHint)
         self._arayuz_olustur()
 
@@ -80,6 +80,24 @@ class SmbBaglamaPenceresi(QDialog):
         mount_layout.addWidget(sec_btn)
 
         form.addRow("Mount Noktası:", mount_layout)
+
+        # SMB sürümü
+        self._surum_combo = QComboBox()
+        self._surum_combo.addItems(["Otomatik", "3.0", "3.1.1", "2.1", "2.0", "1.0"])
+        self._surum_combo.setMinimumHeight(35)
+        form.addRow("SMB Sürümü:", self._surum_combo)
+
+        # Kimlik doğrulama yöntemi
+        self._sec_combo = QComboBox()
+        self._sec_combo.addItems(["ntlmssp", "ntlmv2", "ntlm", "krb5", "none"])
+        self._sec_combo.setMinimumHeight(35)
+        form.addRow("Kimlik Doğrulama:", self._sec_combo)
+
+        # Domain/Workgroup
+        self._domain_girdi = QLineEdit()
+        self._domain_girdi.setPlaceholderText("Örn: WORKGROUP (boş bırakılabilir)")
+        self._domain_girdi.setMinimumHeight(35)
+        form.addRow("Domain/Workgroup:", self._domain_girdi)
 
         # Misafir erişimi
         self._misafir_cb = QCheckBox("Misafir erişimi (kullanıcı/şifre gerekmez)")
@@ -228,11 +246,23 @@ class SmbBaglamaPenceresi(QDialog):
         sifre = self._sifre_girdi.text().strip()
         misafir = self._misafir_cb.isChecked()
 
+        # SMB sürümü
+        surum = self._surum_combo.currentText()
+        surum_param = "" if surum == "Otomatik" else f",vers={surum}"
+
+        # Kimlik doğrulama
+        sec = self._sec_combo.currentText()
+        sec_param = f",sec={sec}"
+
+        # Domain
+        domain = self._domain_girdi.text().strip()
+        domain_param = f",domain={domain}" if domain else ""
+
         # Seçenekleri oluştur
         if misafir:
-            secenekler = "guest,uid=1000,gid=1000,iocharset=utf8,_netdev,x-systemd.automount,x-systemd.after=network-online.target"
+            secenekler = f"guest,uid=1000,gid=1000,iocharset=utf8,file_mode=0777,dir_mode=0777,nofail,_netdev,x-systemd.automount,x-systemd.after=network-online.target{surum_param}{sec_param}{domain_param}"
         else:
-            secenekler = f"username={kullanici},password={sifre},uid=1000,gid=1000,iocharset=utf8,_netdev,x-systemd.automount,x-systemd.after=network-online.target"
+            secenekler = f"username={kullanici},password={sifre},uid=1000,gid=1000,iocharset=utf8,file_mode=0777,dir_mode=0777,nofail,_netdev,x-systemd.automount,x-systemd.after=network-online.target{surum_param}{sec_param}{domain_param}"
 
         fstab_satir = f"//{sunucu}/{paylasim}  {mount}  cifs  {secenekler}  0  0  # tahta-smb"
 
@@ -251,12 +281,35 @@ class SmbBaglamaPenceresi(QDialog):
             subprocess.run(["pkexec", "mkdir", "-p", mount],
                            check=True, capture_output=True, text=True)
 
-            # Eski tahta-smb satırını temizle ve yenisini ekle
-            self._fstab_guncelle(fstab_satir)
+            # Önce doğrudan mount dene (hata mesajı daha ayrıntılı)
+            kaynak = f"//{sunucu}/{paylasim}"
+            mount_sonuc = subprocess.run(
+                ["pkexec", "mount", "-t", "cifs", kaynak, mount, "-o", secenekler.replace(',_netdev', '').replace(',x-systemd.automount', '').replace(',x-systemd.after=network-online.target', '').replace(',nofail', '')],
+                capture_output=True, text=True
+            )
 
-            # Mount et
-            subprocess.run(["pkexec", "mount", "-a"],
-                           check=True, capture_output=True, text=True)
+            if mount_sonuc.returncode != 0:
+                # Mount başarısız — ayrıntılı hata göster ama fstab'a yine de kaydet
+                hata_mesaj = mount_sonuc.stderr.strip()
+                cevap = QMessageBox.question(
+                    self, "Mount Başarısız",
+                    f"Doğrudan mount başarısız oldu:\n\n{hata_mesaj}\n\n"
+                    f"Komut: mount -t cifs {kaynak} {mount}\n\n"
+                    f"Yine de fstab'a kaydedilsin mi?\n"
+                    f"(Yeniden başlatıldığında çalışabilir)",
+                    QMessageBox.Yes | QMessageBox.No
+                )
+                if cevap == QMessageBox.Yes:
+                    self._fstab_guncelle(fstab_satir)
+                    self._bilgi_label.setText(f"⚠️ fstab'a kaydedildi ama mount şu an başarısız.")
+                    self._bilgi_label.setStyleSheet("color: #FF9800; font-weight: bold;")
+                else:
+                    self._bilgi_label.setText(f"❌ Mount başarısız. Farklı seçenekler deneyin.")
+                    self._bilgi_label.setStyleSheet("color: #f44336; font-weight: bold;")
+                return
+
+            # Mount başarılı — fstab'a kaydet
+            self._fstab_guncelle(fstab_satir)
 
             self._bilgi_label.setText(f"✅ Başarılı! {mount} bağlandı.\nHer açılışta otomatik bağlanacak.")
             self._bilgi_label.setStyleSheet("color: #4CAF50; font-weight: bold;")
@@ -308,6 +361,12 @@ class SmbBaglamaPenceresi(QDialog):
         try:
             subprocess.run(["pkexec", "cp", tmp_yol, "/etc/fstab"],
                            check=True, capture_output=True, text=True)
+            # systemd automount birimlerini yeniden yükle
+            subprocess.run(["pkexec", "systemctl", "daemon-reload"],
+                           capture_output=True, text=True)
+            # remote-fs.target etkinleştir (ağ dosya sistemleri için)
+            subprocess.run(["pkexec", "systemctl", "enable", "remote-fs.target"],
+                           capture_output=True, text=True)
         finally:
             os.unlink(tmp_yol)
 

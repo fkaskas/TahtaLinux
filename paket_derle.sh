@@ -44,7 +44,7 @@ echo "[✓] ${#PYTHON_DOSYALARI[@]} Python dosyası kopyalandı"
 # 3) Resim dosyalarını kopyala
 echo "[*] Resim dosyaları kopyalanıyor..."
 mkdir -p "$HEDEF/opt/tahta-kilit/resim"
-cp "$KAYNAK/resim/"* "$HEDEF/opt/tahta-kilit/resim/"
+cp -r "$KAYNAK/resim/"* "$HEDEF/opt/tahta-kilit/resim/"
 echo "[✓] Resim dosyaları kopyalandı"
 
 # 3.5) Shell scriptlerini kopyala
@@ -58,6 +58,11 @@ chmod 755 "$HEDEF/DEBIAN/postinst" "$HEDEF/DEBIAN/prerm" "$HEDEF/DEBIAN/postrm"
 chmod 755 "$HEDEF/opt/tahta-kilit/kilit.py"
 chmod 755 "$HEDEF/opt/tahta-kilit/baslatici.sh"
 chmod 644 "$HEDEF/opt/tahta-kilit/resim/"*
+# Font dosyaları izinleri
+if [ -d "$HEDEF/opt/tahta-kilit/resim/fonts" ]; then
+    chmod 755 "$HEDEF/opt/tahta-kilit/resim/fonts"
+    chmod 644 "$HEDEF/opt/tahta-kilit/resim/fonts/"* 2>/dev/null || true
+fi
 for dosya in "${PYTHON_DOSYALARI[@]}"; do
     [ "$dosya" != "kilit.py" ] && chmod 644 "$HEDEF/opt/tahta-kilit/$dosya"
 done

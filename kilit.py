@@ -17,6 +17,9 @@ if os.getuid() == 0:
 
 # QWebEngineView kaynaklı zararsız paintEngine uyarılarını bastır
 os.environ["QT_LOGGING_RULES"] = "qt.qpa.paint.warning=false"
+# GStreamer XV sink artefaktını önle (video alt kısmındaki renkli çizgi)
+os.environ["QT_GSTREAMER_VIDEOSINK"] = "ximagesink"
+os.environ["GST_VIDEO_SINK"] = "ximagesink"
 
 from PyQt5.QtCore import qInstallMessageHandler, QtWarningMsg
 

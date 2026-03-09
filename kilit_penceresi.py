@@ -16,7 +16,7 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QFileDialog, QSystemTrayIcon, QMenu, QAction,
                              QProgressBar, QStackedWidget, QToolButton)
 from PyQt5.QtCore import Qt, QTimer, QEvent, QUrl, QTime, QDate, QLocale, QSize, QSettings, pyqtSignal, QFileSystemWatcher
-from PyQt5.QtGui import QFont, QCursor, QPixmap, QPainter, QColor, QBrush, QPainterPath, QIcon, QRegion, QPalette
+from PyQt5.QtGui import QFont, QCursor, QPixmap, QPainter, QColor, QBrush, QPainterPath, QIcon, QRegion, QPalette, QFontDatabase
 import qtawesome as qta
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings, QWebEngineProfile
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent, QMediaPlaylist
@@ -28,6 +28,13 @@ from servisler import KodUretici, DogrulamaServisi
 from dogrulama_penceresi import KodDogrulamaPenceresi
 from veritabani import VeritabaniYoneticisi
 from online_istemci import OnlineIstemci
+
+def _fontlari_yukle():
+    """Fontları yükle (QApplication oluştuktan sonra çağrılmalı)"""
+    for dosya in ["Merriweather-Bold.ttf", "Merriweather-Regular.ttf"]:
+        yol = os.path.join(BETIK_DIZINI, "resim", "fonts", dosya)
+        if os.path.exists(yol):
+            QFontDatabase.addApplicationFont(yol)
 
 
 class YumusakIlerleme(QWidget):
@@ -394,22 +401,24 @@ class Kilit(QMainWindow):
 
         kenar_yerlesim.addLayout(logo_yerlesim)
 
+        # Fontları yükle
+        _fontlari_yukle()
+
         # Saat etiketi
         self.saat_etiketi = QLabel()
-        saat_yazi_tipi = QFont()
-        saat_yazi_tipi.setPointSize(64)
-        saat_yazi_tipi.setBold(True)
+        saat_yazi_tipi = QFont("Merriweather", 50)
+        saat_yazi_tipi.setWeight(QFont.Bold)
         self.saat_etiketi.setFont(saat_yazi_tipi)
-        self.saat_etiketi.setStyleSheet("color: #2c3e50; border: none;")
+        self.saat_etiketi.setStyleSheet("color: #1a2533; border: none; letter-spacing: 3px;")
         self.saat_etiketi.setAlignment(Qt.AlignCenter)
         kenar_yerlesim.addWidget(self.saat_etiketi)
 
         # Tarih etiketi
         self.tarih_etiketi = QLabel()
-        tarih_yazi_tipi = QFont()
-        tarih_yazi_tipi.setPointSize(14)
+        tarih_yazi_tipi = QFont("Merriweather", 12)
+        tarih_yazi_tipi.setWeight(QFont.DemiBold)
         self.tarih_etiketi.setFont(tarih_yazi_tipi)
-        self.tarih_etiketi.setStyleSheet("color: #2c3e50; border: none;")
+        self.tarih_etiketi.setStyleSheet("color: #34495e; border: none; letter-spacing: 1px;")
         self.tarih_etiketi.setAlignment(Qt.AlignCenter)
         kenar_yerlesim.addWidget(self.tarih_etiketi)
 
@@ -423,9 +432,8 @@ class Kilit(QMainWindow):
         tahta_adi = self._vt.tahta_kaydi_al(self._kurumkodu)
         tahta_adi_metin = tahta_adi["adi"] if tahta_adi else "Tahta"
         self._tahta_adi_etiketi = QLabel(tahta_adi_metin)
-        sinif_yazi_tipi = QFont()
-        sinif_yazi_tipi.setPointSize(16)
-        sinif_yazi_tipi.setBold(True)
+        sinif_yazi_tipi = QFont("Merriweather", 16)
+        sinif_yazi_tipi.setWeight(QFont.Bold)
         self._tahta_adi_etiketi.setFont(sinif_yazi_tipi)
         self._tahta_adi_etiketi.setStyleSheet("color: #2c3e50; border: none; padding: 10px;")
         self._tahta_adi_etiketi.setAlignment(Qt.AlignCenter)
@@ -460,19 +468,14 @@ class Kilit(QMainWindow):
         self._qr_etiketi.setFixedSize(200, 200)
         kenar_yerlesim.addWidget(self._qr_etiketi, alignment=Qt.AlignHCenter)
 
-        # Challenge kodu etiketi
+        # Challenge kodu etiketi (gizli — sadece dahili kullanım)
         self._challenge_etiketi = QLabel()
-        challenge_yazi_tipi = QFont()
-        challenge_yazi_tipi.setPointSize(18)
-        challenge_yazi_tipi.setBold(True)
-        self._challenge_etiketi.setFont(challenge_yazi_tipi)
-        self._challenge_etiketi.setAlignment(Qt.AlignCenter)
-        self._challenge_etiketi.setStyleSheet("color: #2c3e50; border: none;")
-        kenar_yerlesim.addWidget(self._challenge_etiketi)
+        self._challenge_etiketi.hide()
 
-        # Süre ilerleme çubuğu
+        # Süre ilerleme çubuğu (QR ile aynı genişlikte)
         self._sure_cubugu = YumusakIlerleme()
-        kenar_yerlesim.addWidget(self._sure_cubugu)
+        self._sure_cubugu.setFixedWidth(200)
+        kenar_yerlesim.addWidget(self._sure_cubugu, alignment=Qt.AlignHCenter)
 
         # Challenge sistemini başlat
         self._challenge_guncelle()
@@ -588,8 +591,10 @@ class Kilit(QMainWindow):
 
         # Sayfa 1: Video (başlangıçta boş, sonra doldurulacak)
         self._video_alani = QWidget()
+        self._video_alani.setStyleSheet("background-color: black;")
         self._video_alani_yerlesim = QVBoxLayout()
         self._video_alani_yerlesim.setContentsMargins(0, 0, 0, 0)
+        self._video_alani_yerlesim.setSpacing(0)
         self._video_alani.setLayout(self._video_alani_yerlesim)
         self._icerik_yigini.addWidget(self._video_alani)
 
@@ -1148,9 +1153,18 @@ class Kilit(QMainWindow):
         self._video_dosyalari = video_dosyalari
         self._video_klasoru = video_klasoru
 
+        # Layout'un hesaplanması için processEvents çağır
+        QApplication.processEvents()
+
         # Native video widget
         self._video_widget = QVideoWidget()
+        self._video_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self._video_widget.setMinimumSize(1, 1)
+        self._video_widget.setStyleSheet("background-color: black;")
+        self._video_widget.setAspectRatioMode(Qt.KeepAspectRatio)
         self._video_alani_yerlesim.addWidget(self._video_widget)
+        # Alt kenardan negatif margin: video widget alttan taşar, artefakt kırpılır
+        self._video_alani_yerlesim.setContentsMargins(0, 0, 0, -4)
 
         # Playlist oluştur
         self._playlist = QMediaPlaylist()
@@ -1172,10 +1186,38 @@ class Kilit(QMainWindow):
         # Önce video sayfasına geç (widget görünür olmalı), sonra oynat
         self._video_gizli = False
         self._icerik_yigini.setCurrentWidget(self._video_alani)
+
+        # Video widget'ını açıkça boyutlandır (servis modunda boot sorunu için)
+        QApplication.processEvents()
+        self._video_boyut_ayarla()
+        # Gecikmeli tekrar boyutlandır (layout geç hazırlanabilir)
+        QTimer.singleShot(300, self._video_boyut_ayarla)
+        QTimer.singleShot(1000, self._video_boyut_ayarla)
+        QTimer.singleShot(3000, self._video_boyut_ayarla)
         QTimer.singleShot(500, self._media_player.play)
 
         # Sidebar'daki video toggle butonunu görünür yap
         self._video_toggle_btn.show()
+
+    def _video_boyut_ayarla(self):
+        """Video widget'ını açıkça üst konteyner boyutuna sığdır"""
+        if not hasattr(self, '_video_widget') or not self._video_widget:
+            return
+        # Ekran geometrisini kontrol et ve gerekirse pencereyi yeniden boyutlandır
+        ekran = QApplication.primaryScreen()
+        if ekran:
+            geometri = ekran.geometry()
+            if self.geometry() != geometri:
+                self.setGeometry(geometri)
+                self.showFullScreen()
+        # Layout'u yeniden hesapla
+        QApplication.processEvents()
+        # Video widget'ı video alanından biraz daha uzun yap (alt artefaktı kırp)
+        alan_boyut = self._video_alani.size()
+        if alan_boyut.width() > 100 and alan_boyut.height() > 100:
+            self._video_widget.setGeometry(0, 0, alan_boyut.width(), alan_boyut.height() + 4)
+        self._video_widget.updateGeometry()
+        self._video_alani.updateGeometry()
 
     def _video_durum_degisti(self, durum):
         """Medya durumu değiştiğinde kontrol et, yüklendiyse oynat"""
@@ -1214,9 +1256,15 @@ class Kilit(QMainWindow):
 
     def sistemi_kilitle(self):
         """Sistemi kilitle: klavyeyi yakala"""
+        # Ekran geometrisini yeniden al (boot sırasında değişmiş olabilir)
+        ekran = QApplication.primaryScreen()
+        if ekran:
+            geometri = ekran.geometry()
+            self.setGeometry(geometri)
         self.showFullScreen()
-        QTimer.singleShot(50, self._icerik_yukle)
-        QTimer.singleShot(300, self._girisleri_yakala)
+        QApplication.processEvents()
+        QTimer.singleShot(200, self._icerik_yukle)
+        QTimer.singleShot(500, self._girisleri_yakala)
 
         self._odak_zamanlayici.start(1000)
 
