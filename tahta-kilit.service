@@ -1,24 +1,14 @@
 [Unit]
 Description=Tahta Ekran Kilitleme Servisi
-After=lightdm.service graphical.target
+After=graphical.target lightdm.service
 Wants=graphical.target
-Requires=lightdm.service
 
 [Service]
 Type=simple
-Environment=DISPLAY=:0
-Environment=XAUTHORITY=/home/etapadmin/.Xauthority
-Environment=QT_QPA_PLATFORM=xcb
-Environment=HOME=/home/etapadmin
-Environment=XDG_RUNTIME_DIR=/run/user/1000
-Environment=QTWEBENGINE_CHROMIUM_FLAGS=--no-sandbox
-Environment=PULSE_SERVER=unix:/run/user/1000/pulse/native
-Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
-Environment=GST_PLUGIN_SYSTEM_PATH=/usr/lib/x86_64-linux-gnu/gstreamer-1.0
 Environment=PYTHONUNBUFFERED=1
-WorkingDirectory=/home/etapadmin/Masaüstü/Tahta
+WorkingDirectory=/opt/tahta-kilit
 ExecStartPre=/bin/sleep 5
-ExecStart=/usr/bin/python3 /home/etapadmin/Masaüstü/Tahta/kilit.py
+ExecStart=/bin/bash /opt/tahta-kilit/baslatici.sh
 Restart=always
 RestartSec=3
 

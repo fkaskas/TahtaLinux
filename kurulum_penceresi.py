@@ -6,6 +6,7 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QFormLayout, QLineEdit,
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 import uuid
+from smb_bagla import SmbBaglamaPenceresi
 
 
 class KurulumPenceresi(QDialog):
@@ -14,7 +15,7 @@ class KurulumPenceresi(QDialog):
     def __init__(self, parent=None, mevcut_kurumkodu="", mevcut_adi=""):
         super().__init__(parent)
         self.setWindowTitle("Tahta Kilit — İlk Kurulum")
-        self.setFixedSize(420, 480)
+        self.setFixedSize(420, 540)
         self.setWindowFlags(Qt.Dialog | Qt.WindowStaysOnTopHint)
 
         self._kurumkodu = ""
@@ -92,6 +93,20 @@ class KurulumPenceresi(QDialog):
         kaydet_btn.clicked.connect(self._kaydet)
         ana.addWidget(kaydet_btn)
 
+        # SMB Ağ Klasörü Bağlama butonu
+        smb_btn = QPushButton("📁 Ağ Klasörü Bağla (SMB)")
+        smb_btn.setMinimumHeight(35)
+        smb_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #FF9800; color: white;
+                border: none; border-radius: 5px;
+                font-size: 12px; font-weight: bold;
+            }
+            QPushButton:hover { background-color: #F57C00; }
+        """)
+        smb_btn.clicked.connect(self._smb_bagla)
+        ana.addWidget(smb_btn)
+
         self.setLayout(ana)
 
     def _kaydet(self):
@@ -117,6 +132,11 @@ class KurulumPenceresi(QDialog):
         self._kurum_adi = kurum_adi
         self._url = url
         self.accept()
+
+    def _smb_bagla(self):
+        """SMB ağ klasörü bağlama penceresini aç"""
+        pencere = SmbBaglamaPenceresi(self)
+        pencere.exec_()
 
     @property
     def kurumkodu(self):

@@ -25,6 +25,13 @@ kur() {
         exit 1
     fi
 
+    # cifs-utils kontrolü (SMB bağlantısı için gerekli)
+    if ! dpkg -s cifs-utils &>/dev/null; then
+        echo "[*] cifs-utils kuruluyor (SMB desteği)..."
+        apt install -y cifs-utils
+        echo "[✓] cifs-utils kuruldu"
+    fi
+
     # Veritabanı dizinini oluştur ve izinleri ayarla (sadece root okuyabilsin)
     mkdir -p /var/lib/tahta-kilit
     chmod 700 /var/lib/tahta-kilit
