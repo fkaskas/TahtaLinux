@@ -21,6 +21,7 @@ class OnlineIstemci(QObject):
     hata_sinyali = pyqtSignal(str)  # Sunucudan gelen hata mesajı
     durum_bilgisi_sinyali = pyqtSignal(int, int)  # durum, ses
     ders_saatleri_sinyali = pyqtSignal(dict)  # {"aktif": 0/1, "saatler": [...]}
+    tahta_adi_sinyali = pyqtSignal(str)  # Sunucudan gelen yeni tahta adı
 
     def __init__(self, kurum_kodu, tahta_adi, tahta_id="", anahtar="", parent=None):
         super().__init__(parent)
@@ -92,6 +93,12 @@ class OnlineIstemci(QObject):
         def ders_saatleri_geldi(veri):
             if isinstance(veri, dict):
                 self.ders_saatleri_sinyali.emit(veri)
+
+        @sio.on("tahta_adi_guncellendi")
+        def tahta_adi_geldi(veri):
+            yeni_adi = veri.get("tahta_adi", "")
+            if yeni_adi:
+                self.tahta_adi_sinyali.emit(yeni_adi)
 
         return sio
 

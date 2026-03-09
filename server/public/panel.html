@@ -62,9 +62,34 @@
     .giris-kutu input {
       width: 100%; padding: 14px 16px; border-radius: var(--radius); border: 1px solid var(--border);
       background: var(--bg); color: var(--text); font-size: 16px; margin-bottom: 16px;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s; box-sizing: border-box;
     }
     .giris-kutu input:focus { outline: none; border-color: var(--accent); }
+    .sifre-wrapper {
+      display: flex; align-items: center;
+      border: 1px solid var(--border); border-radius: var(--radius);
+      background: var(--bg); margin-bottom: 16px;
+      transition: border-color 0.2s;
+    }
+    .sifre-wrapper:focus-within { border-color: var(--accent); }
+    .sifre-wrapper input {
+      flex: 1; border: none; background: transparent;
+      padding: 14px 8px 14px 16px; margin-bottom: 0; width: 0;
+      color: var(--text); font-size: 16px;
+    }
+    .sifre-wrapper input:focus { border-color: transparent; outline: none; }
+    .hatirla-satir {
+      display: flex !important; align-items: center; gap: 7px; padding-right: 12px;
+      font-size: 13px; color: var(--text2); cursor: pointer; user-select: none;
+      white-space: nowrap; flex-shrink: 0; margin-bottom: 0 !important;
+    }
+    .hatirla-satir input[type="checkbox"] {
+      width: 17px !important; height: 17px; accent-color: var(--accent);
+      cursor: pointer; flex-shrink: 0; margin: 0 !important;
+      margin-bottom: 0 !important; border: none !important;
+    }
+    .hatirla-satir span { line-height: 17px; align-self: center; display: block; }
+
     .giris-kutu button {
       width: 100%; padding: 14px; border: none; border-radius: var(--radius);
       background: var(--accent); color: #fff; font-size: 16px; font-weight: 600;
@@ -72,21 +97,9 @@
     }
     .giris-kutu button:active { background: var(--accent-hover); transform: scale(0.98); }
     .giris-hata { color: var(--danger); text-align: center; font-size: 13px; margin-top: 12px; display: none; }
-    .hatirla-satir {
-      display: flex; align-items: center; gap: 8px; margin-bottom: 18px;
-      font-size: 14px; color: var(--text2); cursor: pointer; user-select: none;
-    }
-    .hatirla-satir input[type="checkbox"] {
-      width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer;
-      border-radius: 4px; margin: 0; flex-shrink: 0;
-    }
-    .hatirla-satir span {
-      line-height: 1; transform: translateY(-5px);
-    }
-
-    /* ===== Genel ===== */
     .gizli { display: none !important; }
 
+    /* ===== Genel ===== */
     /* ===== Header ===== */
     .header {
       background: var(--surface); padding: 12px 16px;
@@ -454,16 +467,20 @@
     <div class="giris-logo"><i class="fas fa-chalkboard"></i></div>
     <h1>Tahta Kilit</h1>
     <p>Yönetim paneline giriş yapın</p>
+    <form id="girisForm" onsubmit="event.preventDefault(); girisYap();" autocomplete="on">
     <label>Kullanıcı Adı</label>
     <input type="text" id="girisKullanici" placeholder="Kullanıcı adınız" autocomplete="username" />
     <label>Şifre</label>
-    <input type="password" id="girisSifre" placeholder="Şifreniz" autocomplete="current-password" />
-    <label class="hatirla-satir">
-      <input type="checkbox" id="beniHatirla" />
-      <span>Beni hatırla</span>
-    </label>
-    <button onclick="girisYap()"><i class="fas fa-sign-in-alt"></i> Giriş Yap</button>
+    <div class="sifre-wrapper">
+      <input type="password" id="girisSifre" placeholder="Şifreniz" autocomplete="current-password" />
+      <label class="hatirla-satir" for="beniHatirla">
+        <input type="checkbox" id="beniHatirla" />
+        <span>Beni hatırla</span>
+      </label>
+    </div>
+    <button type="submit"><i class="fas fa-sign-in-alt"></i> Giriş Yap</button>
     <div class="giris-hata" id="girisHata"></div>
+    </form>
   </div>
 </div>
 
@@ -702,6 +719,8 @@
   <div class="modal" onclick="event.stopPropagation()">
     <h3><i class="fas fa-edit"></i> Tahta Düzenle</h3>
     <input type="hidden" id="tahtaDuzenleId" />
+    <label>Tahta ID</label>
+    <input type="text" id="tahtaDuzenleYeniId" placeholder="Tahta ID" />
     <label>Tahta Adı</label>
     <input type="text" id="tahtaDuzenleAdi" placeholder="Tahta adı" />
     <div class="gizli" id="tahtaDuzenleKurumAlan">
@@ -1309,6 +1328,7 @@
   // ===================== Tahta Düzenle =====================
   function tahtaDuzenleAc(id, adi, kurumId) {
     document.getElementById('tahtaDuzenleId').value = id;
+    document.getElementById('tahtaDuzenleYeniId').value = id;
     document.getElementById('tahtaDuzenleAdi').value = adi;
     if (kullanici.rol === 'superadmin') {
       document.getElementById('tahtaDuzenleKurumAlan').classList.remove('gizli');
@@ -1327,8 +1347,10 @@
 
   async function tahtaGuncelle() {
     const id = document.getElementById('tahtaDuzenleId').value;
+    const yeni_tahta_id = document.getElementById('tahtaDuzenleYeniId').value.trim();
     const tahta_adi = document.getElementById('tahtaDuzenleAdi').value.trim();
-    const body = { tahta_adi };
+    if (!yeni_tahta_id) { bildirimGoster('Tahta ID boş olamaz', 'hata'); return; }
+    const body = { tahta_adi, yeni_tahta_id };
     if (kullanici.rol === 'superadmin') {
       const kurumSec = document.getElementById('tahtaDuzenleKurumSec');
       if (kurumSec.value) body.kurum_id = parseInt(kurumSec.value);

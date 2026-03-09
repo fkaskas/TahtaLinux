@@ -325,24 +325,40 @@ app.put(
   authMiddleware,
   adminMiddleware,
   async (req, res) => {
-    const { tahta_adi, kurum_id } = req.body;
+    const { tahta_adi, kurum_id, yeni_tahta_id } = req.body;
     try {
+      const mevcutId = req.params.id;
       if (req.kullanici.rol === "superadmin") {
         const alanlar = [];
         const degerler = [];
+        if (yeni_tahta_id !== undefined && yeni_tahta_id !== mevcutId) { alanlar.push("id = ?"); degerler.push(yeni_tahta_id); }
         if (tahta_adi !== undefined) { alanlar.push("tahta_adi = ?"); degerler.push(tahta_adi); }
         if (kurum_id !== undefined) { alanlar.push("kurum_id = ?"); degerler.push(kurum_id); }
         if (alanlar.length === 0) return res.status(400).json({ hata: "Güncellenecek alan yok" });
-        degerler.push(req.params.id);
+        degerler.push(mevcutId);
         await db.execute(`UPDATE tahtalar SET ${alanlar.join(", ")} WHERE id = ?`, degerler);
       } else {
-        if (tahta_adi === undefined) return res.status(400).json({ hata: "Güncellenecek alan yok" });
-        await db.execute(
-          "UPDATE tahtalar SET tahta_adi = ? WHERE id = ? AND kurum_id = ?",
-          [tahta_adi, req.params.id, req.kullanici.kurum_id]
-        );
+        const alanlar = [];
+        const degerler = [];
+        if (yeni_tahta_id !== undefined && yeni_tahta_id !== mevcutId) { alanlar.push("id = ?"); degerler.push(yeni_tahta_id); }
+        if (tahta_adi !== undefined) { alanlar.push("tahta_adi = ?"); degerler.push(tahta_adi); }
+        if (alanlar.length === 0) return res.status(400).json({ hata: "Güncellenecek alan yok" });
+        degerler.push(mevcutId, req.kullanici.kurum_id);
+        await db.execute(`UPDATE tahtalar SET ${alanlar.join(", ")} WHERE id = ? AND kurum_id = ?`, degerler);
       }
       panellereGonder(req.kullanici.kurum_id).catch(() => {});
+
+      // Bağlı tahtaya ad güncellemesini bildir
+      if (tahta_adi !== undefined) {
+        const hedefId = (yeni_tahta_id && yeni_tahta_id !== mevcutId) ? yeni_tahta_id : mevcutId;
+        for (const [sid, info] of Object.entries(bagliTahtalar)) {
+          if (info.tahtaId === mevcutId || info.tahtaId === hedefId) {
+            io.to(sid).emit("tahta_adi_guncellendi", { tahta_adi });
+            break;
+          }
+        }
+      }
+
       res.json({ mesaj: "Tahta güncellendi" });
     } catch (err) {
       console.error("Tahta güncelleme hatası:", err);

@@ -7,6 +7,7 @@ import json
 import time
 import subprocess
 import threading
+import shutil
 from io import BytesIO
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -167,6 +168,34 @@ class AyarlarPenceresi(QDialog):
         self._url_girisi.setStyleSheet(girdi_stili)
         form.addRow(url_etiketi, self._url_girisi)
 
+        logo_etiketi_form = QLabel("Kurum Logosu")
+        logo_etiketi_form.setFont(etiket_font)
+        logo_etiketi_form.setStyleSheet("color: #2c3e50; background: transparent;")
+        logo_satir = QHBoxLayout()
+        logo_satir.setSpacing(6)
+        self._logo_yolu_girisi = QLineEdit()
+        self._logo_yolu_girisi.setPlaceholderText("500x500 px PNG dosyası seçin")
+        self._logo_yolu_girisi.setReadOnly(True)
+        self._logo_yolu_girisi.setStyleSheet("""
+            QLineEdit {
+                padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px;
+                background-color: #fafafa; color: #333; font-size: 13px;
+            }
+        """)
+        logo_satir.addWidget(self._logo_yolu_girisi)
+        logo_sec_btn = QPushButton("Seç...")
+        logo_sec_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        logo_sec_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #3498db; color: white; border: none;
+                border-radius: 6px; padding: 8px 14px; font-size: 12px; font-weight: bold;
+            }
+            QPushButton:hover { background-color: #2980b9; }
+        """)
+        logo_sec_btn.clicked.connect(self._logo_sec)
+        logo_satir.addWidget(logo_sec_btn)
+        form.addRow(logo_etiketi_form, logo_satir)
+
         video_etiketi = QLabel("Video Klasörü")
         video_etiketi.setFont(etiket_font)
         video_etiketi.setStyleSheet("color: #2c3e50; background: transparent;")
@@ -242,6 +271,35 @@ class AyarlarPenceresi(QDialog):
         yerlesim.addLayout(btn_yerlesim)
         self.setLayout(yerlesim)
 
+    def _logo_sec(self):
+        """Logo PNG seçme dialogu aç — 500x500 px zorunlu"""
+        from PyQt5.QtWidgets import QMessageBox
+        dosya, _ = QFileDialog.getOpenFileName(
+            self, "Kurum Logosu Seç", os.path.expanduser("~"),
+            "PNG Dosyası (*.png)",
+            options=QFileDialog.DontUseNativeDialog
+        )
+        if not dosya:
+            return
+        pixmap = QPixmap(dosya)
+        if pixmap.isNull():
+            QMessageBox.warning(self, "Hata", "Geçersiz PNG dosyası!")
+            return
+        w, h = pixmap.width(), pixmap.height()
+        if w != h:
+            QMessageBox.warning(
+                self, "Boyut Hatası",
+                f"Logo kare olmalıdır (genişlik = yükseklik).\nSeçilen dosya: {w}x{h} px"
+            )
+            return
+        if not (400 <= w <= 500):
+            QMessageBox.warning(
+                self, "Boyut Hatası",
+                f"Logo 400x400 ile 500x500 px arasında olmalıdır.\nSeçilen dosya: {w}x{h} px"
+            )
+            return
+        self._logo_yolu_girisi.setText(dosya)
+
     def _klasor_sec(self):
         """Klasör seçme dialogu aç"""
         mevcut = self._video_girisi.text().strip()
@@ -295,6 +353,17 @@ class AyarlarPenceresi(QDialog):
             ayarlar = QSettings("KulumTal", "Tahta")
         ayarlar.setValue("video_klasoru", self._video_girisi.text().strip())
         ayarlar.sync()
+
+        # Logo dosyasını kopyala
+        logo_kaynak = self._logo_yolu_girisi.text().strip()
+        if logo_kaynak and os.path.isfile(logo_kaynak):
+            hedef = os.path.join(BETIK_DIZINI, "resim", "logo.png")
+            try:
+                shutil.copy2(logo_kaynak, hedef)
+            except Exception as e:
+                from PyQt5.QtWidgets import QMessageBox
+                QMessageBox.warning(self, "Logo Kaydedilemedi", str(e))
+
         self.accept()
 
 
@@ -342,6 +411,7 @@ class Kilit(QMainWindow):
         self._online.baglanti_durumu_sinyali.connect(self._online_baglanti_degisti)
         self._online.durum_bilgisi_sinyali.connect(self._online_durum_senkronize)
         self._online.ders_saatleri_sinyali.connect(self._ders_saatleri_guncelle)
+        self._online.tahta_adi_sinyali.connect(self._tahta_adi_guncelle)
         self._online.baslat()
 
         # Ders çıkış saatleri kontrolü (her 15 saniyede bir kontrol et)
@@ -390,15 +460,16 @@ class Kilit(QMainWindow):
         turk_etiketi.setStyleSheet("border: none;")
         logo_yerlesim.addWidget(turk_etiketi)
 
-        logo_etiketi = QLabel()
+        self._logo_etiketi = QLabel()
         logo_pixmap = QPixmap(os.path.join(BETIK_DIZINI, "resim", "logo.png"))
         if not logo_pixmap.isNull():
-            logo_etiketi.setPixmap(logo_pixmap.scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-        logo_etiketi.setAlignment(Qt.AlignCenter)
-        logo_etiketi.setStyleSheet("border: none;")
-        logo_yerlesim.addWidget(logo_etiketi)
+            self._logo_etiketi.setPixmap(logo_pixmap.scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+        self._logo_etiketi.setAlignment(Qt.AlignCenter)
+        self._logo_etiketi.setStyleSheet("border: none;")
+        logo_yerlesim.addWidget(self._logo_etiketi)
 
         kenar_yerlesim.addLayout(logo_yerlesim)
+        kenar_yerlesim.addSpacing(4)
 
         # Fontları yükle
         _fontlari_yukle()
@@ -431,7 +502,7 @@ class Kilit(QMainWindow):
         tahta_adi = self._vt.tahta_kaydi_al(self._kurumkodu)
         tahta_adi_metin = tahta_adi["adi"] if tahta_adi else "Tahta"
         self._tahta_adi_etiketi = QLabel(tahta_adi_metin)
-        sinif_yazi_tipi = QFont("Merriweather", 16)
+        sinif_yazi_tipi = QFont("Merriweather", 12)
         sinif_yazi_tipi.setWeight(QFont.Bold)
         self._tahta_adi_etiketi.setFont(sinif_yazi_tipi)
         self._tahta_adi_etiketi.setStyleSheet("color: #2c3e50; border: none; padding: 10px;")
@@ -474,6 +545,7 @@ class Kilit(QMainWindow):
         # Süre ilerleme çubuğu (QR ile aynı genişlikte)
         self._sure_cubugu = YumusakIlerleme()
         self._sure_cubugu.setFixedWidth(200)
+        self._sure_cubugu.setFixedHeight(4)
         kenar_yerlesim.addWidget(self._sure_cubugu, alignment=Qt.AlignHCenter)
 
         # Challenge sistemini başlat
@@ -548,9 +620,9 @@ class Kilit(QMainWindow):
         kenar_yerlesim.addSpacing(20)
 
         # İmza
-        imza_etiketi = QLabel("@KASKAS  &  @AVCI")
+        imza_etiketi = QLabel("@2026 KuluMtal")
         imza_etiketi.setAlignment(Qt.AlignCenter)
-        imza_etiketi.setStyleSheet("color: #b0b0b0; border: none; font-size: 9px;")
+        imza_etiketi.setStyleSheet("color: #b0b0b0; border: none; font-size: 10px;")
 
         # Sidebar ana layout: içerik + alt bar
         sidebar_ana_yerlesim = QVBoxLayout()
@@ -750,6 +822,11 @@ class Kilit(QMainWindow):
         if self._vt._db_yolu not in izlenen:
             self._db_izleyici.addPath(self._vt._db_yolu)
         self._db_durum_kontrol()
+
+    def _tahta_adi_guncelle(self, yeni_adi):
+        """Sunucudan gelen tahta adı güncellemesini uygula"""
+        if yeni_adi and self._tahta_adi_etiketi.text() != yeni_adi:
+            self._tahta_adi_etiketi.setText(yeni_adi)
 
     def _db_durum_kontrol(self):
         """Veritabanındaki durum değişikliğini kontrol et"""
@@ -992,6 +1069,7 @@ class Kilit(QMainWindow):
         self.show()
         if sonuc == QDialog.Accepted:
             self._video_yenile()
+            self._logo_yenile()
         self._odak_zamanlayici.start(1000)
         QTimer.singleShot(200, self._girisleri_yakala)
 
@@ -1103,6 +1181,12 @@ class Kilit(QMainWindow):
             except Exception:
                 pass
         return gvfs_yolu
+
+    def _logo_yenile(self):
+        """Ayarlar kaydedildikten sonra logoyu yeniden yükle"""
+        logo_pixmap = QPixmap(os.path.join(BETIK_DIZINI, "resim", "logo.png"))
+        if not logo_pixmap.isNull():
+            self._logo_etiketi.setPixmap(logo_pixmap.scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
     def _video_yenile(self):
         """Mevcut video katmanını temizle ve yeniden oluştur"""

@@ -14,14 +14,24 @@ import os
 # Root olarak çalışırken Chromium sandbox hatasını önle
 if os.getuid() == 0:
     os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = "--no-sandbox"
+else:
+    os.environ["QTWEBENGINE_CHROMIUM_FLAGS"] = os.environ.get("QTWEBENGINE_CHROMIUM_FLAGS", "") + " --disable-gpu --disable-gpu-compositing"
 
-# QWebEngineView kaynaklı zararsız paintEngine uyarılarını bastır
-os.environ["QT_LOGGING_RULES"] = "qt.qpa.paint.warning=false"
+# AT-SPI ve GPU kaynaklı zararsız uyarıları bastır
+os.environ["QT_LOGGING_RULES"] = "qt.qpa.paint.warning=false;qt.accessibility.atspi.warning=false"
+os.environ["NO_AT_BRIDGE"] = "1"
 
 from PyQt5.QtCore import qInstallMessageHandler, QtWarningMsg
 
 def _qt_mesaj_filtresi(msg_type, context, message):
-    if "paintEngine" in message:
+    gizle = (
+        "paintEngine" in message
+        or "ContextResult" in message
+        or "GpuChannel" in message
+        or "AtSpiAdaptor" in message
+        or "Accessible invalid" in message
+    )
+    if gizle:
         return
     if msg_type == QtWarningMsg:
         sys.stderr.write(f"Warning: {message}\n")

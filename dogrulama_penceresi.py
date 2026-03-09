@@ -42,19 +42,61 @@ class KodDogrulamaPenceresi(QDialog):
         yerlesim.setContentsMargins(30, 30, 30, 30)
         yerlesim.setSpacing(6)
 
-        baslik = QLabel("Kilidi Açmak İçin\nYanıt Kodunu Girin")
-        baslik_font = QFont("Noto Sans", 14)
-        baslik_font.setWeight(QFont.DemiBold)
-        baslik.setFont(baslik_font)
-        baslik.setAlignment(Qt.AlignCenter)
-        baslik.setStyleSheet("color: #2c3e50;")
-        yerlesim.addWidget(baslik)
+        # Kilit Kodu ve Süre yan yana
+        ust_satir = QHBoxLayout()
+        ust_satir.setSpacing(8)
 
-        self._challenge_etiketi = QLabel(f"Challenge: {self._challenge_kodu}")
-        self._challenge_etiketi.setFont(QFont("Noto Sans", 12))
+        # Kilit Kodu kutusu
+        kilit_kodu_kutu = QVBoxLayout()
+        kilit_kodu_kutu.setSpacing(2)
+        kilit_kodu_baslik = QLabel("Kilit Kodu")
+        kilit_kodu_baslik.setFont(QFont("Noto Sans", 9))
+        kilit_kodu_baslik.setStyleSheet("color: #7f8c8d;")
+        kilit_kodu_kutu.addWidget(kilit_kodu_baslik)
+
+        self._challenge_etiketi = QLabel(self._challenge_kodu)
+        kilit_kodu_font = QFont("Noto Sans", 16)
+        kilit_kodu_font.setWeight(QFont.Bold)
+        self._challenge_etiketi.setFont(kilit_kodu_font)
         self._challenge_etiketi.setAlignment(Qt.AlignCenter)
-        self._challenge_etiketi.setStyleSheet("color: #7f8c8d;")
-        yerlesim.addWidget(self._challenge_etiketi)
+        self._challenge_etiketi.setStyleSheet(
+            "color: #2c3e50; background-color: #eaf4fb; border-radius: 8px;"
+            "padding: 8px 12px; border: 1px solid #aed6f1;"
+        )
+        kilit_kodu_kutu.addWidget(self._challenge_etiketi)
+        ust_satir.addLayout(kilit_kodu_kutu, 1)
+
+        # Süre kutusu
+        if self._sure_goster:
+            sure_kutu = QVBoxLayout()
+            sure_kutu.setSpacing(2)
+            sure_baslik = QLabel("Süre (dk)")
+            sure_baslik.setFont(QFont("Noto Sans", 9))
+            sure_baslik.setStyleSheet("color: #7f8c8d;")
+            sure_kutu.addWidget(sure_baslik)
+
+            self._sure_girisi = QLineEdit("40")
+            self._sure_girisi.setMaxLength(3)
+            self._sure_girisi.setAlignment(Qt.AlignCenter)
+            self._sure_girisi.setFont(QFont("", 16, QFont.Bold))
+            self._sure_girisi.setReadOnly(True)
+            self._sure_girisi.setStyleSheet("""
+                QLineEdit {
+                    border: 1px solid #aed6f1;
+                    border-radius: 8px;
+                    padding: 8px 12px;
+                    background-color: #eaf4fb;
+                    color: #2c3e50;
+                }
+            """)
+            self._sure_girisi.mousePressEvent = lambda e: self._sure_odak_degistir(True)
+            sure_kutu.addWidget(self._sure_girisi)
+            ust_satir.addLayout(sure_kutu, 0)
+        else:
+            self._sure_girisi = None
+
+        yerlesim.addLayout(ust_satir)
+        yerlesim.addSpacing(6)
 
         self._giris_kutusu = QLineEdit()
         self._giris_kutusu.setPlaceholderText("Yanıt kodu...")
@@ -81,40 +123,6 @@ class KodDogrulamaPenceresi(QDialog):
         self._durum_etiketi.setAlignment(Qt.AlignCenter)
         self._durum_etiketi.setStyleSheet("color: #e74c3c;")
         yerlesim.addWidget(self._durum_etiketi)
-
-        # Açık kalma süresi seçici
-        if self._sure_goster:
-            sure_yerlesim = QHBoxLayout()
-            sure_yerlesim.setSpacing(8)
-
-            sure_baslik = QLabel("Süre (dk):")
-            sure_baslik.setFont(QFont("Noto Sans", 11))
-            sure_baslik.setStyleSheet("color: #7f8c8d;")
-            sure_yerlesim.addWidget(sure_baslik)
-
-            self._sure_girisi = QLineEdit("40")
-            self._sure_girisi.setMaxLength(3)
-            self._sure_girisi.setAlignment(Qt.AlignCenter)
-            self._sure_girisi.setFont(QFont("", 16, QFont.Bold))
-            self._sure_girisi.setReadOnly(True)
-            self._sure_girisi.setFixedWidth(80)
-            self._sure_girisi.setStyleSheet("""
-                QLineEdit {
-                    border: 2px solid #bdc3c7;
-                    border-radius: 8px;
-                    padding: 6px;
-                    background-color: white;
-                    color: #2c3e50;
-                }
-            """)
-            self._sure_girisi.mousePressEvent = lambda e: self._sure_odak_degistir(True)
-            sure_yerlesim.addWidget(self._sure_girisi)
-
-            sure_yerlesim.addStretch()
-            yerlesim.addLayout(sure_yerlesim)
-            yerlesim.addSpacing(4)
-        else:
-            self._sure_girisi = None
 
         # Nümerik klavye
         klavye_yerlesim = QGridLayout()
@@ -166,6 +174,7 @@ class KodDogrulamaPenceresi(QDialog):
         klavye_yerlesim.addWidget(temizle_btn, 3, 2)
 
         yerlesim.addLayout(klavye_yerlesim)
+        yerlesim.addSpacing(5)
 
         buton_yerlesim = QHBoxLayout()
         buton_yerlesim.setSpacing(10)
@@ -220,13 +229,13 @@ class KodDogrulamaPenceresi(QDialog):
         painter.setRenderHint(QPainter.Antialiasing)
         painter.setPen(Qt.NoPen)
         painter.setBrush(QColor("#f5f5f5"))
-        painter.drawRoundedRect(self.rect(), 20, 20)
+        painter.drawRoundedRect(self.rect(), 10, 10)
         painter.end()
 
     def challenge_guncelle(self, yeni_challenge):
         """Dışarıdan challenge kodu güncellemesi (timer değiştiğinde)"""
         self._challenge_kodu = yeni_challenge
-        self._challenge_etiketi.setText(f"Challenge: {self._challenge_kodu}")
+        self._challenge_etiketi.setText(self._challenge_kodu)
         self._giris_kutusu.clear()
         self._hatali_deneme = 0
 
@@ -333,7 +342,7 @@ class KodDogrulamaPenceresi(QDialog):
             self._hatali_deneme += 1
             if self._hatali_deneme >= MAX_DENEME:
                 self._challenge_kodu = self._yeni_challenge_uret()
-                self._challenge_etiketi.setText(f"Challenge: {self._challenge_kodu}")
+                self._challenge_etiketi.setText(self._challenge_kodu)
                 self._hatali_deneme = 0
                 self._durum_etiketi.setText("3 hatalı giriş! Yeni kod üretildi.")
             else:
