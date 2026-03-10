@@ -596,19 +596,19 @@ class Kilit(QMainWindow):
         buton_satiri.addWidget(ayarlar_butonu)
 
         # Kilidi Aç butonu
-        kilit_ac_butonu = QPushButton()
-        kilit_ac_butonu.setIcon(qta.icon('fa5s.lock-open', color='#e74c3c'))
-        kilit_ac_butonu.setIconSize(QSize(28, 28))
-        kilit_ac_butonu.setFixedSize(60, 50)
-        kilit_ac_butonu.setCursor(QCursor(Qt.PointingHandCursor))
-        kilit_ac_butonu.setToolTip("Kilidi Aç")
-        kilit_ac_butonu.setStyleSheet(seffaf_buton_stili)
-        kilit_ac_butonu.clicked.connect(self._kilidi_ac_dialogu_goster)
-        buton_satiri.addWidget(kilit_ac_butonu)
+        self._kilit_ac_butonu = QPushButton()
+        self._kilit_ac_butonu.setIcon(qta.icon('fa5s.lock-open', color='#e74c3c'))
+        self._kilit_ac_butonu.setIconSize(QSize(28, 28))
+        self._kilit_ac_butonu.setFixedSize(60, 50)
+        self._kilit_ac_butonu.setCursor(QCursor(Qt.PointingHandCursor))
+        self._kilit_ac_butonu.setToolTip("Kilidi Aç")
+        self._kilit_ac_butonu.setStyleSheet(seffaf_buton_stili)
+        self._kilit_ac_butonu.clicked.connect(self._kilidi_ac_dialogu_goster)
+        buton_satiri.addWidget(self._kilit_ac_butonu)
 
         # Bilgisayarı Kapat butonu
         kapat_butonu = QPushButton()
-        kapat_butonu.setIcon(qta.icon('fa5s.power-off', color='#e74c3c'))
+        kapat_butonu.setIcon(qta.icon('fa5s.power-off', color='#95a5a6'))
         kapat_butonu.setIconSize(QSize(28, 28))
         kapat_butonu.setFixedSize(60, 50)
         kapat_butonu.setCursor(QCursor(Qt.PointingHandCursor))
@@ -746,6 +746,8 @@ class Kilit(QMainWindow):
         """Sunucu bağlantı durumu değişti"""
         durum = "Bağlı" if bagli else "Çevrimdışı"
         print(f"[ONLİNE] Sunucu: {durum}")
+        renk = '#27ae60' if bagli else '#e74c3c'
+        self._kilit_ac_butonu.setIcon(qta.icon('fa5s.lock-open', color=renk))
 
     def _online_durum_senkronize(self, durum, ses):
         """Sunucudan gelen durum bilgisiyle senkronize ol (sunucu formatı: 1=kilitli, 0=açık)"""
@@ -1130,6 +1132,14 @@ class Kilit(QMainWindow):
         if sonuc == QDialog.Accepted:
             self._video_yenile()
             self._logo_yenile()
+            # Ayarlardan anahtar/kurum değişmiş olabilir — online istemciyi güncelle
+            yeni_kayit = self._vt.tahta_kaydi_al(self._kurumkodu)
+            if yeni_kayit:
+                yeni_anahtar = yeni_kayit.get("anahtar", "")
+                if yeni_anahtar != self._online._anahtar:
+                    self._online._anahtar = yeni_anahtar
+                    self._online.baglantiyi_kontrol_et()
+                    print(f"[ONLİNE] Anahtar güncellendi, yeniden bağlanılıyor")
         self._odak_zamanlayici.start(1000)
         QTimer.singleShot(200, self._girisleri_yakala)
 

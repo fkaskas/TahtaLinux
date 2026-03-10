@@ -5,7 +5,7 @@ set -e
 
 BETIK_DIZINI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PAKET_DIZINI="$BETIK_DIZINI/paket"
-PAKET_ADI="tahta-kilit_1.1"
+PAKET_ADI="tahta-kilit_1.2"
 KAYNAK="$BETIK_DIZINI"
 HEDEF="$PAKET_DIZINI/$PAKET_ADI"
 

@@ -65,6 +65,13 @@
       transition: border-color 0.2s; box-sizing: border-box;
     }
     .giris-kutu input:focus { outline: none; border-color: var(--accent); }
+    .giris-kutu input:-webkit-autofill,
+    .giris-kutu input:-webkit-autofill:hover,
+    .giris-kutu input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 1000px var(--bg) inset !important;
+      -webkit-text-fill-color: var(--text) !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
     .sifre-wrapper {
       display: flex; align-items: center;
       border: 1px solid var(--border); border-radius: var(--radius);
@@ -78,6 +85,13 @@
       color: var(--text); font-size: 16px;
     }
     .sifre-wrapper input:focus { border-color: transparent; outline: none; }
+    .sifre-wrapper input:-webkit-autofill,
+    .sifre-wrapper input:-webkit-autofill:hover,
+    .sifre-wrapper input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 1000px var(--bg) inset !important;
+      -webkit-text-fill-color: var(--text) !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
     .hatirla-satir {
       display: flex !important; align-items: center; gap: 7px; padding-right: 12px;
       font-size: 13px; color: var(--text2); cursor: pointer; user-select: none;
@@ -203,13 +217,18 @@
       display: flex; flex-direction: column; gap: 12px;
       margin-bottom: 20px; background: var(--surface);
       padding: 16px; border-radius: var(--radius); border: 1px solid var(--border);
+      overflow: hidden;
     }
-    .form-satir .alan { display: flex; flex-direction: column; gap: 5px; }
+    .form-satir .alan { display: flex; flex-direction: column; gap: 5px; overflow: hidden; }
     .form-satir label { font-size: 12px; color: var(--text2); font-weight: 500; }
     .form-satir input, .form-satir select {
       padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border);
       background: var(--bg); color: var(--text); font-size: 15px; width: 100%;
-      min-width: 0;
+      min-width: 0; box-sizing: border-box; max-width: 100%;
+    }
+    .form-satir input[type="date"] {
+      -webkit-appearance: none; appearance: none;
+      min-height: 46px;
     }
     .form-satir input:focus, .form-satir select:focus { outline: none; border-color: var(--accent); }
     .btn-ekle {
@@ -282,6 +301,7 @@
       border-radius: 20px 20px 0 0; width: 100%;
       max-width: 480px; padding-bottom: calc(24px + var(--safe-bottom));
       animation: modalUp 0.3s ease;
+      overflow: hidden;
     }
     @keyframes modalUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     .modal h3 { color: var(--text); margin-bottom: 20px; font-size: 18px; font-weight: 700; }
@@ -289,8 +309,20 @@
     .modal input {
       width: 100%; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--border);
       background: var(--bg); color: var(--text); font-size: 16px; margin-bottom: 14px;
+      box-sizing: border-box; max-width: 100%;
+    }
+    .modal input[type="date"] {
+      -webkit-appearance: none; appearance: none;
+      min-height: 48px;
     }
     .modal input:focus { outline: none; border-color: var(--accent); }
+    .modal input:-webkit-autofill,
+    .modal input:-webkit-autofill:hover,
+    .modal input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 1000px var(--bg) inset !important;
+      -webkit-text-fill-color: var(--text) !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
     .modal-butonlar { display: flex; gap: 10px; margin-top: 8px; }
     .modal-butonlar button {
       flex: 1; padding: 14px; border: none; border-radius: 10px;
@@ -704,6 +736,19 @@
 
     <!-- Tahta Yönetimi Sekmesi -->
     <div class="sekme-icerik" id="icerik-tahta-yonetim">
+      <!-- Kurum Anahtarı (yönetici için) -->
+      <div class="yonetim-panel gizli" id="kurumAnahtarAlani" style="margin-bottom:20px;">
+        <h2><i class="fas fa-key"></i> Kurum Anahtarı</h2>
+        <p style="color:var(--text3);font-size:13px;margin-bottom:12px;">
+          Bu anahtar, tahtaların sunucuya bağlanırken kimlik doğrulaması yapması için kullanılır. Tahta ayarlarına bu anahtarı girin.
+        </p>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <code id="kurumAnahtarDeger" style="background:var(--bg);border:1px solid var(--border);padding:10px 14px;border-radius:8px;font-size:13px;color:var(--text);word-break:break-all;flex:1;min-width:200px;">Yükleniyor...</code>
+          <button class="btn-ekle" style="padding:8px 14px;" onclick="kurumAnahtarKopyala()" title="Kopyala"><i class="fas fa-copy"></i> Kopyala</button>
+          <button class="btn-duzenle" style="padding:8px 14px;" onclick="kurumAnahtarYenileYonetici()" title="Yeni anahtar üret"><i class="fas fa-sync-alt"></i> Yenile</button>
+        </div>
+      </div>
+
       <div class="yonetim-panel">
         <h2>Tahta Kayıt</h2>
         <div class="form-satir">
@@ -753,6 +798,14 @@
             <input type="password" id="yeniSifre" placeholder="En az 6 karakter" />
           </div>
           <div class="alan">
+            <label>Branş</label>
+            <input type="text" id="yeniBrans" placeholder="Örn: Matematik" />
+          </div>
+          <div class="alan">
+            <label>Doğum Tarihi</label>
+            <input type="date" id="yeniDogumTarihi" />
+          </div>
+          <div class="alan">
             <label>Rol</label>
             <select id="yeniRol">
               <option value="ogretmen">Öğretmen</option>
@@ -765,7 +818,7 @@
         <h3>Kullanıcılar</h3>
         <table>
           <thead>
-            <tr id="kullaniciYonetimBaslik"><th>Kullanıcı Adı</th><th>Ad Soyad</th><th>Rol</th><th>Kayıt Tarihi</th><th></th></tr>
+            <tr id="kullaniciYonetimBaslik"><th>Kullanıcı Adı</th><th>Ad Soyad</th><th>Branş</th><th>Doğum Tarihi</th><th>Rol</th><th>Kayıt Tarihi</th><th></th></tr>
           </thead>
           <tbody id="kullaniciTablo"></tbody>
         </table>
@@ -790,7 +843,7 @@
         <h3>Kayıtlı Kurumlar</h3>
         <table>
           <thead>
-            <tr><th>Kurum Kodu</th><th>Kurum Adı</th><th>Kayıt Tarihi</th><th></th></tr>
+            <tr><th>Kurum Kodu</th><th>Kurum Adı</th><th>Anahtar</th><th>Kayıt Tarihi</th><th></th></tr>
           </thead>
           <tbody id="kurumTablo"></tbody>
         </table>
@@ -924,6 +977,10 @@
     <input type="hidden" id="kullaniciDuzenleId" />
     <label>Ad Soyad</label>
     <input type="text" id="kullaniciDuzenleAdSoyad" placeholder="Ad Soyad" />
+    <label>Branş</label>
+    <input type="text" id="kullaniciDuzenleBrans" placeholder="Örn: Matematik" />
+    <label>Doğum Tarihi</label>
+    <input type="date" id="kullaniciDuzenleDogumTarihi" />
     <label>Rol</label>
     <select id="kullaniciDuzenleRol">
       <option value="ogretmen">Öğretmen</option>
@@ -1261,6 +1318,12 @@
       document.getElementById("sekme-ders-saatleri").classList.remove("gizli");
     }
 
+    // Yönetici için kurum anahtarı alanını göster
+    if (kullanici.rol === "yonetici" || kullanici.rol === "superadmin") {
+      document.getElementById("kurumAnahtarAlani").classList.remove("gizli");
+      kurumAnahtarYukle();
+    }
+
     // Superadmin için kurum yönetimi ve ek alanlar
     if (kullanici.rol === "superadmin") {
       document.getElementById("sekme-kurum-yonetim").classList.remove("gizli");
@@ -1270,7 +1333,7 @@
       document.getElementById("dersSaatleriKurumAlan").classList.remove("gizli");
       // Tablo başlıklarına kurum sütunu ekle
       document.getElementById("tahtaYonetimBaslik").innerHTML = "<th>Tahta ID</th><th>Tahta Adı</th><th>Kurum</th><th>Durum</th><th>Çevrimiçi</th><th>Son Bağlantı</th><th></th>";
-      document.getElementById("kullaniciYonetimBaslik").innerHTML = "<th>Kullanıcı Adı</th><th>Ad Soyad</th><th>Rol</th><th>Kurum</th><th>Kayıt Tarihi</th><th></th>";
+      document.getElementById("kullaniciYonetimBaslik").innerHTML = "<th>Kullanıcı Adı</th><th>Ad Soyad</th><th>Branş</th><th>Doğum Tarihi</th><th>Rol</th><th>Kurum</th><th>Kayıt Tarihi</th><th></th>";
       kurumSeciciYukle();
     }
 
@@ -1281,6 +1344,7 @@
         document.querySelectorAll(".sekme-icerik").forEach((s) => s.classList.remove("aktif"));
         el.classList.add("aktif");
         document.getElementById("icerik-" + el.dataset.sekme).classList.add("aktif");
+        localStorage.setItem("aktif_sekme", el.dataset.sekme);
 
         // Yönetim verilerini yükle
         if (el.dataset.sekme === "tahta-yonetim") tahtaYonetimYukle();
@@ -1289,6 +1353,15 @@
         if (el.dataset.sekme === "ders-saatleri") dersSaatleriYukle();
       });
     });
+
+    // Kayıtlı sekmeyi geri yükle
+    const kayitliSekme = localStorage.getItem("aktif_sekme");
+    if (kayitliSekme) {
+      const sekmeEl = document.querySelector(`.sekme[data-sekme="${kayitliSekme}"]`);
+      if (sekmeEl && !sekmeEl.classList.contains("gizli")) {
+        sekmeEl.click();
+      }
+    }
 
     // Socket.IO bağlantısı
     socketBaslat();
@@ -1639,12 +1712,14 @@
           <tr>
             <td data-label="Kullanıcı Adı">${esc(k.kullanici_adi)}</td>
             <td data-label="Ad Soyad">${esc(k.ad_soyad)}</td>
+            <td data-label="Branş">${esc(k.brans || "-")}</td>
+            <td data-label="Doğum Tarihi">${k.dogum_tarihi ? tarihFormatSadeceTarih(k.dogum_tarihi) : "-"}</td>
             <td data-label="Rol">${k.rol === "superadmin" ? "Süper Yönetici" : k.rol === "yonetici" ? "Yönetici" : "Öğretmen"}</td>
             ${kullanici.rol === "superadmin" ? `<td data-label="Kurum">${esc(k.kurum_adi || "-")}</td>` : ""}
             <td data-label="Kayıt Tarihi">${tarihFormat(k.created_at)}</td>
             <td>
               ${k.id !== kullanici.id ? `<div class="islem-butonlar">
-                ${(kullanici.rol === 'superadmin' || k.rol === 'ogretmen') ? `<button class="btn-duzenle" onclick="kullaniciDuzenleAc(${k.id}, '${esc(k.ad_soyad)}', '${esc(k.rol)}', ${k.kurum_id || 0})"><i class="fas fa-user-edit"></i> Düzenle</button>` : ''}
+                ${(kullanici.rol === 'superadmin' || k.rol === 'ogretmen') ? `<button class="btn-duzenle" onclick="kullaniciDuzenleAc(${k.id}, '${esc(k.ad_soyad)}', '${esc(k.rol)}', ${k.kurum_id || 0}, '${esc(k.brans || '')}', '${esc(k.dogum_tarihi || '')}')"><i class="fas fa-user-edit"></i> Düzenle</button>` : ''}
                 <button class="btn-sil" onclick="kullaniciSil(${k.id})"><i class="fas fa-trash-alt"></i> Sil</button>
               </div>` : '<span style="color:var(--text3)">Siz</span>'}
             </td>
@@ -1667,7 +1742,9 @@
       return;
     }
 
-    const body = { kullanici_adi, ad_soyad, sifre, rol };
+    const brans = document.getElementById("yeniBrans").value.trim();
+    const dogum_tarihi = document.getElementById("yeniDogumTarihi").value;
+    const body = { kullanici_adi, ad_soyad, sifre, rol, brans, dogum_tarihi };
     if (kullanici.rol === "superadmin") {
       const kurumSec = document.getElementById("kullaniciKurumSec");
       if (kurumSec.value) body.kurum_id = parseInt(kurumSec.value);
@@ -1693,6 +1770,8 @@
       document.getElementById("yeniKullaniciAdi").value = "";
       document.getElementById("yeniAdSoyad").value = "";
       document.getElementById("yeniSifre").value = "";
+      document.getElementById("yeniBrans").value = "";
+      document.getElementById("yeniDogumTarihi").value = "";
       kullaniciYonetimYukle();
     } catch (err) {
       bildirimGoster("Kullanıcı eklenemedi", "hata");
@@ -1766,9 +1845,11 @@
   }
 
   // ===================== Kullanıcı Düzenle =====================
-  function kullaniciDuzenleAc(id, adSoyad, rol, kurumId) {
+  function kullaniciDuzenleAc(id, adSoyad, rol, kurumId, brans, dogumTarihi) {
     document.getElementById('kullaniciDuzenleId').value = id;
     document.getElementById('kullaniciDuzenleAdSoyad').value = adSoyad;
+    document.getElementById('kullaniciDuzenleBrans').value = brans || '';
+    document.getElementById('kullaniciDuzenleDogumTarihi').value = dogumTarihi ? dogumTarihi.substring(0, 10) : '';
     document.getElementById('kullaniciDuzenleRol').value = rol;
     document.getElementById('kullaniciDuzenleSifre').value = '';
     // Superadmin rol seçeneğini göster/gizle
@@ -1796,10 +1877,12 @@
   async function kullaniciGuncelle() {
     const id = document.getElementById('kullaniciDuzenleId').value;
     const ad_soyad = document.getElementById('kullaniciDuzenleAdSoyad').value.trim();
+    const brans = document.getElementById('kullaniciDuzenleBrans').value.trim();
+    const dogum_tarihi = document.getElementById('kullaniciDuzenleDogumTarihi').value;
     const rol = document.getElementById('kullaniciDuzenleRol').value;
     const sifre = document.getElementById('kullaniciDuzenleSifre').value;
     if (!ad_soyad) { bildirimGoster('Ad soyad gerekli', 'hata'); return; }
-    const body = { ad_soyad, rol };
+    const body = { ad_soyad, rol, brans, dogum_tarihi };
     if (sifre) body.sifre = sifre;
     if (kullanici.rol === 'superadmin') {
       const kurumSec = document.getElementById('kullaniciDuzenleKurumSec');
@@ -1863,6 +1946,11 @@
         <tr>
           <td data-label="Kurum Kodu">${esc(k.kurum_kodu)}</td>
           <td data-label="Kurum Adı">${esc(k.kurum_adi)}</td>
+          <td data-label="Anahtar">
+            <code style="font-size:11px;word-break:break-all;user-select:all;max-width:180px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;" title="${esc(k.anahtar)}">${esc(k.anahtar ? k.anahtar.substring(0, 12) + '...' : '-')}</code>
+            ${k.anahtar ? `<button class="btn-duzenle" style="padding:2px 6px;font-size:11px;margin-left:4px;" onclick="navigator.clipboard.writeText('${esc(k.anahtar)}');bildirimGoster('Anahtar kopyaland\u0131','basari')" title="Kopyala"><i class="fas fa-copy"></i></button>` : ''}
+            <button class="btn-duzenle" style="padding:2px 6px;font-size:11px;margin-left:2px;" onclick="kurumAnahtarYenile(${k.id})" title="Yeni anahtar üret"><i class="fas fa-sync-alt"></i></button>
+          </td>
           <td data-label="Kayıt Tarihi">${tarihFormat(k.created_at)}</td>
           <td><div class="islem-butonlar">
             <button class="btn-duzenle" onclick="kurumDuzenleAc(${k.id}, '${esc(k.kurum_kodu)}', '${esc(k.kurum_adi)}')"><i class="fas fa-edit"></i> Düzenle</button>
@@ -1940,6 +2028,71 @@
       kurumYonetimYukle();
       kurumSeciciYukle();
     } catch (err) { bildirimGoster('Kurum güncellenemedi', 'hata'); }
+  }
+
+  async function kurumAnahtarYenile(id) {
+    if (!confirm("Bu kurumun anahtarını yenilemek istediğinize emin misiniz?\n\nDikkat: Tüm tahtaların yeni anahtarla güncellenmesi gerekecektir!")) return;
+    try {
+      const yanit = await fetch("/api/kurumlar/" + id + "/anahtar-yenile", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token },
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) {
+        bildirimGoster(veri.hata, "hata");
+        return;
+      }
+      bildirimGoster("Anahtar yenilendi", "basari");
+      kurumYonetimYukle();
+    } catch (err) {
+      bildirimGoster("Anahtar yenilenemedi", "hata");
+    }
+  }
+
+  // ---- Yönetici: kendi kurum anahtarını görüntüle / kopyala / yenile ----
+  async function kurumAnahtarYukle() {
+    try {
+      const yanit = await fetch("/api/kurum-anahtari", {
+        headers: { Authorization: "Bearer " + token },
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) {
+        document.getElementById("kurumAnahtarDeger").textContent = "Alınamadı";
+        return;
+      }
+      document.getElementById("kurumAnahtarDeger").textContent = veri.anahtar || "-";
+    } catch (err) {
+      document.getElementById("kurumAnahtarDeger").textContent = "Hata";
+    }
+  }
+
+  function kurumAnahtarKopyala() {
+    const anahtar = document.getElementById("kurumAnahtarDeger").textContent;
+    if (!anahtar || anahtar === "Yükleniyor..." || anahtar === "Hata" || anahtar === "Alınamadı") return;
+    navigator.clipboard.writeText(anahtar).then(() => {
+      bildirimGoster("Anahtar panoya kopyalandı", "basari");
+    }).catch(() => {
+      bildirimGoster("Kopyalama başarısız", "hata");
+    });
+  }
+
+  async function kurumAnahtarYenileYonetici() {
+    if (!confirm("Kurum anahtarını yenilemek istediğinize emin misiniz?\n\nDikkat: Tüm tahtaların yeni anahtarla güncellenmesi gerekecektir!")) return;
+    try {
+      const yanit = await fetch("/api/kurumlar/" + kullanici.kurum_id + "/anahtar-yenile", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + token },
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) {
+        bildirimGoster(veri.hata, "hata");
+        return;
+      }
+      bildirimGoster("Anahtar yenilendi", "basari");
+      document.getElementById("kurumAnahtarDeger").textContent = veri.anahtar;
+    } catch (err) {
+      bildirimGoster("Anahtar yenilenemedi", "hata");
+    }
   }
 
   async function kurumSil(id) {
@@ -2164,6 +2317,15 @@
       return new Date(d).toLocaleString("tr-TR", {
         day: "2-digit", month: "2-digit", year: "numeric",
         hour: "2-digit", minute: "2-digit",
+      });
+    } catch { return d; }
+  }
+
+  function tarihFormatSadeceTarih(d) {
+    if (!d) return "-";
+    try {
+      return new Date(d).toLocaleDateString("tr-TR", {
+        day: "2-digit", month: "2-digit", year: "numeric",
       });
     } catch { return d; }
   }

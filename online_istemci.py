@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """Socket.IO istemcisi — sunucuyla gerçek zamanlı iletişim"""
 
+import hashlib
+import hmac
 import threading
 import time
 import socketio
@@ -30,6 +32,9 @@ class OnlineIstemci(QObject):
         self._tahta_id = tahta_id
         self._anahtar = anahtar
         self._aktif = False
+        self._kayitsiz = False  # Sunucu "kayıtlı değil" dediğinde True olur
+        self._kayitsiz_deneme = 0  # Kayıtsız hata sayısı
+        self._yeniden_dene = threading.Event()  # Beklemeyi erken kırmak için
         self._durum = 1   # 1=kilitli, 0=açık (sunucu formatı)
         self._ses = 1     # 1=açık, 0=kapalı
         self._sio = None
@@ -48,13 +53,24 @@ class OnlineIstemci(QObject):
         @sio.event
         def connect():
             print("[ONLİNE] Sunucuya bağlandı")
+            # HMAC imza üret: HMAC-SHA256(tahtaId:zaman, anahtar)
+            zaman_damgasi = int(time.time())
+            hmac_imza = ""
+            if self._anahtar:
+                mesaj = f"{self._tahta_id}:{zaman_damgasi}"
+                hmac_imza = hmac.new(
+                    self._anahtar.encode('utf-8'),
+                    mesaj.encode('utf-8'),
+                    hashlib.sha256
+                ).hexdigest()
             sio.emit("tahta_kayit", {
                 "kurumKodu": self._kurum_kodu,
                 "tahtaAdi": self._tahta_adi,
                 "tahtaId": self._tahta_id,
                 "durum": self._durum,
                 "ses": self._ses,
-                "anahtar": self._anahtar,
+                "hmac": hmac_imza,
+                "zaman": zaman_damgasi,
             })
             self.baglanti_durumu_sinyali.emit(True)
 
@@ -79,6 +95,10 @@ class OnlineIstemci(QObject):
         def hata_geldi(veri):
             mesaj = veri.get("mesaj", "Bilinmeyen hata")
             print(f"[ONLİNE] Sunucu hatası: {mesaj}")
+            # Kayıtsız tahta hatasında sürekli bağlanmayı durdur
+            if "kayıtlı değil" in mesaj.lower():
+                self._kayitsiz = True
+                self._kayitsiz_deneme += 1
             self.hata_sinyali.emit(mesaj)
 
         @sio.on("durum_bilgisi")
@@ -114,8 +134,18 @@ class OnlineIstemci(QObject):
         t.start()
 
     def _baglan(self):
-        """Bağlantıyı kur — koparsa hemen yeniden bağlan"""
+        """Bağlantıyı kur — koparsa yeniden bağlan, kayıtsızsa 3 denemeden sonra dur"""
+        bekleme = 1
         while self._aktif:
+            # Kayıtsız tahta 3 kez denediyse tamamen dur, sinyal bekle
+            if self._kayitsiz and self._kayitsiz_deneme >= 3:
+                print("[ONLİNE] Tahta sunucuda kayıtlı değil, bağlantı denemeleri durduruldu. Kilit aç/kapa ile tetiklenir.")
+                self.baglanti_durumu_sinyali.emit(False)
+                self._yeniden_dene.wait()  # Süresiz bekle, sadece baglantiyi_kontrol_et() ile uyanır
+                self._yeniden_dene.clear()
+                bekleme = 1
+                continue
+
             try:
                 # Her denemede temiz bir istemci oluştur
                 self._sio = self._yeni_istemci_olustur()
@@ -126,6 +156,8 @@ class OnlineIstemci(QObject):
                     wait_timeout=10,
                 )
                 self._sio.wait()  # Bağlantı tamamen kopana kadar bekle
+                if not self._kayitsiz:
+                    bekleme = 1  # Başarılı bağlantıdan sonra sıfırla
             except Exception as e:
                 print(f"[ONLİNE] Bağlantı hatası: {e}")
 
@@ -138,8 +170,25 @@ class OnlineIstemci(QObject):
 
             if not self._aktif:
                 return
+
+            # Kayıtsız tahta: kademeli bekleme
+            if self._kayitsiz:
+                if self._kayitsiz_deneme >= 3:
+                    continue  # Döngü başındaki beklemeye düşsün
+                bekleme = min(bekleme * 2, 30)
+                print(f"[ONLİNE] Tahta sunucuda kayıtlı değil, deneme {self._kayitsiz_deneme}/3")
+            else:
+                bekleme = min(bekleme * 2, 30)  # Normal kopma: max 30s
+
             self.baglanti_durumu_sinyali.emit(False)
-            time.sleep(1)  # Sunucuyu yormamak için minimum bekleme
+            self._yeniden_dene.wait(timeout=bekleme)
+            self._yeniden_dene.clear()
+
+    def baglantiyi_kontrol_et(self):
+        """Bekleme süresini kırıp hemen bağlantı denemesi yap"""
+        self._kayitsiz = False
+        self._kayitsiz_deneme = 0
+        self._yeniden_dene.set()
 
     def durdur(self):
         """Bağlantıyı kapat"""
@@ -156,6 +205,9 @@ class OnlineIstemci(QObject):
         self._ses = ses
         if self._sio and self._sio.connected:
             self._sio.emit("tahta_durum_guncelle", {"durum": durum, "ses": ses})
+        else:
+            # Bağlı değilse beklemeyi kır, hemen bağlanmayı dene
+            self.baglantiyi_kontrol_et()
 
     def kapanma_bildir(self, kalan_saniye):
         """Tahtanın kapanma geri sayımını sunucuya bildir"""

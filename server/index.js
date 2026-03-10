@@ -9,6 +9,30 @@ const crypto = require("crypto");
 
 // ===================== Yapılandırma =====================
 const JWT_SECRET = process.env.JWT_SECRET || "tahta-kilit-gizli-anahtar-2024";
+
+// İzin verilen ek origin'ler: ALLOWED_ORIGINS=https://panel.okul.com,https://panel2.com
+// Boş bırakılırsa sadece aynı sunucudan çalışan panel (same-origin) izinlidir.
+// Python tahta istemcileri tarayıcı olmadığından CORS kuralı uygulanmaz.
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean)
+  : [];
+
+function corsOriginKontrol(origin, callback) {
+  // Origin başlığı yoksa: desktop istemci (Python tahta) — izin ver
+  if (!origin) return callback(null, true);
+  // Sunucunun kendi adresi (panel.html same-origin bağlantısı) — izin ver
+  const PORT = process.env.PORT || 3000;
+  const kendiOriginler = [
+    `http://localhost:${PORT}`,
+    `http://127.0.0.1:${PORT}`,
+    "https://kulumtal.com",
+    "https://www.kulumtal.com",
+  ];
+  if (process.env.SERVER_URL) kendiOriginler.push(process.env.SERVER_URL.replace(/\/$/, ""));
+  if (kendiOriginler.includes(origin)) return callback(null, true);
+  if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+  callback(new Error(`CORS: ${origin} origin'ine izin verilmiyor`));
+}
 const DB_CONFIG = {
   host: process.env.DB_HOST || "localhost",
   user: process.env.DB_USER || "root",
@@ -17,15 +41,16 @@ const DB_CONFIG = {
   waitForConnections: true,
   connectionLimit: 10,
   charset: "utf8mb4",
+  dateStrings: ["DATE"],
 };
 
 const app = express();
 app.set("trust proxy", true);
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: "*" },
-  pingInterval: 3000,
-  pingTimeout: 3000,
+  cors: { origin: corsOriginKontrol, methods: ["GET", "POST"] },
+  pingInterval: 10000,
+  pingTimeout: 5000,
 });
 
 app.use(express.json());
@@ -41,9 +66,25 @@ async function veritabaniBaslat() {
       id INT AUTO_INCREMENT PRIMARY KEY,
       kurum_kodu VARCHAR(20) NOT NULL UNIQUE,
       kurum_adi VARCHAR(255) NOT NULL,
+      anahtar VARCHAR(255) NOT NULL DEFAULT '',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB
   `);
+
+  // Mevcut kurumlar tablosuna anahtar sütunu ekle (yoksa)
+  try {
+    await db.execute(`ALTER TABLE kurumlar ADD COLUMN anahtar VARCHAR(255) NOT NULL DEFAULT ''`);
+  } catch (e) { /* sütun zaten var */ }
+
+  // Anahtarı olmayan kurumlara otomatik anahtar üret
+  try {
+    const [anahtarsizKurumlar] = await db.execute("SELECT id FROM kurumlar WHERE anahtar = ''");
+    for (const k of anahtarsizKurumlar) {
+      const yeniAnahtar = crypto.randomBytes(32).toString('hex');
+      await db.execute("UPDATE kurumlar SET anahtar = ? WHERE id = ?", [yeniAnahtar, k.id]);
+      console.log(`[ANAHTAR] Kurum #${k.id} için anahtar üretildi`);
+    }
+  } catch (e) { console.error('Kurum anahtarı üretme hatası:', e); }
 
   await db.execute(`
     CREATE TABLE IF NOT EXISTS tahtalar (
@@ -83,6 +124,14 @@ async function veritabaniBaslat() {
   try {
     await db.execute(`ALTER TABLE kullanicilar MODIFY COLUMN rol ENUM('superadmin', 'yonetici', 'ogretmen') NOT NULL DEFAULT 'ogretmen'`);
   } catch (e) { /* zaten güncel */ }
+
+  // Branş ve doğum tarihi sütunlarını ekle (yoksa)
+  try {
+    await db.execute(`ALTER TABLE kullanicilar ADD COLUMN brans VARCHAR(100) DEFAULT NULL`);
+  } catch (e) { /* sütun zaten var */ }
+  try {
+    await db.execute(`ALTER TABLE kullanicilar ADD COLUMN dogum_tarihi DATE DEFAULT NULL`);
+  } catch (e) { /* sütun zaten var */ }
 
   // Ders çıkış saatleri tablosu
   await db.execute(`
@@ -406,11 +455,11 @@ app.get(
       if (req.kullanici.rol === "superadmin" && !req.query.kurum_id) {
         // Superadmin kurum belirtmezse tüm kullanıcıları görür
         [rows] = await db.execute(
-          "SELECT k.id, k.kullanici_adi, k.ad_soyad, k.rol, k.kurum_id, k.created_at, ku.kurum_adi FROM kullanicilar k JOIN kurumlar ku ON k.kurum_id = ku.id ORDER BY ku.kurum_adi, k.ad_soyad"
+          "SELECT k.id, k.kullanici_adi, k.ad_soyad, k.rol, k.brans, k.dogum_tarihi, k.kurum_id, k.created_at, ku.kurum_adi FROM kullanicilar k JOIN kurumlar ku ON k.kurum_id = ku.id ORDER BY ku.kurum_adi, k.ad_soyad"
         );
       } else {
         [rows] = await db.execute(
-          "SELECT k.id, k.kullanici_adi, k.ad_soyad, k.rol, k.kurum_id, k.created_at, ku.kurum_adi FROM kullanicilar k JOIN kurumlar ku ON k.kurum_id = ku.id WHERE k.kurum_id = ? ORDER BY k.ad_soyad",
+          "SELECT k.id, k.kullanici_adi, k.ad_soyad, k.rol, k.brans, k.dogum_tarihi, k.kurum_id, k.created_at, ku.kurum_adi FROM kullanicilar k JOIN kurumlar ku ON k.kurum_id = ku.id WHERE k.kurum_id = ? ORDER BY k.ad_soyad",
           [kurumId]
         );
       }
@@ -427,7 +476,7 @@ app.post(
   authMiddleware,
   adminMiddleware,
   async (req, res) => {
-    const { kullanici_adi, sifre, ad_soyad, rol, kurum_id } = req.body;
+    const { kullanici_adi, sifre, ad_soyad, rol, kurum_id, brans, dogum_tarihi } = req.body;
     if (!kullanici_adi || !sifre || !ad_soyad) {
       return res.status(400).json({ hata: "Tüm alanlar gerekli" });
     }
@@ -450,8 +499,8 @@ app.post(
     try {
       const hash = await bcrypt.hash(sifre, 10);
       await db.execute(
-        "INSERT INTO kullanicilar (kurum_id, kullanici_adi, sifre_hash, ad_soyad, rol) VALUES (?, ?, ?, ?, ?)",
-        [hedefKurumId, kullanici_adi, hash, ad_soyad, rol || "ogretmen"]
+        "INSERT INTO kullanicilar (kurum_id, kullanici_adi, sifre_hash, ad_soyad, rol, brans, dogum_tarihi) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [hedefKurumId, kullanici_adi, hash, ad_soyad, rol || "ogretmen", brans || null, dogum_tarihi || null]
       );
       res.json({ mesaj: "Kullanıcı eklendi" });
     } catch (err) {
@@ -469,7 +518,7 @@ app.put(
   authMiddleware,
   adminMiddleware,
   async (req, res) => {
-    const { ad_soyad, rol, sifre, kurum_id } = req.body;
+    const { ad_soyad, rol, sifre, kurum_id, brans, dogum_tarihi } = req.body;
     const hedefId = parseInt(req.params.id);
 
     // Kendi rolünü değiştiremez
@@ -515,6 +564,8 @@ app.put(
       if (ad_soyad) { alanlar.push("ad_soyad = ?"); degerler.push(ad_soyad); }
       if (rol) { alanlar.push("rol = ?"); degerler.push(rol); }
       if (kurum_id && req.kullanici.rol === "superadmin") { alanlar.push("kurum_id = ?"); degerler.push(kurum_id); }
+      if (brans !== undefined) { alanlar.push("brans = ?"); degerler.push(brans || null); }
+      if (dogum_tarihi !== undefined) { alanlar.push("dogum_tarihi = ?"); degerler.push(dogum_tarihi || null); }
       if (sifre) {
         const hash = await bcrypt.hash(sifre, 10);
         alanlar.push("sifre_hash = ?"); degerler.push(hash);
@@ -583,9 +634,10 @@ app.post("/api/kurumlar", authMiddleware, superadminMiddleware, async (req, res)
     return res.status(400).json({ hata: "Kurum kodu ve adı gerekli" });
   }
   try {
+    const anahtar = crypto.randomBytes(32).toString('hex');
     await db.execute(
-      "INSERT INTO kurumlar (kurum_kodu, kurum_adi) VALUES (?, ?)",
-      [kurum_kodu, kurum_adi]
+      "INSERT INTO kurumlar (kurum_kodu, kurum_adi, anahtar) VALUES (?, ?, ?)",
+      [kurum_kodu, kurum_adi, anahtar]
     );
     res.json({ mesaj: "Kurum eklendi" });
   } catch (err) {
@@ -625,6 +677,36 @@ app.delete("/api/kurumlar/:id", authMiddleware, superadminMiddleware, async (req
     res.json({ mesaj: "Kurum silindi" });
   } catch (err) {
     console.error("Kurum silme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// ---- Kurum anahtarını yenile (superadmin: herhangi kurum, yönetici: kendi kurumu) ----
+app.post("/api/kurumlar/:id/anahtar-yenile", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const kurumId = parseInt(req.params.id);
+    // Yönetici sadece kendi kurumunun anahtarını yenileyebilir
+    if (req.kullanici.rol !== "superadmin" && req.kullanici.kurum_id !== kurumId) {
+      return res.status(403).json({ hata: "Sadece kendi kurumunuzun anahtarını yenileyebilirsiniz" });
+    }
+    const yeniAnahtar = crypto.randomBytes(32).toString('hex');
+    const [result] = await db.execute("UPDATE kurumlar SET anahtar = ? WHERE id = ?", [yeniAnahtar, kurumId]);
+    if (result.affectedRows === 0) return res.status(404).json({ hata: "Kurum bulunamadı" });
+    res.json({ mesaj: "Anahtar yenilendi", anahtar: yeniAnahtar });
+  } catch (err) {
+    console.error("Anahtar yenileme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// ---- Yönetici: kendi kurumunun anahtarını görüntüle ----
+app.get("/api/kurum-anahtari", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const [rows] = await db.execute("SELECT anahtar FROM kurumlar WHERE id = ?", [req.kullanici.kurum_id]);
+    if (rows.length === 0) return res.status(404).json({ hata: "Kurum bulunamadı" });
+    res.json({ anahtar: rows[0].anahtar });
+  } catch (err) {
+    console.error("Kurum anahtarı getirme hatası:", err);
     res.status(500).json({ hata: "Sunucu hatası" });
   }
 });
@@ -755,14 +837,20 @@ app.post("/api/dogrulama-kodu", authMiddleware, async (req, res) => {
   try {
     let rows;
     if (req.kullanici.rol === "superadmin") {
-      [rows] = await db.execute("SELECT anahtar FROM tahtalar WHERE id = ?", [tahtaId]);
+      [rows] = await db.execute(
+        `SELECT k.anahtar AS kurum_anahtari FROM tahtalar t
+         JOIN kurumlar k ON t.kurum_id = k.id
+         WHERE t.id = ?`, [tahtaId]);
     } else {
-      [rows] = await db.execute("SELECT anahtar FROM tahtalar WHERE id = ? AND kurum_id = ?", [tahtaId, req.kullanici.kurum_id]);
+      [rows] = await db.execute(
+        `SELECT k.anahtar AS kurum_anahtari FROM tahtalar t
+         JOIN kurumlar k ON t.kurum_id = k.id
+         WHERE t.id = ? AND t.kurum_id = ?`, [tahtaId, req.kullanici.kurum_id]);
     }
     if (rows.length === 0) {
       return res.status(404).json({ hata: "Tahta bulunamadı" });
     }
-    const anahtar = rows[0].anahtar || KILIT_GIZLI_ANAHTAR;
+    const anahtar = rows[0].kurum_anahtari || KILIT_GIZLI_ANAHTAR;
     const yanit = yanitUret(challenge, anahtar);
     res.json({ yanit });
   } catch (err) {
@@ -800,9 +888,9 @@ io.on("connection", (socket) => {
     }
 
     try {
-      // Veritabanında kayıtlı mı kontrol et
+      // Veritabanında kayıtlı mı kontrol et (kurum anahtarını da çek)
       const [rows] = await db.execute(
-        `SELECT t.*, k.kurum_kodu
+        `SELECT t.*, k.kurum_kodu, k.anahtar AS kurum_anahtari
          FROM tahtalar t
          JOIN kurumlar k ON t.kurum_id = k.id
          WHERE t.id = ?`,
@@ -819,25 +907,48 @@ io.on("connection", (socket) => {
 
       const tahta = rows[0];
 
-      const gercekAnahtar = veri.anahtar || tahta.anahtar || '';
       const ipAdresi = socket.handshake.headers["x-forwarded-for"]?.split(",")[0]?.trim() || socket.handshake.address;
       const ilkBaglanti = tahta.son_baglanti === null;
+
+      // HMAC tabanlı anahtar doğrulaması (kurum anahtarı kullanılır)
+      if (tahta.kurum_anahtari) {
+        const hmacImza = veri.hmac || '';
+        const zamanDamgasi = veri.zaman || 0;
+        // Zaman damgası ±60 saniye tolerans
+        const simdiki = Math.floor(Date.now() / 1000);
+        if (Math.abs(simdiki - zamanDamgasi) > 60) {
+          console.warn(`[GÜVENLİK] ${tahtaId} — zaman damgası geçersiz (fark: ${simdiki - zamanDamgasi}s)`);
+          socket.emit("hata", { mesaj: "Kimlik doğrulama başarısız. Zaman damgası geçersiz." });
+          socket.disconnect();
+          return;
+        }
+        // HMAC doğrula: HMAC-SHA256(tahtaId:zaman, kurumAnahtari)
+        const beklenenHmac = crypto.createHmac('sha256', tahta.kurum_anahtari)
+          .update(`${tahtaId}:${zamanDamgasi}`)
+          .digest('hex');
+        if (hmacImza !== beklenenHmac) {
+          console.warn(`[GÜVENLİK] ${tahtaId} — geçersiz HMAC imza, bağlantı reddedildi`);
+          socket.emit("hata", { mesaj: "Kimlik doğrulama başarısız. Geçersiz anahtar." });
+          socket.disconnect();
+          return;
+        }
+      }
 
       if (ilkBaglanti) {
         // İlk bağlantı: tahta bilgilerini sunucuya kaydet (tahta durumu baz alınır)
         const gercekDurum = veri.durum !== undefined ? veri.durum : tahta.durum;
         const gercekSes = veri.ses !== undefined ? veri.ses : tahta.ses;
         await db.execute(
-          `UPDATE tahtalar SET tahta_adi = ?, cevrimici = 1, ip_adresi = ?, son_baglanti = NOW(), durum = ?, ses = ?, anahtar = ? WHERE id = ?`,
-          [veri.tahtaAdi || tahta.tahta_adi, ipAdresi, gercekDurum, gercekSes, gercekAnahtar, tahtaId]
+          `UPDATE tahtalar SET tahta_adi = ?, cevrimici = 1, ip_adresi = ?, son_baglanti = NOW(), durum = ?, ses = ? WHERE id = ?`,
+          [veri.tahtaAdi || tahta.tahta_adi, ipAdresi, gercekDurum, gercekSes, tahtaId]
         );
         // İlk bağlantıda tahtanın kendi durumunu geri gönder
         socket.emit("durum_bilgisi", { durum: gercekDurum, ses: gercekSes });
       } else {
-        // Sonraki bağlantılar: sunucu durumu baz alınır (tahta_adi ve durum/ses güncellenmez)
+        // Sonraki bağlantılar: sunucu durumu baz alınır (tahta_adi, durum/ses ve anahtar güncellenmez)
         await db.execute(
-          `UPDATE tahtalar SET cevrimici = 1, ip_adresi = ?, son_baglanti = NOW(), anahtar = ? WHERE id = ?`,
-          [ipAdresi, gercekAnahtar, tahtaId]
+          `UPDATE tahtalar SET cevrimici = 1, ip_adresi = ?, son_baglanti = NOW() WHERE id = ?`,
+          [ipAdresi, tahtaId]
         );
         // Sunucudaki mevcut durumu ve adı tahtaya gönder (tahta buna göre senkronize olacak)
         socket.emit("durum_bilgisi", { durum: tahta.durum, ses: tahta.ses, tahta_adi: tahta.tahta_adi });
@@ -948,8 +1059,8 @@ io.on("connection", (socket) => {
       if (!tahta) {
         return cb({ basarili: false, hata: "Tahta bulunamadı" });
       }
-      // Challenge kodunu doğrula
-      const anahtar = tahta.anahtar || KILIT_GIZLI_ANAHTAR;
+      // Challenge kodunu doğrula (kurum anahtarı kullanılır)
+      const anahtar = tahta.kurum_anahtari || KILIT_GIZLI_ANAHTAR;
       if (!challengeDogrula(challenge, anahtar)) {
         console.log(`[QR REDDEDILDI] ${tahta.tahta_adi} — geçersiz/süresi dolmuş challenge (${socket.kullanici.ad_soyad})`);
         return cb({ basarili: false, hata: "Challenge kodu geçersiz veya süresi dolmuş. Lütfen güncel QR kodu okutun." });
@@ -1146,12 +1257,16 @@ async function tahtaBul(tahtaId, kurumId, rol) {
   if (rol === "superadmin") {
     // Superadmin tüm tahtaları kontrol edebilir
     [rows] = await db.execute(
-      "SELECT * FROM tahtalar WHERE id = ?",
+      `SELECT t.*, k.anahtar AS kurum_anahtari FROM tahtalar t
+       JOIN kurumlar k ON t.kurum_id = k.id
+       WHERE t.id = ?`,
       [tahtaId]
     );
   } else {
     [rows] = await db.execute(
-      "SELECT * FROM tahtalar WHERE id = ? AND kurum_id = ?",
+      `SELECT t.*, k.anahtar AS kurum_anahtari FROM tahtalar t
+       JOIN kurumlar k ON t.kurum_id = k.id
+       WHERE t.id = ? AND t.kurum_id = ?`,
       [tahtaId, kurumId]
     );
   }
