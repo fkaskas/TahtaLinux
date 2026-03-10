@@ -9,7 +9,7 @@
   <title>Tahta Kilit</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="/socket.io/socket.io.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
@@ -34,9 +34,10 @@
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    input, textarea, select, button { font-family: 'Exo 2', sans-serif; }
     html { height: 100%; -webkit-tap-highlight-color: transparent; }
     body {
-      font-family: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: 'Exo 2', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: var(--bg);
       color: var(--text);
       min-height: 100%;
@@ -241,6 +242,75 @@
 
     .yonetim-panel h3 { font-size: 14px; color: var(--text2); margin-bottom: 10px; font-weight: 600; }
 
+    /* ===== Kurum Kart Grid ===== */
+    .kurum-kart-grid {
+      display: grid; grid-template-columns: 1fr;
+      gap: 12px; margin-top: 12px;
+    }
+    .kurum-kart {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .kurum-kart-ust {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px 12px; border-bottom: 1px solid var(--border);
+    }
+    .kurum-ikon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: rgba(59,130,246,0.15); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .kurum-kart-adi { font-size: 15px; font-weight: 700; color: var(--text); }
+    .kurum-kart-kodu {
+      display: inline-block; background: var(--surface2);
+      color: var(--text2); font-size: 11px; font-weight: 600;
+      padding: 2px 8px; border-radius: 20px; margin-top: 3px;
+    }
+    .kurum-kart-govde { padding: 12px 16px; }
+    .kurum-kart-satir {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; padding: 5px 0;
+    }
+    .kurum-kart-etiket {
+      font-size: 11px; font-weight: 600; color: var(--text3);
+      flex-shrink: 0; min-width: 56px;
+    }
+    .kurum-kart-deger {
+      font-size: 12px; color: var(--text2);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      flex: 1; text-align: right;
+    }
+    .kurum-kart-anahtar {
+      font-family: monospace; font-size: 11px; color: var(--text2);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      flex: 1; text-align: right;
+    }
+    .kurum-kart-alt {
+      display: flex; gap: 8px; padding: 10px 16px 14px;
+      border-top: 1px solid var(--border);
+    }
+    .kurum-kart-alt button {
+      flex: 1; padding: 9px; border-radius: 8px; font-size: 13px;
+      font-weight: 600; cursor: pointer; border: none;
+    }
+    .btn-kurum-duzenle { background: var(--surface2); color: var(--text); }
+    .btn-kurum-duzenle:active { background: var(--accent); color: #fff; }
+    .btn-kurum-sil { background: transparent; border: 1px solid var(--danger) !important; color: var(--danger); }
+    .btn-kurum-sil:active { background: var(--danger) !important; color: #fff; }
+    .btn-kurum-kopyala {
+      padding: 3px 8px !important; font-size: 11px !important;
+      background: var(--surface2); color: var(--text2);
+      border-radius: 6px; border: none; cursor: pointer; flex: none !important;
+    }
+    .btn-kurum-kopyala:active { background: var(--accent); color: #fff; }
+    .btn-kurum-yenile {
+      padding: 3px 8px !important; font-size: 11px !important;
+      background: var(--surface2); color: var(--text2);
+      border-radius: 6px; border: none; cursor: pointer; flex: none !important;
+    }
+    .btn-kurum-yenile:active { background: var(--warn); color: #fff; }
+
     /* ===== Tablolar -> Mobil Kart ===== */
     table { width: 100%; border-collapse: collapse; margin-top: 8px; }
     thead { display: none; }
@@ -253,6 +323,8 @@
       padding: 4px 0; font-size: 13px; color: var(--text);
       border: none;
     }
+    td[data-label="Tahta Adı"] { font-size: 16px; font-weight: 700; color: var(--text); padding-bottom: 8px; }
+    td[data-label="Tahta Adı"]::before { font-size: 11px; }
     td::before {
       content: attr(data-label);
       font-weight: 600; color: var(--text3); font-size: 12px; margin-right: 12px;
@@ -261,16 +333,18 @@
     .btn-sil {
       padding: 8px 16px; border: 1px solid var(--danger); background: transparent;
       color: var(--danger); border-radius: 8px; cursor: pointer; font-size: 13px;
-      font-weight: 600; width: 100%; margin-top: 6px;
+      font-weight: 600; margin-top: 6px;
     }
     .btn-sil:active { background: var(--danger); color: #fff; }
     .btn-duzenle {
       padding: 8px 16px; border: 1px solid var(--accent); background: transparent;
       color: var(--accent); border-radius: 8px; cursor: pointer; font-size: 13px;
-      font-weight: 600; width: 100%; margin-top: 6px;
+      font-weight: 600; margin-top: 6px;
     }
     .btn-duzenle:active { background: var(--accent); color: #fff; }
-    .islem-butonlar { display: flex; gap: 6px; flex-wrap: wrap; }
+    .islem-butonlar { display: flex; gap: 6px; flex-wrap: nowrap; flex: 1; }
+    .islem-butonlar .btn-duzenle,
+    .islem-butonlar .btn-sil { flex: 1; width: auto; margin-top: 0; }
     .modal select {
       width: 100%; padding: 14px 16px; border-radius: 10px; border: 1px solid var(--border);
       background: var(--bg); color: var(--text); font-size: 16px; margin-bottom: 14px;
@@ -288,6 +362,44 @@
     .bildirim.basari { background: var(--success); color: #fff; }
     .bildirim.hata { background: var(--danger); color: #fff; }
     @keyframes bildirimGir { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* ===== Onay Modalı ===== */
+    .onay-modal-arka {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75); z-index: 10000;
+      justify-content: center; align-items: center;
+      padding: 20px;
+    }
+    .onay-modal-arka.goster { display: flex; }
+    .onay-modal {
+      background: var(--surface); border-radius: 18px;
+      padding: 32px 28px; width: 100%; max-width: 360px;
+      text-align: center;
+      animation: onayGir 0.25s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes onayGir { from { opacity: 0; transform: scale(0.85); } to { opacity: 1; transform: scale(1); } }
+    .onay-ikon {
+      width: 56px; height: 56px; border-radius: 50%;
+      background: rgba(245,158,11,0.15); color: var(--warn);
+      font-size: 24px; display: flex; align-items: center;
+      justify-content: center; margin: 0 auto 16px;
+    }
+    .onay-ikon.tehlike { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .onay-baslik {
+      font-size: 17px; font-weight: 700; color: var(--text);
+      margin-bottom: 10px;
+    }
+    .onay-mesaj {
+      font-size: 14px; color: var(--text2); line-height: 1.6;
+      margin-bottom: 24px; white-space: pre-line;
+    }
+    .onay-butonlar { display: flex; gap: 10px; }
+    .onay-butonlar button {
+      flex: 1; padding: 13px; border: none; border-radius: 10px;
+      font-size: 15px; font-weight: 600; cursor: pointer;
+    }
+    .btn-onay { background: var(--danger); color: #fff; }
+    .btn-onay.uyari { background: var(--warn); color: #fff; }
 
     /* ===== Modal ===== */
     .modal-arka {
@@ -595,6 +707,7 @@
         display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
         gap: 14px; padding: 16px 24px;
       }
+      .kurum-kart-grid { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
       .yonetim-panel { padding: 20px 24px; }
       .form-satir {
         flex-direction: row; flex-wrap: wrap; align-items: flex-end;
@@ -756,7 +869,7 @@
             <label>Kurum</label>
             <select id="tahtaKurumSec"></select>
           </div>
-          <div class="alan">
+          <div class="alan" style="display:none">
             <label>Tahta ID (UUID)</label>
             <input type="text" id="yeniTahtaId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
           </div>
@@ -769,7 +882,7 @@
         <h3>Kayıtlı Tahtalar</h3>
         <table>
           <thead>
-            <tr id="tahtaYonetimBaslik"><th>Tahta ID</th><th>Tahta Adı</th><th>Durum</th><th>Çevrimiçi</th><th>Son Bağlantı</th><th></th></tr>
+            <tr id="tahtaYonetimBaslik"><th>Tahta Adı</th><th>Durum</th><th>Çevrimiçi</th><th>Son Bağlantı</th><th></th></tr>
           </thead>
           <tbody id="tahtaYonetimTablo"></tbody>
         </table>
@@ -799,7 +912,42 @@
           </div>
           <div class="alan">
             <label>Branş</label>
-            <input type="text" id="yeniBrans" placeholder="Örn: Matematik" />
+            <select id="yeniBransSec" onchange="bransDegisti('yeniBransSec','yeniBransText')">
+              <option value="">-- Seçiniz --</option>
+              <option>Adalet</option>
+              <option>Alan Eğitimi</option>
+              <option>Arapça</option>
+              <option>Beden Eğitimi</option>
+              <option>Bilişim Teknolojileri</option>
+              <option>Biyoloji</option>
+              <option>Coğrafya</option>
+              <option>Çocuk Gelişimi</option>
+              <option>Din Kültürü ve Ahlak Bilgisi</option>
+              <option>Elektrik-Elektronik</option>
+              <option>Felsefe</option>
+              <option>Fizik</option>
+              <option>Fransızca</option>
+              <option>Hukuk</option>
+              <option>İngilizce</option>
+              <option>İşletme</option>
+              <option>Kimya</option>
+              <option>Müzik</option>
+              <option>Matematik</option>
+              <option>Okul Öncesi</option>
+              <option>Özel Eğitim</option>
+              <option>Psikolojik Danışmanlık</option>
+              <option>Rehberlik</option>
+              <option>Resim</option>
+              <option>Sınıf Öğretmenliği</option>
+              <option>Sosyal Bilgiler</option>
+              <option>Türk Dili ve Edebiyatı</option>
+              <option>Türkçe</option>
+              <option>Tarih</option>
+              <option>Teknoloji Tasarım</option>
+              <option>Ticaret</option>
+              <option>Diğer</option>
+            </select>
+            <input type="text" id="yeniBransText" placeholder="Branş giriniz" style="display:none;margin-top:6px;" />
           </div>
           <div class="alan">
             <label>Doğum Tarihi</label>
@@ -836,17 +984,12 @@
           </div>
           <div class="alan">
             <label>Kurum Adı</label>
-            <input type="text" id="yeniKurumAdi" placeholder="Örn: Atatürk İlkokulu" />
+            <input type="text" id="yeniKurumAdi" placeholder="Ör: Kulu Mtal" />
           </div>
           <button class="btn-ekle" onclick="kurumEkle()"><i class="fas fa-plus"></i> Kurum Ekle</button>
         </div>
         <h3>Kayıtlı Kurumlar</h3>
-        <table>
-          <thead>
-            <tr><th>Kurum Kodu</th><th>Kurum Adı</th><th>Anahtar</th><th>Kayıt Tarihi</th><th></th></tr>
-          </thead>
-          <tbody id="kurumTablo"></tbody>
-        </table>
+        <div id="kurumTablo" class="kurum-kart-grid"></div>
       </div>
     </div>
 
@@ -942,7 +1085,7 @@
     <label>Kurum Kodu</label>
     <input type="text" id="kurumDuzenleKodu" placeholder="Kurum kodu" />
     <label>Kurum Adı</label>
-    <input type="text" id="kurumDuzenleAdi" placeholder="Kurum adı" />
+    <input type="text" id="kurumDuzenleAdi" placeholder="Ör: Kulu Mtal" />
     <div class="modal-butonlar">
       <button class="btn-iptal" onclick="kurumDuzenleKapat()">İptal</button>
       <button class="btn-kaydet" onclick="kurumGuncelle()">Kaydet</button>
@@ -978,7 +1121,42 @@
     <label>Ad Soyad</label>
     <input type="text" id="kullaniciDuzenleAdSoyad" placeholder="Ad Soyad" />
     <label>Branş</label>
-    <input type="text" id="kullaniciDuzenleBrans" placeholder="Örn: Matematik" />
+    <select id="kullaniciDuzenleBransSec" onchange="bransDegisti('kullaniciDuzenleBransSec','kullaniciDuzenleBransText')">
+      <option value="">-- Seçiniz --</option>
+      <option>Adalet</option>
+      <option>Alan Eğitimi</option>
+      <option>Arapça</option>
+      <option>Beden Eğitimi</option>
+      <option>Bilişim Teknolojileri</option>
+      <option>Biyoloji</option>
+      <option>Coğrafya</option>
+      <option>Çocuk Gelişimi</option>
+      <option>Din Kültürü ve Ahlak Bilgisi</option>
+      <option>Elektrik-Elektronik</option>
+      <option>Felsefe</option>
+      <option>Fizik</option>
+      <option>Fransızca</option>
+      <option>Hukuk</option>
+      <option>İngilizce</option>
+      <option>İşletme</option>
+      <option>Kimya</option>
+      <option>Müzik</option>
+      <option>Matematik</option>
+      <option>Okul Öncesi</option>
+      <option>Özel Eğitim</option>
+      <option>Psikolojik Danışmanlık</option>
+      <option>Rehberlik</option>
+      <option>Resim</option>
+      <option>Sınıf Öğretmenliği</option>
+      <option>Sosyal Bilgiler</option>
+      <option>Türk Dili ve Edebiyatı</option>
+      <option>Türkçe</option>
+      <option>Tarih</option>
+      <option>Teknoloji Tasarım</option>
+      <option>Ticaret</option>
+      <option>Diğer</option>
+    </select>
+    <input type="text" id="kullaniciDuzenleBransText" placeholder="Branş giriniz" style="display:none;margin-top:6px;" />
     <label>Doğum Tarihi</label>
     <input type="date" id="kullaniciDuzenleDogumTarihi" />
     <label>Rol</label>
@@ -996,6 +1174,19 @@
     <div class="modal-butonlar">
       <button class="btn-iptal" onclick="kullaniciDuzenleKapat()">İptal</button>
       <button class="btn-kaydet" onclick="kullaniciGuncelle()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Onay Modalı -->
+<div class="onay-modal-arka" id="onayModal">
+  <div class="onay-modal">
+    <div class="onay-ikon" id="onayIkon"><i class="fas fa-exclamation-triangle"></i></div>
+    <div class="onay-baslik" id="onayBaslik"></div>
+    <div class="onay-mesaj" id="onayMesaj"></div>
+    <div class="onay-butonlar">
+      <button class="btn-iptal" id="onayIptalBtn">İptal</button>
+      <button class="btn-onay" id="onayOnayBtn">Evet</button>
     </div>
   </div>
 </div>
@@ -1228,6 +1419,24 @@
     }
   }
 
+  // ===================== Onay Modalı =====================
+  function onayla({ baslik, mesaj, onayMetni = 'Evet', tehlike = false, callback }) {
+    document.getElementById('onayBaslik').textContent = baslik;
+    document.getElementById('onayMesaj').textContent = mesaj;
+    const ikonEl = document.getElementById('onayIkon');
+    ikonEl.className = 'onay-ikon' + (tehlike ? ' tehlike' : '');
+    ikonEl.innerHTML = tehlike ? '<i class="fas fa-trash-alt"></i>' : '<i class="fas fa-exclamation-triangle"></i>';
+    const onayBtn = document.getElementById('onayOnayBtn');
+    onayBtn.textContent = onayMetni;
+    onayBtn.className = 'btn-onay' + (tehlike ? '' : ' uyari');
+    const modal = document.getElementById('onayModal');
+    modal.classList.add('goster');
+    const kapat = () => { modal.classList.remove('goster'); onayBtn.onclick = null; document.getElementById('onayIptalBtn').onclick = null; };
+    onayBtn.onclick = () => { kapat(); callback(); };
+    document.getElementById('onayIptalBtn').onclick = () => kapat();
+    modal.onclick = (e) => { if (e.target === modal) kapat(); };
+  }
+
   // ===================== Durum =====================
   let token = null;
   let kullanici = null;
@@ -1332,7 +1541,7 @@
       document.getElementById("rolSuperadmin").classList.remove("gizli");
       document.getElementById("dersSaatleriKurumAlan").classList.remove("gizli");
       // Tablo başlıklarına kurum sütunu ekle
-      document.getElementById("tahtaYonetimBaslik").innerHTML = "<th>Tahta ID</th><th>Tahta Adı</th><th>Kurum</th><th>Durum</th><th>Çevrimiçi</th><th>Son Bağlantı</th><th></th>";
+      document.getElementById("tahtaYonetimBaslik").innerHTML = "<th>Tahta Adı</th><th>Kurum</th><th>Durum</th><th>Çevrimiçi</th><th>Son Bağlantı</th><th></th>";
       document.getElementById("kullaniciYonetimBaslik").innerHTML = "<th>Kullanıcı Adı</th><th>Ad Soyad</th><th>Branş</th><th>Doğum Tarihi</th><th>Rol</th><th>Kurum</th><th>Kayıt Tarihi</th><th></th>";
       kurumSeciciYukle();
     }
@@ -1604,7 +1813,7 @@
       const tbody = document.getElementById("tahtaYonetimTablo");
 
       if (!Array.isArray(liste) || liste.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="${kullanici.rol === 'superadmin' ? 7 : 6}" style="text-align:center;color:#888">Kayıtlı tahta yok</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="${kullanici.rol === 'superadmin' ? 6 : 5}" style="text-align:center;color:#888">Kayıtlı tahta yok</td></tr>`;
         return;
       }
 
@@ -1612,7 +1821,6 @@
         .map(
           (t) => `
           <tr>
-            <td data-label="Tahta ID" style="font-family:monospace;font-size:11px;word-break:break-all">${esc(t.id)}</td>
             <td data-label="Tahta Adı">${esc(t.tahta_adi || "-")}</td>
             ${kullanici.rol === "superadmin" ? `<td data-label="Kurum">${esc(t.kurum_adi || "-")}</td>` : ""}
             <td data-label="Durum">${t.durum === 1 ? "<i class='fas fa-lock'></i> Kilitli" : "<i class='fas fa-lock-open'></i> Açık"}</td>
@@ -1631,13 +1839,12 @@
   }
 
   async function tahtaEkle() {
-    const tahta_id = document.getElementById("yeniTahtaId").value.trim();
-    const tahta_adi = document.getElementById("yeniTahtaAdi").value.trim();
-
+    let tahta_id = document.getElementById("yeniTahtaId").value.trim();
     if (!tahta_id) {
-      bildirimGoster("Tahta ID gerekli", "hata");
-      return;
+      tahta_id = crypto.randomUUID();
+      document.getElementById("yeniTahtaId").value = tahta_id;
     }
+    const tahta_adi = document.getElementById("yeniTahtaAdi").value.trim();
 
     const body = { tahta_id, tahta_adi };
     if (kullanici.rol === "superadmin") {
@@ -1671,8 +1878,12 @@
   }
 
   async function tahtaSil(id) {
-    if (!confirm("Bu tahtayı silmek istediğinize emin misiniz?")) return;
-
+    onayla({
+      baslik: 'Tahtayı Sil',
+      mesaj: 'Bu tahtayı silmek istediğinize emin misiniz?',
+      onayMetni: 'Sil',
+      tehlike: true,
+      callback: async () => {
     try {
       const yanit = await fetch("/api/tahtalar/" + encodeURIComponent(id), {
         method: "DELETE",
@@ -1690,6 +1901,8 @@
     } catch (err) {
       bildirimGoster("Tahta silinemedi", "hata");
     }
+    }
+    });
   }
 
   // ===================== Kullanıcı Yönetimi (Admin) =====================
@@ -1742,7 +1955,7 @@
       return;
     }
 
-    const brans = document.getElementById("yeniBrans").value.trim();
+    const brans = bransDegerAl('yeniBransSec', 'yeniBransText');
     const dogum_tarihi = document.getElementById("yeniDogumTarihi").value;
     const body = { kullanici_adi, ad_soyad, sifre, rol, brans, dogum_tarihi };
     if (kullanici.rol === "superadmin") {
@@ -1779,8 +1992,12 @@
   }
 
   async function kullaniciSil(id) {
-    if (!confirm("Bu kullanıcıyı silmek istediğinize emin misiniz?")) return;
-
+    onayla({
+      baslik: 'Kullanıcıyı Sil',
+      mesaj: 'Bu kullanıcıyı silmek istediğinize emin misiniz?',
+      onayMetni: 'Sil',
+      tehlike: true,
+      callback: async () => {
     try {
       const yanit = await fetch("/api/kullanicilar/" + id, {
         method: "DELETE",
@@ -1798,6 +2015,8 @@
     } catch (err) {
       bildirimGoster("Kullanıcı silinemedi", "hata");
     }
+    }
+    });
   }
 
   // ===================== Tahta Düzenle =====================
@@ -1844,11 +2063,47 @@
     } catch (err) { bildirimGoster('Tahta güncellenemedi', 'hata'); }
   }
 
+  // ===================== Branş Yardımcıları =====================
+  const _BRANS_LISTESI = ['Adalet','Alan Eğitimi','Arapça','Beden Eğitimi','Bilişim Teknolojileri','Biyoloji','Coğrafya','Çocuk Gelişimi','Din Kültürü ve Ahlak Bilgisi','Elektrik-Elektronik','Felsefe','Fizik','Fransızca','Hukuk','İngilizce','İşletme','Kimya','Müzik','Matematik','Okul Öncesi','Özel Eğitim','Psikolojik Danışmanlık','Rehberlik','Resim','Sınıf Öğretmenliği','Sosyal Bilgiler','Türk Dili ve Edebiyatı','Türkçe','Tarih','Teknoloji Tasarım','Ticaret'];
+
+  function bransDegisti(secId, textId) {
+    const sec = document.getElementById(secId);
+    const txt = document.getElementById(textId);
+    if (sec.value === 'Diğer') {
+      txt.style.display = 'block';
+      txt.focus();
+    } else {
+      txt.style.display = 'none';
+      txt.value = '';
+    }
+  }
+
+  function bransDegerAl(secId, textId) {
+    const sec = document.getElementById(secId);
+    const txt = document.getElementById(textId);
+    return sec.value === 'Diğer' ? txt.value.trim() : sec.value;
+  }
+
+  function bransFormuDoldur(secId, textId, deger) {
+    const sec = document.getElementById(secId);
+    const txt = document.getElementById(textId);
+    if (!deger) { sec.value = ''; txt.style.display = 'none'; txt.value = ''; return; }
+    const eslesme = _BRANS_LISTESI.find(b => b === deger);
+    if (eslesme) {
+      sec.value = eslesme;
+      txt.style.display = 'none'; txt.value = '';
+    } else {
+      sec.value = 'Diğer';
+      txt.style.display = 'block';
+      txt.value = deger;
+    }
+  }
+
   // ===================== Kullanıcı Düzenle =====================
   function kullaniciDuzenleAc(id, adSoyad, rol, kurumId, brans, dogumTarihi) {
     document.getElementById('kullaniciDuzenleId').value = id;
     document.getElementById('kullaniciDuzenleAdSoyad').value = adSoyad;
-    document.getElementById('kullaniciDuzenleBrans').value = brans || '';
+    bransFormuDoldur('kullaniciDuzenleBransSec', 'kullaniciDuzenleBransText', brans);
     document.getElementById('kullaniciDuzenleDogumTarihi').value = dogumTarihi ? dogumTarihi.substring(0, 10) : '';
     document.getElementById('kullaniciDuzenleRol').value = rol;
     document.getElementById('kullaniciDuzenleSifre').value = '';
@@ -1877,7 +2132,7 @@
   async function kullaniciGuncelle() {
     const id = document.getElementById('kullaniciDuzenleId').value;
     const ad_soyad = document.getElementById('kullaniciDuzenleAdSoyad').value.trim();
-    const brans = document.getElementById('kullaniciDuzenleBrans').value.trim();
+    const brans = bransDegerAl('kullaniciDuzenleBransSec', 'kullaniciDuzenleBransText');
     const dogum_tarihi = document.getElementById('kullaniciDuzenleDogumTarihi').value;
     const rol = document.getElementById('kullaniciDuzenleRol').value;
     const sifre = document.getElementById('kullaniciDuzenleSifre').value;
@@ -1938,25 +2193,36 @@
       const tbody = document.getElementById("kurumTablo");
 
       if (!Array.isArray(liste) || liste.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">Kayıtlı kurum yok</td></tr>`;
+        tbody.innerHTML = `<div style="text-align:center;color:var(--text3);padding:32px 0;font-size:14px;"><i class="fas fa-building" style="font-size:28px;display:block;margin-bottom:10px;opacity:0.4"></i>Kayıtlı kurum yok</div>`;
         return;
       }
 
       tbody.innerHTML = liste.map((k) => `
-        <tr>
-          <td data-label="Kurum Kodu">${esc(k.kurum_kodu)}</td>
-          <td data-label="Kurum Adı">${esc(k.kurum_adi)}</td>
-          <td data-label="Anahtar">
-            <code style="font-size:11px;word-break:break-all;user-select:all;max-width:180px;display:inline-block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle;" title="${esc(k.anahtar)}">${esc(k.anahtar ? k.anahtar.substring(0, 12) + '...' : '-')}</code>
-            ${k.anahtar ? `<button class="btn-duzenle" style="padding:2px 6px;font-size:11px;margin-left:4px;" onclick="navigator.clipboard.writeText('${esc(k.anahtar)}');bildirimGoster('Anahtar kopyaland\u0131','basari')" title="Kopyala"><i class="fas fa-copy"></i></button>` : ''}
-            <button class="btn-duzenle" style="padding:2px 6px;font-size:11px;margin-left:2px;" onclick="kurumAnahtarYenile(${k.id})" title="Yeni anahtar üret"><i class="fas fa-sync-alt"></i></button>
-          </td>
-          <td data-label="Kayıt Tarihi">${tarihFormat(k.created_at)}</td>
-          <td><div class="islem-butonlar">
-            <button class="btn-duzenle" onclick="kurumDuzenleAc(${k.id}, '${esc(k.kurum_kodu)}', '${esc(k.kurum_adi)}')"><i class="fas fa-edit"></i> Düzenle</button>
-            <button class="btn-sil" onclick="kurumSil(${k.id})"><i class="fas fa-trash-alt"></i> Sil</button>
-          </div></td>
-        </tr>
+        <div class="kurum-kart">
+          <div class="kurum-kart-ust">
+            <div class="kurum-ikon"><i class="fas fa-building"></i></div>
+            <div>
+              <div class="kurum-kart-adi">${esc(k.kurum_adi)}</div>
+              <span class="kurum-kart-kodu">${esc(k.kurum_kodu)}</span>
+            </div>
+          </div>
+          <div class="kurum-kart-govde">
+            <div class="kurum-kart-satir">
+              <span class="kurum-kart-etiket">Anahtar</span>
+              <span class="kurum-kart-anahtar" title="${esc(k.anahtar)}">${esc(k.anahtar ? k.anahtar.substring(0, 16) + '\u2026' : '-')}</span>
+              ${k.anahtar ? `<button class="btn-kurum-kopyala" onclick="navigator.clipboard.writeText('${esc(k.anahtar)}');bildirimGoster('Anahtar kopyaland\u0131','basari')" title="Kopyala"><i class="fas fa-copy"></i></button>` : ''}
+              <button class="btn-kurum-yenile" onclick="kurumAnahtarYenile(${k.id})" title="Yeni anahtar üret"><i class="fas fa-sync-alt"></i></button>
+            </div>
+            <div class="kurum-kart-satir">
+              <span class="kurum-kart-etiket">Eklenme</span>
+              <span class="kurum-kart-deger">${tarihFormat(k.created_at)}</span>
+            </div>
+          </div>
+          <div class="kurum-kart-alt">
+            <button class="btn-kurum-duzenle" onclick="kurumDuzenleAc(${k.id}, '${esc(k.kurum_kodu)}', '${esc(k.kurum_adi)}')"><i class="fas fa-edit"></i> Düzenle</button>
+            <button class="btn-kurum-sil" onclick="kurumSil(${k.id})"><i class="fas fa-trash-alt"></i> Sil</button>
+          </div>
+        </div>
       `).join("");
     } catch (err) {
       bildirimGoster("Kurum listesi alınamadı", "hata");
@@ -2031,7 +2297,12 @@
   }
 
   async function kurumAnahtarYenile(id) {
-    if (!confirm("Bu kurumun anahtarını yenilemek istediğinize emin misiniz?\n\nDikkat: Tüm tahtaların yeni anahtarla güncellenmesi gerekecektir!")) return;
+    onayla({
+      baslik: 'Kurum Anahtarını Yenile',
+      mesaj: 'Bu kurumun anahtarını yenilemek istediğinize emin misiniz?\n\nDikkat: Tüm tahtaların yeni anahtarla güncellenmesi gerekecektir!',
+      onayMetni: 'Yenile',
+      tehlike: false,
+      callback: async () => {
     try {
       const yanit = await fetch("/api/kurumlar/" + id + "/anahtar-yenile", {
         method: "POST",
@@ -2047,6 +2318,8 @@
     } catch (err) {
       bildirimGoster("Anahtar yenilenemedi", "hata");
     }
+    }
+    });
   }
 
   // ---- Yönetici: kendi kurum anahtarını görüntüle / kopyala / yenile ----
@@ -2077,7 +2350,12 @@
   }
 
   async function kurumAnahtarYenileYonetici() {
-    if (!confirm("Kurum anahtarını yenilemek istediğinize emin misiniz?\n\nDikkat: Tüm tahtaların yeni anahtarla güncellenmesi gerekecektir!")) return;
+    onayla({
+      baslik: 'Kurum Anahtarını Yenile',
+      mesaj: 'Kurum anahtarını yenilemek istediğinize emin misiniz?\n\nDikkat: Tüm tahtaların yeni anahtarla güncellenmesi gerekecektir!',
+      onayMetni: 'Yenile',
+      tehlike: false,
+      callback: async () => {
     try {
       const yanit = await fetch("/api/kurumlar/" + kullanici.kurum_id + "/anahtar-yenile", {
         method: "POST",
@@ -2093,11 +2371,17 @@
     } catch (err) {
       bildirimGoster("Anahtar yenilenemedi", "hata");
     }
+    }
+    });
   }
 
   async function kurumSil(id) {
-    if (!confirm("Bu kurumu silmek istediğinize emin misiniz? Kuruma bağlı tüm tahtalar ve kullanıcılar da silinecektir!")) return;
-
+    onayla({
+      baslik: 'Kurumu Sil',
+      mesaj: 'Bu kurumu silmek istediğinize emin misiniz?\nKuruma bağlı tüm tahtalar ve kullanıcılar da silinecektir!',
+      onayMetni: 'Sil',
+      tehlike: true,
+      callback: async () => {
     try {
       const yanit = await fetch("/api/kurumlar/" + id, {
         method: "DELETE",
@@ -2116,6 +2400,8 @@
     } catch (err) {
       bildirimGoster("Kurum silinemedi", "hata");
     }
+    }
+    });
   }
 
   function sifreDegistirAc() {

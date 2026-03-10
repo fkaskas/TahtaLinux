@@ -13,11 +13,19 @@ from io import BytesIO
 
 # Ses akışı tespiti için regex
 _RE_SINK_IDX = re.compile(r'^Sink Input #(\d+)$')
-# Kilit sırasında penceresi minimize edilecek uygulamalar
-_MINIMIZE_SINIFLARI = [
-    "chromium", "chromium-browser", "brave-browser", "firefox",
-    "google-chrome", "opera", "vivaldi",
-    "vlc", "totem", "mpv", "smplayer", "celluloid",
+# Ses/video oynatan tarayıcıları tespit için binary isimleri
+_TARAYICI_BINARIES = {
+    "chromium", "chromium-browser",
+    "brave", "brave-browser",
+    "firefox", "firefox-esr",
+    "google-chrome", "chrome",
+    "opera", "opera-stable", "opera-beta", "opera-developer",
+    "vivaldi", "vivaldi-stable",
+}
+# Kilit sırasında tamamen kapatılacak harici medya oynatıcılar
+_MEDYA_OYNATICILARI = [
+    "vlc", "mpv", "totem", "smplayer", "celluloid",
+    "rhythmbox", "clementine", "audacious", "deadbeef",
 ]
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -715,7 +723,7 @@ class Kilit(QMainWindow):
                 pass
         if self._kapanma_kalan <= 0:
             self._kapanma_zamanlayici.stop()
-            subprocess.Popen(["sudo", "shutdown", "-h", "now"])
+            subprocess.Popen(["systemctl", "poweroff"])
 
     # ===================== VERİTABANI İZLEME =====================
 
@@ -1142,6 +1150,7 @@ class Kilit(QMainWindow):
         if sonuc == QDialog.Accepted:
             self._video_yenile()
             self._logo_yenile()
+            self._webview_url_yenile()
             # Ayarlardan anahtar/kurum değişmiş olabilir — online istemciyi güncelle
             yeni_kayit = self._vt.tahta_kaydi_al(self._kurumkodu)
             if yeni_kayit:
@@ -1267,6 +1276,14 @@ class Kilit(QMainWindow):
         logo_pixmap = QPixmap(os.path.join(BETIK_DIZINI, "resim", "logo.png"))
         if not logo_pixmap.isNull():
             self._logo_etiketi.setPixmap(logo_pixmap.scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+
+    def _webview_url_yenile(self):
+        """Ayarlar kaydedildikten sonra web görünüm URL'sini güncelle"""
+        db_url = self._vt.url_al(self._kurumkodu)
+        yeni_url = db_url if db_url else "https://kulumtal.com/php/"
+        mevcut_url = self.web_gorunum.url().toString()
+        if mevcut_url != yeni_url:
+            self.web_gorunum.setUrl(QUrl(yeni_url))
 
     def _video_yenile(self):
         """Mevcut video katmanını temizle ve yeniden oluştur"""
@@ -1399,7 +1416,11 @@ class Kilit(QMainWindow):
         if self._video_gizli:
             self._icerik_yigini.setCurrentWidget(self._video_alani)
             if hasattr(self, '_vlc_list_player') and self._vlc_list_player:
+                # stop() edilmiş olabilir — önce xwindow'u yenile, sonra oynat
+                if hasattr(self, '_vlc_player') and self._vlc_player and hasattr(self, '_video_frame') and self._video_frame:
+                    self._vlc_player.set_xwindow(int(self._video_frame.winId()))
                 self._vlc_list_player.play()
+                QTimer.singleShot(300, self._vlc_unmute_guvence)
             self._video_toggle_btn.setIcon(qta.icon('fa5s.eye-slash', color='#95a5a6'))
             self._video_toggle_btn.setToolTip("Videoyu Gizle")
             self._video_gizli = False
@@ -1424,73 +1445,56 @@ class Kilit(QMainWindow):
             pass
 
     def _tarayici_sustur(self):
-        """Tüm aktif ses akışlarını sustur (kendi VLC hariç); susturulanları kaydet; medya pencerelerini minimize et"""
-        self._susturulan_sink_inputs = []
+        """Ses/video oynatan tarayıcıları kapat (medya yoksa dokunma); harici medya oynatıcıları kapat"""
         kendi_pid = str(os.getpid())
-        # PulseAudio üzerinden tüm mute-değil sink-input'ları sustur (kendi process hariç)
+        kapatilacak_binary_ler = set()
+        # PulseAudio'dan aktif ses akışı olan tarayıcı binary isimlerini bul
         try:
             cikti = subprocess.check_output(
                 ["pactl", "list", "sink-inputs"], text=True, stderr=subprocess.DEVNULL
             )
-            mevcut_idx = None
             mevcut_pid = None
-            mute_no = False
+            mevcut_binary = None
             for satir in cikti.splitlines():
                 s = satir.strip()
                 m = _RE_SINK_IDX.match(s)
                 if m:
                     # Önceki akışı işle
-                    if mevcut_idx and mute_no and mevcut_pid != kendi_pid:
-                        self._susturulan_sink_inputs.append(mevcut_idx)
-                        subprocess.Popen(
-                            ["pactl", "set-sink-input-mute", mevcut_idx, "1"],
-                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-                        )
-                    mevcut_idx = m.group(1)
+                    if mevcut_pid and mevcut_pid != kendi_pid and mevcut_binary in _TARAYICI_BINARIES:
+                        kapatilacak_binary_ler.add(mevcut_binary)
                     mevcut_pid = None
-                    mute_no = False
-                elif mevcut_idx and s.startswith("Mute:"):
-                    mute_no = "no" in s
-                elif mevcut_idx and "application.process.id" in s:
+                    mevcut_binary = None
+                elif "application.process.id" in s:
                     m2 = re.search(r'"(\d+)"', s)
                     if m2:
                         mevcut_pid = m2.group(1)
-            # Son akışı da işle
-            if mevcut_idx and mute_no and mevcut_pid != kendi_pid:
-                self._susturulan_sink_inputs.append(mevcut_idx)
-                subprocess.Popen(
-                    ["pactl", "set-sink-input-mute", mevcut_idx, "1"],
-                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-                )
+                elif "application.process.binary" in s:
+                    m2 = re.search(r'"([^"]+)"', s)
+                    if m2:
+                        mevcut_binary = os.path.basename(m2.group(1)).lower()
+            # Son akış
+            if mevcut_pid and mevcut_pid != kendi_pid and mevcut_binary in _TARAYICI_BINARIES:
+                kapatilacak_binary_ler.add(mevcut_binary)
         except Exception:
             pass
-        # xdotool ile medya/tarayıcı pencerelerini minimize et
-        try:
-            for cls in _MINIMIZE_SINIFLARI:
-                r = subprocess.run(
-                    ["xdotool", "search", "--classname", cls],
-                    capture_output=True, text=True
-                )
-                for wid in r.stdout.strip().splitlines():
-                    if wid:
-                        subprocess.Popen(
-                            ["xdotool", "windowminimize", wid],
-                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
-                        )
-        except Exception:
-            pass
-
-    def _tarayici_sesi_ac(self):
-        """Kilit sırasında susturulan ses akışlarını tekrar aç"""
-        for idx in getattr(self, '_susturulan_sink_inputs', []):
+        # Ses/video oynatan tarayıcıları killall ile kapat (tüm alt process'ler dahil)
+        for binary in kapatilacak_binary_ler:
             try:
                 subprocess.Popen(
-                    ["pactl", "set-sink-input-mute", idx, "0"],
+                    ["killall", binary],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
                 )
             except Exception:
                 pass
-        self._susturulan_sink_inputs = []
+        # Harici medya oynatıcıları tamamen kapat
+        for oynatici in _MEDYA_OYNATICILARI:
+            try:
+                subprocess.Popen(
+                    ["killall", oynatici],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
+            except Exception:
+                pass
 
     def sistemi_kilitle(self):
         """Sistemi kilitle: klavyeyi yakala"""
@@ -1551,12 +1555,12 @@ class Kilit(QMainWindow):
         except Exception:
             pass
 
-        # Videoyu duraklat
+        # Videoyu duraklat veya durdur
         if self._video_katmani and hasattr(self, '_vlc_list_player') and self._vlc_list_player:
-            self._vlc_list_player.pause()
-
-        # Tarayıcı sesini geri aç
-        self._tarayici_sesi_ac()
+            if self._video_gizli:
+                self._vlc_list_player.stop()
+            else:
+                self._vlc_list_player.pause()
 
         self.hide()
 
