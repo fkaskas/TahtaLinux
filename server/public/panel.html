@@ -412,6 +412,134 @@
       display: none;
     }
 
+    /* ===== Doğrulama Ekranı (Giriş Yapmadan) ===== */
+    .dogrulama-wrapper {
+      display: none; justify-content: center; align-items: flex-start;
+      min-height: 100vh; padding: 20px; padding-top: 40px;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    }
+    .dogrulama-wrapper.aktif { display: flex; }
+    .dogrulama-kutu {
+      background: var(--surface); padding: 24px; border-radius: 20px;
+      width: 100%; max-width: 420px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+    .dogrulama-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 20px;
+    }
+    .dogrulama-header h2 {
+      font-size: 18px; font-weight: 700; color: var(--text);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .dogrulama-header .btn-anahtar {
+      width: 36px; height: 36px; border-radius: 10px; border: none;
+      background: var(--surface2); color: var(--text2); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 15px;
+      transition: background 0.2s;
+    }
+    .dogrulama-header .btn-anahtar:active { background: var(--border); }
+    .dogrulama-header .btn-anahtar.ayarli { color: var(--success); }
+
+    .dogrulama-sekme-bar {
+      display: flex; gap: 0; margin-bottom: 18px;
+      background: var(--bg); border-radius: var(--radius); overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .dogrulama-sekme-bar button {
+      flex: 1; padding: 11px 8px; border: none; background: transparent;
+      color: var(--text3); font-size: 13px; font-weight: 600; cursor: pointer;
+      transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .dogrulama-sekme-bar button.aktif {
+      background: var(--accent); color: #fff;
+    }
+
+    .dogrulama-icerik { display: none; }
+    .dogrulama-icerik.aktif { display: block; }
+
+    .dogrulama-qr-alan {
+      border-radius: var(--radius); overflow: hidden;
+      margin-bottom: 14px;
+    }
+    .dogrulama-qr-alan video { border-radius: var(--radius); }
+
+    .dogrulama-manuel {
+      display: flex; flex-direction: column; gap: 10px;
+    }
+    .dogrulama-manuel label {
+      font-size: 13px; color: var(--text2); font-weight: 500;
+    }
+    .dogrulama-manuel input {
+      width: 100%; padding: 14px 16px; border-radius: var(--radius);
+      border: 1px solid var(--border); background: var(--bg);
+      color: var(--text); font-size: 18px; text-align: center;
+      letter-spacing: 4px; font-weight: 700;
+    }
+    .dogrulama-manuel input:focus { outline: none; border-color: var(--accent); }
+    .dogrulama-manuel button {
+      width: 100%; padding: 14px; border: none; border-radius: var(--radius);
+      background: var(--accent); color: #fff; font-size: 15px;
+      font-weight: 600; cursor: pointer; transition: background 0.2s;
+    }
+    .dogrulama-manuel button:active { background: var(--accent-hover); }
+
+    .dogrulama-sonuc {
+      text-align: center; padding: 20px; margin-top: 14px;
+      border-radius: var(--radius); display: none;
+    }
+    .dogrulama-sonuc.goster { display: block; }
+    .dogrulama-sonuc.basarili { background: rgba(59,130,246,0.12); }
+    .dogrulama-sonuc .sonuc-etiket {
+      font-size: 12px; color: var(--text3); font-weight: 600; margin-bottom: 6px;
+    }
+    .dogrulama-sonuc .sonuc-kod {
+      font-size: 2.4em; font-weight: 800; letter-spacing: 8px;
+      color: var(--accent); display: block; margin: 6px 0;
+    }
+    .dogrulama-sonuc .sonuc-aciklama {
+      font-size: 12px; color: var(--text3); margin-top: 4px;
+    }
+
+    .dogrulama-geri {
+      display: block; text-align: center; margin-top: 16px;
+      color: var(--text3); font-size: 13px; cursor: pointer;
+      text-decoration: none; transition: color 0.2s;
+    }
+    .dogrulama-geri:hover { color: var(--text2); }
+
+    /* Güvenlik Anahtarı Modal */
+    .anahtar-modal-arka {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7); z-index: 300;
+      justify-content: center; align-items: center;
+    }
+    .anahtar-modal-arka.goster { display: flex; }
+    .anahtar-modal {
+      background: var(--surface); padding: 28px 24px;
+      border-radius: 20px; width: 92%; max-width: 380px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      animation: modalUp 0.3s ease;
+    }
+    .anahtar-modal h3 {
+      color: var(--text); font-size: 17px; font-weight: 700;
+      margin-bottom: 6px; display: flex; align-items: center; gap: 8px;
+    }
+    .anahtar-modal p {
+      color: var(--text3); font-size: 13px; margin-bottom: 18px; line-height: 1.6;
+    }
+    .anahtar-modal input {
+      width: 100%; padding: 14px 16px; border-radius: var(--radius);
+      border: 1px solid var(--border); background: var(--bg);
+      color: var(--text); font-size: 15px; margin-bottom: 14px;
+    }
+    .anahtar-modal input:focus { outline: none; border-color: var(--accent); }
+    .anahtar-modal-butonlar { display: flex; gap: 10px; }
+    .anahtar-modal-butonlar button {
+      flex: 1; padding: 13px; border: none; border-radius: 10px;
+      cursor: pointer; font-size: 14px; font-weight: 600;
+    }
+
     /* ===== Desktop (768px+) ===== */
     @media (min-width: 768px) {
       .header { padding: 14px 24px; }
@@ -481,6 +609,61 @@
     <button type="submit"><i class="fas fa-sign-in-alt"></i> Giriş Yap</button>
     <div class="giris-hata" id="girisHata"></div>
     </form>
+    <div style="text-align:center;margin-top:18px;border-top:1px solid var(--border);padding-top:16px;">
+      <a onclick="dogrulamaEkraniAc()" style="color:var(--accent);font-size:13px;cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:6px;"><i class="fas fa-shield-alt"></i> Giriş yapmadan doğrulama kodu üret</a>
+    </div>
+  </div>
+</div>
+
+<!-- ===== DOĞRULAMA EKRANI (Giriş Yapmadan) ===== -->
+<div id="dogrulamaEkrani" class="dogrulama-wrapper">
+  <div class="dogrulama-kutu">
+    <div class="dogrulama-header">
+      <h2><i class="fas fa-shield-alt"></i> Doğrulama Kodu</h2>
+      <button class="btn-anahtar" id="btnAnahtarAyar" onclick="anahtarModalAc()" title="Güvenlik Anahtarı"><i class="fas fa-key"></i></button>
+    </div>
+
+    <div class="dogrulama-sekme-bar">
+      <button class="aktif" onclick="dogrulamaSekme(this, 'qr')"><i class="fas fa-qrcode"></i> QR Tara</button>
+      <button onclick="dogrulamaSekme(this, 'manuel')"><i class="fas fa-keyboard"></i> Kod Gir</button>
+    </div>
+
+    <!-- QR Tarama -->
+    <div class="dogrulama-icerik aktif" id="dogrulamaQrIcerik">
+      <div class="dogrulama-qr-alan" id="dogrulamaQrOkuyucu"></div>
+      <p style="text-align:center;color:var(--text3);font-size:13px;">Tahtadaki QR kodu kameraya gösterin</p>
+    </div>
+
+    <!-- Manuel Giriş -->
+    <div class="dogrulama-icerik" id="dogrulamaManuelIcerik">
+      <div class="dogrulama-manuel">
+        <label>Kilit Kodunu Girin</label>
+        <input type="text" id="dogrulamaKilitKodu" placeholder="Kilit kodu" maxlength="10" autocomplete="off" inputmode="numeric" />
+        <button onclick="dogrulamaManuelHesapla()"><i class="fas fa-calculator"></i> Doğrulama Kodu Üret</button>
+      </div>
+    </div>
+
+    <!-- Sonuç -->
+    <div class="dogrulama-sonuc" id="dogrulamaSonuc">
+      <div class="sonuc-etiket">DOĞRULAMA KODU</div>
+      <span class="sonuc-kod" id="dogrulamaSonucKod"></span>
+      <div class="sonuc-aciklama">Bu kodu kilit ekranına girin</div>
+    </div>
+
+    <a class="dogrulama-geri" onclick="dogrulamadenGirise()"><i class="fas fa-arrow-left"></i> Giriş ekranına dön</a>
+  </div>
+</div>
+
+<!-- Güvenlik Anahtarı Modal -->
+<div class="anahtar-modal-arka" id="anahtarModal">
+  <div class="anahtar-modal">
+    <h3><i class="fas fa-key"></i> Güvenlik Anahtarı</h3>
+    <p>Doğrulama kodu üretebilmek için güvenlik anahtarını girin. Bu anahtar cihazınızda saklanacak, tekrar sorulmayacaktır.</p>
+    <input type="password" id="anahtarInput" placeholder="Güvenlik anahtarını girin" />
+    <div class="anahtar-modal-butonlar">
+      <button class="btn-iptal" id="anahtarIptalBtn" onclick="anahtarModalKapat()">İptal</button>
+      <button class="btn-kaydet" onclick="anahtarKaydet()">Kaydet</button>
+    </div>
   </div>
 </div>
 
@@ -778,6 +961,216 @@
 </div>
 
 <script>
+  // ===================== Doğrulama Ekranı (Giriş Yapmadan) =====================
+  let dogrulamaQrScanner = null;
+
+  function dogrulamaEkraniAc() {
+    // Güvenlik anahtarı var mı kontrol et
+    const anahtar = localStorage.getItem("guvenlik_anahtari");
+    if (!anahtar) {
+      // İlk kullanım: anahtar sor
+      anahtarModalAc(true); // zorunlu mod
+      return;
+    }
+    _dogrulamaEkraniGoster();
+  }
+
+  function _dogrulamaEkraniGoster() {
+    document.getElementById("girisEkrani").style.display = "none";
+    document.getElementById("dogrulamaEkrani").classList.add("aktif");
+    localStorage.setItem("son_ekran", "dogrulama");
+    // Anahtar ikonu durumunu güncelle
+    const btn = document.getElementById("btnAnahtarAyar");
+    btn.classList.toggle("ayarli", !!localStorage.getItem("guvenlik_anahtari"));
+    // QR sekmesindeyse tarayıcıyı başlat
+    const qrIcerik = document.getElementById("dogrulamaQrIcerik");
+    if (qrIcerik.classList.contains("aktif")) {
+      dogrulamaQrBaslat();
+    }
+  }
+
+  function dogrulamadenGirise() {
+    dogrulamaQrDurdur();
+    document.getElementById("dogrulamaEkrani").classList.remove("aktif");
+    document.getElementById("dogrulamaSonuc").classList.remove("goster");
+    document.getElementById("dogrulamaKilitKodu").value = "";
+    document.getElementById("girisEkrani").style.display = "";
+    localStorage.setItem("son_ekran", "giris");
+  }
+
+  // Güvenlik Anahtarı Modal
+  let _anahtarZorunlu = false;
+
+  function anahtarModalAc(zorunlu) {
+    _anahtarZorunlu = !!zorunlu;
+    const mevcut = localStorage.getItem("guvenlik_anahtari");
+    document.getElementById("anahtarInput").value = mevcut || "";
+    document.getElementById("anahtarModal").classList.add("goster");
+    document.getElementById("anahtarIptalBtn").style.display = _anahtarZorunlu && !mevcut ? "none" : "";
+    setTimeout(() => document.getElementById("anahtarInput").focus(), 100);
+  }
+
+  function anahtarModalKapat() {
+    document.getElementById("anahtarModal").classList.remove("goster");
+    document.getElementById("anahtarInput").value = "";
+  }
+
+  function anahtarKaydet() {
+    const deger = document.getElementById("anahtarInput").value.trim();
+    if (!deger) {
+      bildirimGoster("Güvenlik anahtarı boş olamaz", "hata");
+      return;
+    }
+    localStorage.setItem("guvenlik_anahtari", deger);
+    anahtarModalKapat();
+    bildirimGoster("Güvenlik anahtarı kaydedildi", "basari");
+    // Zorunlu modda doğrulama ekranını aç
+    if (_anahtarZorunlu) {
+      _dogrulamaEkraniGoster();
+    }
+    // Anahtar ikonu güncelle
+    const btn = document.getElementById("btnAnahtarAyar");
+    btn.classList.add("ayarli");
+  }
+
+  // Enter tuşu ile anahtar kaydet
+  document.getElementById("anahtarInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") anahtarKaydet();
+  });
+
+  // Enter tuşu ile manuel doğrulama
+  document.getElementById("dogrulamaKilitKodu").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") dogrulamaManuelHesapla();
+  });
+
+  // Sekme geçişi
+  function dogrulamaSekme(el, tip) {
+    el.parentElement.querySelectorAll("button").forEach(b => b.classList.remove("aktif"));
+    el.classList.add("aktif");
+    document.getElementById("dogrulamaQrIcerik").classList.toggle("aktif", tip === "qr");
+    document.getElementById("dogrulamaManuelIcerik").classList.toggle("aktif", tip === "manuel");
+    document.getElementById("dogrulamaSonuc").classList.remove("goster");
+
+    if (tip === "qr") {
+      dogrulamaQrBaslat();
+    } else {
+      dogrulamaQrDurdur();
+      setTimeout(() => document.getElementById("dogrulamaKilitKodu").focus(), 100);
+    }
+  }
+
+  // Client-side SHA-256 doğrulama kodu üretimi
+  async function sha256Bytes(text) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+    const hash = await crypto.subtle.digest("SHA-256", data);
+    return new Uint8Array(hash);
+  }
+
+  async function yanitUretIstemci(challengeKodu, gizliAnahtar) {
+    const birlesmis = challengeKodu + ":" + gizliAnahtar;
+    const h = await sha256Bytes(birlesmis);
+    let kod = "";
+    for (let i = 0; i < 4; i++) {
+      kod += String(h[i] % 10);
+    }
+    return kod;
+  }
+
+  // Manuel doğrulama kodu hesaplama
+  async function dogrulamaManuelHesapla() {
+    const anahtar = localStorage.getItem("guvenlik_anahtari");
+    if (!anahtar) {
+      anahtarModalAc(false);
+      return;
+    }
+    const kilitKodu = document.getElementById("dogrulamaKilitKodu").value.trim();
+    if (!kilitKodu) {
+      bildirimGoster("Kilit kodunu girin", "hata");
+      return;
+    }
+    try {
+      const yanit = await yanitUretIstemci(kilitKodu, anahtar);
+      const sonucEl = document.getElementById("dogrulamaSonuc");
+      document.getElementById("dogrulamaSonucKod").textContent = yanit;
+      sonucEl.classList.add("goster", "basarili");
+    } catch (e) {
+      bildirimGoster("Doğrulama kodu üretilemedi", "hata");
+    }
+  }
+
+  // QR ile doğrulama kodu üretimi
+  function dogrulamaQrBaslat() {
+    if (dogrulamaQrScanner) return;
+    const okuyucuEl = document.getElementById("dogrulamaQrOkuyucu");
+    dogrulamaQrScanner = new Html5Qrcode("dogrulamaQrOkuyucu");
+    dogrulamaQrScanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      (decodedText) => { dogrulamaQrOkundu(decodedText); },
+      () => {}
+    ).catch(() => {
+      bildirimGoster("Kamera açılamadı", "hata");
+    });
+  }
+
+  function dogrulamaQrDurdur() {
+    if (dogrulamaQrScanner) {
+      dogrulamaQrScanner.stop().then(() => {
+        try { dogrulamaQrScanner.clear(); } catch(e) {}
+        dogrulamaQrScanner = null;
+      }).catch(() => {
+        try { dogrulamaQrScanner.clear(); } catch(e) {}
+        dogrulamaQrScanner = null;
+      });
+    }
+  }
+
+  async function dogrulamaQrOkundu(okunanMetin) {
+    if (!okunanMetin) return;
+    const anahtar = localStorage.getItem("guvenlik_anahtari");
+    if (!anahtar) {
+      dogrulamaQrDurdur();
+      anahtarModalAc(false);
+      return;
+    }
+
+    // Tarayıcıyı durdur
+    dogrulamaQrDurdur();
+
+    let challengeKodu = null;
+    try {
+      const veri = JSON.parse(okunanMetin);
+      challengeKodu = veri.challenge || null;
+    } catch (e) {
+      challengeKodu = okunanMetin;
+    }
+
+    if (!challengeKodu) {
+      bildirimGoster("QR kodunda kilit kodu bulunamadı", "hata");
+      setTimeout(() => dogrulamaQrBaslat(), 2000);
+      return;
+    }
+
+    try {
+      const yanit = await yanitUretIstemci(challengeKodu, anahtar);
+      const sonucEl = document.getElementById("dogrulamaSonuc");
+      document.getElementById("dogrulamaSonucKod").textContent = yanit;
+      sonucEl.classList.add("goster", "basarili");
+
+      // 8 sn sonra tarayıcıyı tekrar başlat
+      setTimeout(() => {
+        if (document.getElementById("dogrulamaQrIcerik").classList.contains("aktif") &&
+            document.getElementById("dogrulamaEkrani").classList.contains("aktif")) {
+          dogrulamaQrBaslat();
+        }
+      }, 8000);
+    } catch (e) {
+      bildirimGoster("Doğrulama kodu üretilemedi", "hata");
+      setTimeout(() => dogrulamaQrBaslat(), 2000);
+    }
+  }
+
   // ===================== Durum =====================
   let token = null;
   let kullanici = null;
@@ -848,7 +1241,10 @@
   // ===================== Oturum Başlat =====================
   function panelBaslat() {
     document.getElementById("girisEkrani").classList.add("gizli");
+    document.getElementById("dogrulamaEkrani").classList.remove("aktif");
+    dogrulamaQrDurdur();
     document.getElementById("anaPanel").classList.remove("gizli");
+    localStorage.setItem("son_ekran", "panel");
 
     document.getElementById("kullaniciAd").textContent = kullanici.ad_soyad;
     document.getElementById("kullaniciRol").textContent =
@@ -1795,6 +2191,8 @@
       token = oturum.token;
       kullanici = JSON.parse(oturum.kullanici);
       panelBaslat();
+    } else if (localStorage.getItem("son_ekran") === "dogrulama" && localStorage.getItem("guvenlik_anahtari")) {
+      _dogrulamaEkraniGoster();
     }
   })();
 </script>
