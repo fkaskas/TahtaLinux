@@ -4,11 +4,21 @@
 import os
 import glob
 import json
+import re
 import time
 import subprocess
 import threading
 import shutil
 from io import BytesIO
+
+# Ses akışı tespiti için regex
+_RE_SINK_IDX = re.compile(r'^Sink Input #(\d+)$')
+# Kilit sırasında penceresi minimize edilecek uygulamalar
+_MINIMIZE_SINIFLARI = [
+    "chromium", "chromium-browser", "brave-browser", "firefox",
+    "google-chrome", "opera", "vivaldi",
+    "vlc", "totem", "mpv", "smplayer", "celluloid",
+]
 
 from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QPushButton, QLabel, QFrame, QApplication,
@@ -1356,6 +1366,9 @@ class Kilit(QMainWindow):
         win_id = int(self._video_frame.winId())
         self._vlc_player.set_xwindow(win_id)
         self._vlc_list_player.play()
+        # VLC PulseAudio sink-input'unu oluşturduktan sonra sesini güvenceye al
+        QTimer.singleShot(500, self._vlc_unmute_guvence)
+        QTimer.singleShot(1500, self._vlc_unmute_guvence)
 
     def _video_boyut_ayarla(self):
         """Video frame'ini üst konteyner boyutuna sığdır"""
@@ -1398,8 +1411,92 @@ class Kilit(QMainWindow):
             self._video_toggle_btn.setToolTip("Videoyu Göster")
             self._video_gizli = True
 
+    def _vlc_unmute_guvence(self):
+        """Kilit uygulamasının kendi VLC player'ını kesinlikle unmute/sesli yap"""
+        try:
+            if hasattr(self, '_vlc_player') and self._vlc_player:
+                self._vlc_player.audio_set_mute(False)
+            if hasattr(self, '_vlc_list_player') and self._vlc_list_player:
+                p = self._vlc_list_player.get_media_player()
+                if p:
+                    p.audio_set_mute(False)
+        except Exception:
+            pass
+
+    def _tarayici_sustur(self):
+        """Tüm aktif ses akışlarını sustur (kendi VLC hariç); susturulanları kaydet; medya pencerelerini minimize et"""
+        self._susturulan_sink_inputs = []
+        kendi_pid = str(os.getpid())
+        # PulseAudio üzerinden tüm mute-değil sink-input'ları sustur (kendi process hariç)
+        try:
+            cikti = subprocess.check_output(
+                ["pactl", "list", "sink-inputs"], text=True, stderr=subprocess.DEVNULL
+            )
+            mevcut_idx = None
+            mevcut_pid = None
+            mute_no = False
+            for satir in cikti.splitlines():
+                s = satir.strip()
+                m = _RE_SINK_IDX.match(s)
+                if m:
+                    # Önceki akışı işle
+                    if mevcut_idx and mute_no and mevcut_pid != kendi_pid:
+                        self._susturulan_sink_inputs.append(mevcut_idx)
+                        subprocess.Popen(
+                            ["pactl", "set-sink-input-mute", mevcut_idx, "1"],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                        )
+                    mevcut_idx = m.group(1)
+                    mevcut_pid = None
+                    mute_no = False
+                elif mevcut_idx and s.startswith("Mute:"):
+                    mute_no = "no" in s
+                elif mevcut_idx and "application.process.id" in s:
+                    m2 = re.search(r'"(\d+)"', s)
+                    if m2:
+                        mevcut_pid = m2.group(1)
+            # Son akışı da işle
+            if mevcut_idx and mute_no and mevcut_pid != kendi_pid:
+                self._susturulan_sink_inputs.append(mevcut_idx)
+                subprocess.Popen(
+                    ["pactl", "set-sink-input-mute", mevcut_idx, "1"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
+        except Exception:
+            pass
+        # xdotool ile medya/tarayıcı pencerelerini minimize et
+        try:
+            for cls in _MINIMIZE_SINIFLARI:
+                r = subprocess.run(
+                    ["xdotool", "search", "--classname", cls],
+                    capture_output=True, text=True
+                )
+                for wid in r.stdout.strip().splitlines():
+                    if wid:
+                        subprocess.Popen(
+                            ["xdotool", "windowminimize", wid],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                        )
+        except Exception:
+            pass
+
+    def _tarayici_sesi_ac(self):
+        """Kilit sırasında susturulan ses akışlarını tekrar aç"""
+        for idx in getattr(self, '_susturulan_sink_inputs', []):
+            try:
+                subprocess.Popen(
+                    ["pactl", "set-sink-input-mute", idx, "0"],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+                )
+            except Exception:
+                pass
+        self._susturulan_sink_inputs = []
+
     def sistemi_kilitle(self):
         """Sistemi kilitle: klavyeyi yakala"""
+        self._tarayici_sustur()
+        # Kendi VLC'mizin kesinlikle sesli kaldığından emin ol
+        self._vlc_unmute_guvence()
         # Ekran geometrisini yeniden al (boot sırasında değişmiş olabilir)
         ekran = QApplication.primaryScreen()
         if ekran:
@@ -1457,6 +1554,9 @@ class Kilit(QMainWindow):
         # Videoyu duraklat
         if self._video_katmani and hasattr(self, '_vlc_list_player') and self._vlc_list_player:
             self._vlc_list_player.pause()
+
+        # Tarayıcı sesini geri aç
+        self._tarayici_sesi_ac()
 
         self.hide()
 
@@ -1662,6 +1762,10 @@ class Kilit(QMainWindow):
             self._tray_icon.hide()
             self._tray_icon = None
 
+        self._tarayici_sustur()
+        # Kendi VLC'mizin kesinlikle sesli kaldığından emin ol
+        self._vlc_unmute_guvence()
+
         # Veritabanını güncelle (kilitli olarak işaretle)
         self._vt.durum_guncelle(self._kurumkodu, 0)
         self._son_db_durum = 0
@@ -1683,6 +1787,8 @@ class Kilit(QMainWindow):
         # Videoyu devam ettir
         if self._video_katmani and hasattr(self, '_vlc_list_player') and self._vlc_list_player and not self._video_gizli:
             self._vlc_list_player.play()
+        # VLC sesini güvenceye al (susturma sonrası)
+        QTimer.singleShot(300, self._vlc_unmute_guvence)
 
         QTimer.singleShot(500, self._girisleri_yakala)
         self._odak_zamanlayici.start(1000)
