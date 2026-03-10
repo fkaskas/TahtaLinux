@@ -834,13 +834,13 @@ io.on("connection", (socket) => {
         // İlk bağlantıda tahtanın kendi durumunu geri gönder
         socket.emit("durum_bilgisi", { durum: gercekDurum, ses: gercekSes });
       } else {
-        // Sonraki bağlantılar: sunucu durumu baz alınır (durum/ses güncellenmez)
+        // Sonraki bağlantılar: sunucu durumu baz alınır (tahta_adi ve durum/ses güncellenmez)
         await db.execute(
-          `UPDATE tahtalar SET tahta_adi = ?, cevrimici = 1, ip_adresi = ?, son_baglanti = NOW(), anahtar = ? WHERE id = ?`,
-          [veri.tahtaAdi || tahta.tahta_adi, ipAdresi, gercekAnahtar, tahtaId]
+          `UPDATE tahtalar SET cevrimici = 1, ip_adresi = ?, son_baglanti = NOW(), anahtar = ? WHERE id = ?`,
+          [ipAdresi, gercekAnahtar, tahtaId]
         );
-        // Sunucudaki mevcut durumu tahtaya gönder (tahta buna göre senkronize olacak)
-        socket.emit("durum_bilgisi", { durum: tahta.durum, ses: tahta.ses });
+        // Sunucudaki mevcut durumu ve adı tahtaya gönder (tahta buna göre senkronize olacak)
+        socket.emit("durum_bilgisi", { durum: tahta.durum, ses: tahta.ses, tahta_adi: tahta.tahta_adi });
       }
 
       bagliTahtalar[socket.id] = {

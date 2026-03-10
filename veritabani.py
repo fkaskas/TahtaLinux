@@ -152,6 +152,19 @@ class VeritabaniYoneticisi:
             finally:
                 conn.close()
 
+    def adi_guncelle(self, kurumkodu, yeni_adi):
+        """Tahta adını güncelle"""
+        with self._kilit:
+            conn = self._baglan()
+            try:
+                conn.execute(
+                    "UPDATE tahta SET adi = ? WHERE kurumkodu = ?",
+                    (yeni_adi, kurumkodu)
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
     def durum_al(self, kurumkodu):
         """Tahta kilit durumunu getir: 0=kilitli, 1=açık, None=kayıt yok"""
         kayit = self.tahta_kaydi_al(kurumkodu)

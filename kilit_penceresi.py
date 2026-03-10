@@ -414,11 +414,12 @@ class Kilit(QMainWindow):
         self._online.tahta_adi_sinyali.connect(self._tahta_adi_guncelle)
         self._online.baslat()
 
-        # Ders çıkış saatleri kontrolü (her 15 saniyede bir kontrol et)
+        # Ders çıkış saatleri kontrolü (her saniye kontrol et)
         self._son_tetiklenen_ders_saati = ""
+        self._son_tetiklenen_bildirim_saati = ""
         self._ders_saati_zamanlayici = QTimer(self)
         self._ders_saati_zamanlayici.timeout.connect(self._ders_saati_kontrol)
-        self._ders_saati_zamanlayici.start(15000)
+        self._ders_saati_zamanlayici.start(1000)
 
         # Başlangıçta DB durumuna göre kilitle veya açık bırak
         self._baslangic_durumu_uygula()
@@ -771,33 +772,91 @@ class Kilit(QMainWindow):
             print(f"[DERS SAATLERİ] Kaydetme hatası: {e}")
 
     def _ders_saati_kontrol(self):
-        """Her 15 saniyede bir ders çıkış saati kontrolü yap"""
+        """Her saniye ders çıkış saati kontrolü yap"""
         try:
             veri = self._vt.ders_saatleri_al()
             if not veri or veri.get("aktif", 0) != 1:
                 return
 
             simdi = QTime.currentTime()
-            simdi_str = simdi.toString("HH:mm")
 
             for item in veri.get("saatler", []):
                 saat = item.get("saat", "")
                 if not saat:
                     continue
-                if saat == simdi_str and saat != self._son_tetiklenen_ders_saati:
+                saat_obj = QTime.fromString(saat, "HH:mm")
+                diff = simdi.secsTo(saat_obj)
+
+                # 30 saniye öncesi bildirim (27-33 saniyelik eşleşme penceresi)
+                if 27 <= diff <= 33 and saat != self._son_tetiklenen_bildirim_saati:
+                    self._son_tetiklenen_bildirim_saati = saat
+                    self._ders_bildirim_goster(saat)
+
+                # Kilitleme zamanı (0-2 saniye tolerans)
+                if 0 <= diff <= 2 and saat != self._son_tetiklenen_ders_saati:
                     self._son_tetiklenen_ders_saati = saat
                     print(f"[DERS SAATİ] Ders çıkış saati geldi: {saat} — kilitleniyor")
                     if self._kilit_acma_istendi:
                         self._aktif_dialog_kapat()
                         self._tekrar_kilitle()
                     return
-
-            # Dakika değiştiğinde son tetiklenen saati sıfırla
-            if simdi_str != self._son_tetiklenen_ders_saati:
-                # Saatlerden hiçbiri eşleşmiyorsa sıfırlamaya gerek yok
-                pass
         except Exception as e:
             print(f"[DERS SAATİ] Kontrol hatası: {e}")
+
+    def _ders_bildirim_goster(self, saat):
+        """Ders çıkış saatine 30 saniye kala ekranda bildirim göster"""
+        if hasattr(self, '_ders_bildirimi') and self._ders_bildirimi:
+            try:
+                self._ders_bildirimi.close()
+            except Exception:
+                pass
+
+        bildirim = QWidget()
+        bildirim.setWindowFlags(
+            Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint |
+            Qt.Tool | Qt.X11BypassWindowManagerHint
+        )
+        bildirim.setAttribute(Qt.WA_TranslucentBackground)
+
+        ekran = QApplication.primaryScreen().geometry()
+
+        ana = QVBoxLayout(bildirim)
+        ana.setContentsMargins(0, 0, 0, 0)
+
+        cerceve = QFrame()
+        cerceve.setStyleSheet("""
+            QFrame {
+                background-color: rgba(44, 62, 80, 210);
+                border-radius: 10px;
+            }
+        """)
+        ic = QHBoxLayout(cerceve)
+        ic.setContentsMargins(16, 10, 16, 10)
+        ic.setSpacing(8)
+
+        ikon = QLabel()
+        fa_ikon = qta.icon('fa5s.bell', color='#f0c040')
+        ikon.setPixmap(fa_ikon.pixmap(24, 24))
+        ikon.setStyleSheet("background: transparent;")
+        ic.addWidget(ikon)
+
+        metin = QLabel(f"Ders <b>{saat}</b>'de bitiyor — 30 saniye kaldı")
+        metin.setFont(QFont("Noto Sans", 11))
+        metin.setStyleSheet("color: #ecf0f1; background: transparent;")
+        metin.setWordWrap(True)
+        ic.addWidget(metin, 1)
+
+        ana.addWidget(cerceve)
+
+        bildirim.adjustSize()
+        bildirim.setFixedWidth(min(bildirim.sizeHint().width() + 20, 420))
+        bildirim.adjustSize()
+        bildirim.move(ekran.center().x() - bildirim.width() // 2, 24)
+
+        self._ders_bildirimi = bildirim
+        bildirim.show()
+        bildirim.raise_()
+        QTimer.singleShot(10000, bildirim.close)
 
     def _baslangic_durumu_uygula(self):
         """Başlangıçta daima kilitli başla ve DB izleme başlat"""
@@ -824,9 +883,10 @@ class Kilit(QMainWindow):
         self._db_durum_kontrol()
 
     def _tahta_adi_guncelle(self, yeni_adi):
-        """Sunucudan gelen tahta adı güncellemesini uygula"""
+        """Sunucudan gelen tahta adı güncellemesini uygula ve yerel DB'ye kaydet"""
         if yeni_adi and self._tahta_adi_etiketi.text() != yeni_adi:
             self._tahta_adi_etiketi.setText(yeni_adi)
+            self._vt.adi_guncelle(self._kurumkodu, yeni_adi)
 
     def _db_durum_kontrol(self):
         """Veritabanındaki durum değişikliğini kontrol et"""
@@ -1408,6 +1468,7 @@ class Kilit(QMainWindow):
     def _hemen_kilitle_goster(self, sure_dakika):
         """System tray icon + kontrol penceresi göster"""
         self._kalan_saniye = sure_dakika * 60
+        self._toplam_saniye = sure_dakika * 60
 
         # --- Kontrol penceresi ---
         self._kilitle_pencere = QWidget()
@@ -1416,10 +1477,10 @@ class Kilit(QMainWindow):
             Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
         )
         self._kilitle_pencere.setAttribute(Qt.WA_TranslucentBackground)
-        self._kilitle_pencere.setFixedSize(220, 100)
+        self._kilitle_pencere.setFixedSize(280, 80)
 
         ekran = QApplication.primaryScreen().geometry()
-        self._kilitle_pencere.move(ekran.width() - 230, ekran.height() - 150)
+        self._kilitle_pencere.move(ekran.width() - 310, ekran.height() - 170)
 
         ana_yerlesim = QVBoxLayout(self._kilitle_pencere)
         ana_yerlesim.setContentsMargins(0, 0, 0, 0)
@@ -1427,32 +1488,56 @@ class Kilit(QMainWindow):
         cerceve = QFrame()
         cerceve.setStyleSheet("""
             QFrame {
-                background-color: rgba(44, 62, 80, 230);
-                border-radius: 12px;
+                background-color: rgba(32, 32, 32, 200);
+                border-radius: 10px;
             }
         """)
         cerceve_yerlesim = QVBoxLayout(cerceve)
         cerceve_yerlesim.setContentsMargins(14, 10, 14, 10)
         cerceve_yerlesim.setSpacing(6)
 
+        # Üst satır: süre + kilitle butonu
+        ust_satir = QHBoxLayout()
+        ust_satir.setSpacing(8)
+
         self._sure_etiketi = QLabel(self._kalan_sure_metni())
-        self._sure_etiketi.setFont(QFont("Noto Sans", 10))
-        self._sure_etiketi.setStyleSheet("color: #ecf0f1;")
-        self._sure_etiketi.setAlignment(Qt.AlignCenter)
-        cerceve_yerlesim.addWidget(self._sure_etiketi)
+        self._sure_etiketi.setFont(QFont("Noto Sans", 13))
+        self._sure_etiketi.setStyleSheet("color: #ccc; background: transparent;")
+        ust_satir.addWidget(self._sure_etiketi, 1)
 
         kilitle_btn = QPushButton("Kilitle")
         kilitle_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        kilitle_btn.setFont(QFont("Noto Sans", 11, QFont.Bold))
+        kilitle_btn.setFont(QFont("Noto Sans", 12))
         kilitle_btn.setStyleSheet("""
             QPushButton {
-                background-color: #e74c3c; color: white; border: none;
-                border-radius: 8px; padding: 8px 16px;
+                background-color: rgba(255, 255, 255, 0.12);
+                color: #ddd; border: none;
+                border-radius: 8px; padding: 8px 18px;
             }
-            QPushButton:hover { background-color: #c0392b; }
+            QPushButton:hover { background-color: rgba(255, 255, 255, 0.2); }
         """)
         kilitle_btn.clicked.connect(self._hemen_kilitle)
-        cerceve_yerlesim.addWidget(kilitle_btn)
+        ust_satir.addWidget(kilitle_btn)
+
+        cerceve_yerlesim.addLayout(ust_satir)
+
+        # İlerleme çubuğu
+        self._sure_ilerleme = QProgressBar()
+        self._sure_ilerleme.setRange(0, self._toplam_saniye)
+        self._sure_ilerleme.setValue(self._kalan_saniye)
+        self._sure_ilerleme.setTextVisible(False)
+        self._sure_ilerleme.setFixedHeight(4)
+        self._sure_ilerleme.setStyleSheet("""
+            QProgressBar {
+                background: rgba(255, 255, 255, 0.06);
+                border: none; border-radius: 1px;
+            }
+            QProgressBar::chunk {
+                background-color: rgba(255, 255, 255, 0.3);
+                border-radius: 1px;
+            }
+        """)
+        cerceve_yerlesim.addWidget(self._sure_ilerleme)
 
         # Pencereye tıklanınca gizle (kilitle butonu hariç)
         cerceve.mousePressEvent = lambda e: self._kilitle_pencere.hide()
@@ -1460,8 +1545,8 @@ class Kilit(QMainWindow):
         ana_yerlesim.addWidget(cerceve)
 
         # --- System tray icon ---
-        kilit_ikonu = qta.icon('fa5s.lock', color='#e74c3c')
-        ikon = QIcon(kilit_ikonu.pixmap(64, 64))
+        tray_ikon_yolu = os.path.join(BETIK_DIZINI, "resim", "tahta-kilit-icon-symbolic.svg")
+        ikon = QIcon(tray_ikon_yolu)
 
         self._tray_icon = QSystemTrayIcon(ikon, self)
         self._tray_icon.setToolTip(self._kalan_sure_metni())
@@ -1475,11 +1560,18 @@ class Kilit(QMainWindow):
 
         # Pencereyi göster
         self._kilitle_pencere.show()
+        # 15 saniye sonra otomatik gizle
+        QTimer.singleShot(15000, self._kilitle_penceresi_otomatik_gizle)
 
         # Geri sayım zamanlayıcısı
         self._geri_sayim_zamanlayici = QTimer(self)
         self._geri_sayim_zamanlayici.timeout.connect(self._geri_sayim_guncelle)
         self._geri_sayim_zamanlayici.start(1000)
+
+    def _kilitle_penceresi_otomatik_gizle(self):
+        """15 saniye sonra köşe penceresini otomatik gizle"""
+        if hasattr(self, '_kilitle_pencere') and self._kilitle_pencere and self._kilitle_pencere.isVisible():
+            self._kilitle_pencere.hide()
 
     def _tray_tiklandi(self, reason):
         """Tray icon tıklandığında pencereyi göster/gizle"""
@@ -1508,6 +1600,24 @@ class Kilit(QMainWindow):
             return
         metin = self._kalan_sure_metni()
         self._sure_etiketi.setText(metin)
+
+        # İlerleme çubuğu güncelle
+        if hasattr(self, '_sure_ilerleme') and self._sure_ilerleme:
+            self._sure_ilerleme.setValue(self._kalan_saniye)
+            # Son 60 saniyede hafif vurgula
+            if self._kalan_saniye <= 60:
+                self._sure_etiketi.setStyleSheet("color: #e88; background: transparent;")
+                self._sure_ilerleme.setStyleSheet("""
+                    QProgressBar {
+                        background: rgba(255, 255, 255, 0.06);
+                        border: none; border-radius: 1px;
+                    }
+                    QProgressBar::chunk {
+                        background-color: rgba(230, 100, 100, 0.5);
+                        border-radius: 1px;
+                    }
+                """)
+
         if hasattr(self, '_tray_icon') and self._tray_icon:
             self._tray_icon.setToolTip(metin)
         # Her 10 saniyede bir veya son 60 saniyede her saniye sunucuya bildir

@@ -5,6 +5,6 @@ Name=Ekran Kilitleme
 Comment=Sistem ekranını kilitler
 Exec=/usr/bin/python3 /opt/tahta-kilit/kilit.py
 Path=/opt/tahta-kilit
-Icon=/opt/tahta-kilit/resim/logo.png
+Icon=/opt/tahta-kilit/resim/tahta-kilit-icon.png
 Terminal=false
 Categories=Utility;

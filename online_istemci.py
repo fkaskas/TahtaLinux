@@ -88,6 +88,9 @@ class OnlineIstemci(QObject):
             self._durum = durum
             self._ses = ses
             self.durum_bilgisi_sinyali.emit(durum, ses)
+            tahta_adi = veri.get("tahta_adi", "")
+            if tahta_adi:
+                self.tahta_adi_sinyali.emit(tahta_adi)
 
         @sio.on("ders_saatleri")
         def ders_saatleri_geldi(veri):

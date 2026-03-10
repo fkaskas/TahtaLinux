@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Arka plan: koyu lacivert yuvarlak kare -->
+  <rect width="512" height="512" rx="108" fill="#1a2533"/>
+
+  <!-- Ekran gövdesi -->
+  <rect x="60" y="82" width="392" height="272" rx="24" fill="#243347"/>
+  <!-- Ekran iç yüzey -->
+  <rect x="78" y="100" width="356" height="236" rx="14" fill="#111d2b"/>
+
+  <!-- Ayak -->
+  <rect x="220" y="354" width="72" height="38" rx="4" fill="#243347"/>
+  <!-- Taban -->
+  <rect x="152" y="388" width="208" height="20" rx="10" fill="#243347"/>
+
+  <!-- Kilit gövdesi (dikdörtgen) -->
+  <rect x="180" y="234" width="152" height="118" rx="20" fill="#3b82f6"/>
+
+  <!-- Kilit kemer (ark) -->
+  <path d="M210 238 L210 196 Q210 148 256 148 Q302 148 302 196 L302 238"
+        fill="none" stroke="#3b82f6" stroke-width="28"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Delik - daire -->
+  <circle cx="256" cy="282" r="18" fill="#1a2533"/>
+  <!-- Delik - oyuk -->
+  <rect x="248" y="285" width="16" height="26" rx="6" fill="#1a2533"/>
+
+  <!-- Hafif parlaklık (üst kenar) -->
+  <rect x="180" y="234" width="152" height="8" rx="4" fill="rgba(255,255,255,0.12)"/>
+</svg>
