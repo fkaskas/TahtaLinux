@@ -136,163 +136,217 @@ class PastaGeriSayim(QWidget):
         p.end()
 
 
+class _AyarlarKartWidget(QWidget):
+    """Beyaz arka planlı, kenarlıklı köşesi yuvarlatılmış kart (CSS yok)."""
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        p.setPen(QPen(QColor("#E2E8F0"), 1))
+        p.setBrush(QBrush(QColor("#FFFFFF")))
+        p.drawRoundedRect(self.rect().adjusted(0, 0, -1, -1), 8, 8)
+        p.end()
+
+
 class AyarlarPenceresi(QDialog):
     """Kilit ekranı ayarlar penceresi"""
 
     def __init__(self, parent=None, vt_yoneticisi=None, kurumkodu=None):
         super().__init__(parent)
         self.setWindowTitle("Ayarlar")
-        self.setFixedSize(450, 680)
-        self.setStyleSheet("background-color: #f5f5f5;")
+        self.setFixedSize(740, 760)
 
         self._vt = vt_yoneticisi or VeritabaniYoneticisi()
         self._kurumkodu = kurumkodu or VARSAYILAN_KURUM_KODU
 
-        yerlesim = QVBoxLayout()
-        yerlesim.setSpacing(18)
-        yerlesim.setContentsMargins(35, 30, 35, 28)
+        self.setStyleSheet("background-color: #F0F2F5;")
 
-        baslik = QLabel("Ayarlar")
-        baslik_font = QFont("Noto Sans", 17)
-        baslik_font.setWeight(QFont.DemiBold)
-        baslik.setFont(baslik_font)
-        baslik.setAlignment(Qt.AlignCenter)
-        baslik.setStyleSheet("color: #2c3e50; background: transparent;")
-        yerlesim.addWidget(baslik)
+        self._arayuz_olustur()
+        self._verileri_yukle()
 
-        ayirici = QFrame()
-        ayirici.setFrameShape(QFrame.HLine)
-        ayirici.setStyleSheet("color: #ddd; background: transparent;")
-        yerlesim.addWidget(ayirici)
+    # ── Yardımcılar ───────────────────────────────────────────────────────────
 
-        form = QFormLayout()
-        form.setSpacing(14)
-        form.setLabelAlignment(Qt.AlignRight)
+    @staticmethod
+    def _etiket(metin):
+        lbl = QLabel(metin)
+        lbl.setFont(QFont("Sans", 11))
+        lbl.setStyleSheet("color: #475569; font-weight: 600; background: transparent;")
+        lbl.setFixedWidth(130)
+        lbl.setFixedHeight(36)
+        lbl.setAlignment(Qt.AlignVCenter | Qt.AlignLeft)
+        return lbl
 
-        etiket_font = QFont("Noto Sans", 12)
+    def _satir_olustur(self, etiket_metni, widget):
+        konteyner = QWidget()
+        konteyner.setFixedHeight(44)
+        satir = QHBoxLayout(konteyner)
+        satir.setContentsMargins(0, 0, 0, 0)
+        satir.setSpacing(12)
+        satir.addWidget(self._etiket(etiket_metni), 0, Qt.AlignVCenter)
+        satir.addWidget(widget, 1, Qt.AlignVCenter)
+        return konteyner
 
-        girdi_stili = """
-            QLineEdit {
-                padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px;
-                background-color: #fafafa; color: #333; font-size: 13px;
-            }
-            QLineEdit:focus { border-color: #3498db; background-color: white; }
-        """
+    @staticmethod
+    def _girdi(placeholder="", readonly=False):
+        w = QLineEdit()
+        w.setPlaceholderText(placeholder)
+        w.setFixedHeight(36)
+        w.setReadOnly(readonly)
+        w.setFont(QFont("Sans", 11))
+        if readonly:
+            w.setStyleSheet(
+                "background: #E8ECF0; border: 1px solid #CBD5E1;"
+                "border-radius: 6px; padding: 0 10px; color: #64748B;")
+        else:
+            w.setStyleSheet(
+                "background: #FFFFFF; border: 1px solid #CBD5E1;"
+                "border-radius: 6px; padding: 0 10px; color: #1E293B;")
+        return w
 
-        tahta_id_etiketi = QLabel("Tahta ID")
-        tahta_id_etiketi.setFont(etiket_font)
-        tahta_id_etiketi.setStyleSheet("color: #2c3e50; background: transparent;")
-        self._tahta_id_girisi = QLineEdit()
-        self._tahta_id_girisi.setReadOnly(True)
-        self._tahta_id_girisi.setStyleSheet("""
-            QLineEdit {
-                padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px;
-                background-color: #eee; color: #555; font-size: 13px;
-            }
-        """)
-        form.addRow(tahta_id_etiketi, self._tahta_id_girisi)
+    def _kart_olustur(self, baslik, ikon=""):
+        kart = _AyarlarKartWidget()
+        ic = QVBoxLayout(kart)
+        ic.setContentsMargins(18, 14, 18, 14)
+        ic.setSpacing(4)
 
-        kurum_etiketi = QLabel("Kurum Kodu")
-        kurum_etiketi.setFont(etiket_font)
-        kurum_etiketi.setStyleSheet("color: #2c3e50; background: transparent;")
-        self._kurum_girisi = QLineEdit()
-        self._kurum_girisi.setPlaceholderText("Örn: 0001")
-        self._kurum_girisi.setStyleSheet(girdi_stili)
-        form.addRow(kurum_etiketi, self._kurum_girisi)
+        lbl = QLabel(f"{ikon}  {baslik}" if ikon else baslik)
+        lbl.setFont(QFont("Sans", 10, QFont.Bold))
+        lbl.setStyleSheet("color: #3B82F6; background: transparent;")
+        lbl.setFixedHeight(24)
+        ic.addWidget(lbl)
 
-        kurum_adi_etiketi = QLabel("Kurum Adı")
-        kurum_adi_etiketi.setFont(etiket_font)
-        kurum_adi_etiketi.setStyleSheet("color: #2c3e50; background: transparent;")
-        self._kurum_adi_girisi = QLineEdit()
-        self._kurum_adi_girisi.setPlaceholderText("Örn: Atatürk İlkokulu")
-        self._kurum_adi_girisi.setStyleSheet(girdi_stili)
-        form.addRow(kurum_adi_etiketi, self._kurum_adi_girisi)
+        return kart, ic
 
-        sinif_etiketi = QLabel("Tahta Adı")
-        sinif_etiketi.setFont(etiket_font)
-        sinif_etiketi.setStyleSheet("color: #2c3e50; background: transparent;")
-        self._sinif_girisi = QLineEdit()
-        self._sinif_girisi.setPlaceholderText("Örn: 11E Sınıfı")
-        self._sinif_girisi.setStyleSheet(girdi_stili)
-        form.addRow(sinif_etiketi, self._sinif_girisi)
+    def _dosya_sec_satiri(self, etiket_metni, placeholder, slot):
+        girdi = self._girdi(placeholder, readonly=True)
+        btn = QPushButton("Seç…")
+        btn.setFixedSize(70, 36)
+        btn.setCursor(QCursor(Qt.PointingHandCursor))
+        btn.setStyleSheet(
+            "background: #3B82F6; color: #FFFFFF; border: none;"
+            "border-radius: 6px; font-size: 12px; font-weight: bold;")
+        btn.clicked.connect(slot)
 
-        anahtar_etiketi = QLabel("Gizli Anahtar")
-        anahtar_etiketi.setFont(etiket_font)
-        anahtar_etiketi.setStyleSheet("color: #2c3e50; background: transparent;")
-        self._anahtar_girisi = QLineEdit()
-        self._anahtar_girisi.setPlaceholderText("Gizli doğrulama anahtarı")
-        self._anahtar_girisi.setStyleSheet(girdi_stili)
-        form.addRow(anahtar_etiketi, self._anahtar_girisi)
+        konteyner = QWidget()
+        konteyner.setFixedHeight(44)
+        satir = QHBoxLayout(konteyner)
+        satir.setContentsMargins(0, 0, 0, 0)
+        satir.setSpacing(12)
+        satir.addWidget(self._etiket(etiket_metni), 0, Qt.AlignVCenter)
+        satir.addWidget(girdi, 1, Qt.AlignVCenter)
+        satir.addWidget(btn, 0, Qt.AlignVCenter)
+        return konteyner, girdi
 
-        url_etiketi = QLabel("WebView URL")
-        url_etiketi.setFont(etiket_font)
-        url_etiketi.setStyleSheet("color: #2c3e50; background: transparent;")
-        self._url_girisi = QLineEdit()
-        self._url_girisi.setPlaceholderText("Örn: https://kulumtal.com/php/")
-        self._url_girisi.setStyleSheet(girdi_stili)
-        form.addRow(url_etiketi, self._url_girisi)
+    # ── Ana Arayüz ────────────────────────────────────────────────────────────
 
-        logo_etiketi_form = QLabel("Kurum Logosu")
-        logo_etiketi_form.setFont(etiket_font)
-        logo_etiketi_form.setStyleSheet("color: #2c3e50; background: transparent;")
-        logo_satir = QHBoxLayout()
-        logo_satir.setSpacing(6)
-        self._logo_yolu_girisi = QLineEdit()
-        self._logo_yolu_girisi.setPlaceholderText("500x500 px PNG dosyası seçin")
-        self._logo_yolu_girisi.setReadOnly(True)
-        self._logo_yolu_girisi.setStyleSheet("""
-            QLineEdit {
-                padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px;
-                background-color: #fafafa; color: #333; font-size: 13px;
-            }
-        """)
-        logo_satir.addWidget(self._logo_yolu_girisi)
-        logo_sec_btn = QPushButton("Seç...")
-        logo_sec_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        logo_sec_btn.setStyleSheet("""
+    def _arayuz_olustur(self):
+        ana = QVBoxLayout(self)
+        ana.setContentsMargins(0, 0, 0, 0)
+        ana.setSpacing(0)
+
+        # ── Başlık Bandı ─────────────────────────────────────────────────────
+        bant = QFrame()
+        bant.setFixedHeight(64)
+        bant.setStyleSheet("background-color: #1E40AF;")
+        bant_ic = QHBoxLayout(bant)
+        bant_ic.setContentsMargins(24, 0, 24, 0)
+
+        baslik_lbl = QLabel("⚙  Ayarlar")
+        baslik_lbl.setFont(QFont("Noto Sans", 15, QFont.Bold))
+        baslik_lbl.setStyleSheet("color: #FFFFFF;")
+
+        alt_lbl = QLabel("Cihaz, kurum ve bağlantı bilgilerini düzenleyin")
+        alt_lbl.setFont(QFont("Noto Sans", 9))
+        alt_lbl.setStyleSheet("color: #93C5FD;")
+
+        yazi = QVBoxLayout()
+        yazi.setSpacing(2)
+        yazi.addWidget(baslik_lbl)
+        yazi.addWidget(alt_lbl)
+        bant_ic.addLayout(yazi)
+        bant_ic.addStretch()
+        ana.addWidget(bant)
+
+        # ── İçerik Alanı ─────────────────────────────────────────────────────
+        icerik_ic = QVBoxLayout()
+        icerik_ic.setContentsMargins(20, 16, 20, 16)
+        icerik_ic.setSpacing(12)
+
+        # Kart 1: Cihaz Kimliği
+        kart1, k1 = self._kart_olustur("Cihaz Kimliği", "🖥")
+        self._tahta_id_girisi = self._girdi(readonly=True)
+        k1.addWidget(self._satir_olustur("Tahta ID", self._tahta_id_girisi))
+        icerik_ic.addWidget(kart1)
+
+        # Kart 2: Kurum Bilgileri
+        kart2, k2 = self._kart_olustur("Kurum Bilgileri", "🏫")
+        self._kurum_girisi = self._girdi("Örn: 0001")
+        k2.addWidget(self._satir_olustur("Kurum Kodu", self._kurum_girisi))
+        self._kurum_adi_girisi = self._girdi("Örn: Atatürk İlkokulu")
+        k2.addWidget(self._satir_olustur("Kurum Adı", self._kurum_adi_girisi))
+        self._sinif_girisi = self._girdi("Örn: 11E Sınıfı")
+        k2.addWidget(self._satir_olustur("Tahta Adı", self._sinif_girisi))
+        icerik_ic.addWidget(kart2)
+
+        # Kart 3: Bağlantı Ayarları
+        kart3, k3 = self._kart_olustur("Bağlantı Ayarları", "🔐")
+        self._anahtar_girisi = self._girdi("Gizli doğrulama anahtarı")
+        self._anahtar_girisi.setEchoMode(QLineEdit.Password)
+        k3.addWidget(self._satir_olustur("Gizli Anahtar", self._anahtar_girisi))
+        self._url_girisi = self._girdi("Örn: https://kulumtal.com/php/")
+        k3.addWidget(self._satir_olustur("WebView URL", self._url_girisi))
+        icerik_ic.addWidget(kart3)
+
+        # Kart 4: Medya & Logo
+        kart4, k4 = self._kart_olustur("Medya & Logo", "🖼")
+        logo_satir, self._logo_yolu_girisi = self._dosya_sec_satiri(
+            "Kurum Logosu", "500x500 px PNG seçin", self._logo_sec)
+        k4.addWidget(logo_satir)
+        video_satir, self._video_girisi = self._dosya_sec_satiri(
+            "Video Klasörü", "Örn: /home/kullanici/Videolar", self._klasor_sec)
+        k4.addWidget(video_satir)
+        icerik_ic.addWidget(kart4)
+
+        icerik_ic.addStretch()
+
+        # ── Alt Buton Satırı ─────────────────────────────────────────────────
+        buton_satir = QHBoxLayout()
+        buton_satir.setSpacing(10)
+
+        iptal_btn = QPushButton("İptal")
+        iptal_btn.setFixedSize(110, 40)
+        iptal_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        iptal_btn.setStyleSheet("""
             QPushButton {
-                background-color: #3498db; color: white; border: none;
-                border-radius: 6px; padding: 8px 14px; font-size: 12px; font-weight: bold;
+                background-color: #E2E8F0; color: #1E293B; border: none;
+                border-radius: 7px; font-size: 13px; font-weight: bold;
             }
-            QPushButton:hover { background-color: #2980b9; }
+            QPushButton:hover { background-color: #CBD5E1; }
         """)
-        logo_sec_btn.clicked.connect(self._logo_sec)
-        logo_satir.addWidget(logo_sec_btn)
-        form.addRow(logo_etiketi_form, logo_satir)
+        iptal_btn.clicked.connect(self.reject)
 
-        video_etiketi = QLabel("Video Klasörü")
-        video_etiketi.setFont(etiket_font)
-        video_etiketi.setStyleSheet("color: #2c3e50; background: transparent;")
-        video_satir = QHBoxLayout()
-        video_satir.setSpacing(6)
-        self._video_girisi = QLineEdit()
-        self._video_girisi.setPlaceholderText("Örn: /home/kullanici/Videolar")
-        self._video_girisi.setReadOnly(True)
-        self._video_girisi.setStyleSheet("""
-            QLineEdit {
-                padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px;
-                background-color: #fafafa; color: #333; font-size: 13px;
-            }
-        """)
-        video_satir.addWidget(self._video_girisi)
-        gozat_btn = QPushButton("Gözat...")
-        gozat_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        gozat_btn.setStyleSheet("""
+        kaydet_btn = QPushButton("Kaydet")
+        kaydet_btn.setFixedSize(150, 40)
+        kaydet_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        kaydet_btn.setStyleSheet("""
             QPushButton {
-                background-color: #3498db; color: white; border: none;
-                border-radius: 6px; padding: 8px 14px; font-size: 12px; font-weight: bold;
+                background-color: #3B82F6; color: #FFFFFF; border: none;
+                border-radius: 7px; font-size: 13px; font-weight: bold;
             }
-            QPushButton:hover { background-color: #2980b9; }
+            QPushButton:hover { background-color: #2563EB; }
         """)
-        gozat_btn.clicked.connect(self._klasor_sec)
-        video_satir.addWidget(gozat_btn)
-        form.addRow(video_etiketi, video_satir)
+        kaydet_btn.clicked.connect(self._kaydet)
 
-        # Kayıtlı ayarları yükle
+        buton_satir.addStretch()
+        buton_satir.addWidget(iptal_btn)
+        buton_satir.addWidget(kaydet_btn)
+        icerik_ic.addLayout(buton_satir)
+
+        ana.addLayout(icerik_ic)
+
+    def _verileri_yukle(self):
         ayarlar = QSettings("KulumTal", "Tahta")
         self._video_girisi.setText(ayarlar.value("video_klasoru", ""))
 
-        # Veritabanından mevcut verileri yükle
         kayit = self._vt.tahta_kaydi_al(self._kurumkodu)
         if kayit:
             self._tahta_id_girisi.setText(str(kayit.get("id", "")))
@@ -301,39 +355,6 @@ class AyarlarPenceresi(QDialog):
             self._sinif_girisi.setText(kayit.get("adi", ""))
             self._anahtar_girisi.setText(kayit.get("anahtar", ""))
             self._url_girisi.setText(kayit.get("url", ""))
-
-        yerlesim.addLayout(form)
-        yerlesim.addStretch()
-
-        btn_yerlesim = QHBoxLayout()
-        btn_yerlesim.setSpacing(10)
-
-        iptal_btn = QPushButton("İptal")
-        iptal_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        iptal_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #ecf0f1; color: #555; border: none;
-                border-radius: 6px; padding: 9px 22px; font-weight: bold; font-size: 13px;
-            }
-            QPushButton:hover { background-color: #dfe4e6; }
-        """)
-        iptal_btn.clicked.connect(self.reject)
-        btn_yerlesim.addWidget(iptal_btn)
-
-        kaydet_btn = QPushButton("Kaydet")
-        kaydet_btn.setCursor(QCursor(Qt.PointingHandCursor))
-        kaydet_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #3498db; color: white; border: none;
-                border-radius: 6px; padding: 9px 22px; font-weight: bold; font-size: 13px;
-            }
-            QPushButton:hover { background-color: #2980b9; }
-        """)
-        kaydet_btn.clicked.connect(self._kaydet)
-        btn_yerlesim.addWidget(kaydet_btn)
-
-        yerlesim.addLayout(btn_yerlesim)
-        self.setLayout(yerlesim)
 
     def _logo_sec(self):
         """Logo PNG seçme dialogu aç — 500x500 px zorunlu"""
