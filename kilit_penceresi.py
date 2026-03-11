@@ -472,6 +472,7 @@ class Kilit(QMainWindow):
         self._online.kilidi_ac_sinyali.connect(self._online_kilidi_ac)
         self._online.ses_kapat_sinyali.connect(self._online_ses_kapat)
         self._online.ses_ac_sinyali.connect(self._online_ses_ac)
+        self._online.kapat_sinyali.connect(self._online_kapat)
         self._online.baglanti_durumu_sinyali.connect(self._online_baglanti_degisti)
         self._online.durum_bilgisi_sinyali.connect(self._online_durum_senkronize)
         self._online.ders_saatleri_sinyali.connect(self._ders_saatleri_guncelle)
@@ -479,6 +480,7 @@ class Kilit(QMainWindow):
         self._online.kurum_adi_sinyali.connect(self._kurum_adi_guncelle)
         self._online.kurum_kodu_sinyali.connect(self._kurum_kodu_guncelle)
         self._online.sinavlar_sinyali.connect(self._sinavlari_guncelle)
+        self._online.icerik_guncellendi_sinyali.connect(self._icerik_guncellendi)
         self._online.baslat()
 
         # Ders çıkış saatleri kontrolü (her saniye kontrol et)
@@ -900,6 +902,10 @@ class Kilit(QMainWindow):
         """Sunucudan sesi aç komutu geldi"""
         self._vt.ses_guncelle(self._kurumkodu, 1)
         self._ses_durumu_uygula()
+
+    def _online_kapat(self):
+        """Sunucudan kapat komutu geldi — bilgisayarı kapat"""
+        subprocess.Popen(["systemctl", "poweroff"])
 
     def _online_baglanti_degisti(self, bagli):
         """Sunucu bağlantı durumu değişti"""
@@ -1917,14 +1923,13 @@ class Kilit(QMainWindow):
 
         self._odak_zamanlayici.start(1000)
 
-        # Periyodik içerik yenileme zamanlayıcısını başlat (5 dakika)
-        if not hasattr(self, '_icerik_yenile_zamanlayici'):
-            self._icerik_yenile_zamanlayici = QTimer(self)
-            self._icerik_yenile_zamanlayici.timeout.connect(self._icerik_yenile)
-        self._icerik_yenile_zamanlayici.start(5 * 60 * 1000)
-
     def _icerik_yenile(self):
         """Kilit ekranı açıkken periyodik olarak webview'ı yenile"""
+        if not self._kilit_acma_istendi and self.isVisible():
+            self.web_gorunum.reload()
+
+    def _icerik_guncellendi(self):
+        """Sunucudan içerik güncellemesi bildirimi geldi → webview yenile"""
         if not self._kilit_acma_istendi and self.isVisible():
             self.web_gorunum.reload()
 
@@ -1957,8 +1962,11 @@ class Kilit(QMainWindow):
         self._challenge_zamanlayici.stop()
         self._saat_zamanlayici.stop()
         self._kapanma_zamanlayici.stop()
-        if hasattr(self, '_icerik_yenile_zamanlayici'):
-            self._icerik_yenile_zamanlayici.stop()
+        # Varsa önceki geri sayım zamanlayici ve tekrar kilitle zamanlayicisini durdur
+        if hasattr(self, '_geri_sayim_zamanlayici') and self._geri_sayim_zamanlayici.isActive():
+            self._geri_sayim_zamanlayici.stop()
+        if hasattr(self, '_tekrar_kilitle_zamanlayici') and self._tekrar_kilitle_zamanlayici.isActive():
+            self._tekrar_kilitle_zamanlayici.stop()
         self.releaseKeyboard()
 
         # Veritabanını güncelle (açık olarak işaretle)
@@ -2003,6 +2011,14 @@ class Kilit(QMainWindow):
         """System tray icon + kontrol penceresi göster"""
         self._kalan_saniye = sure_dakika * 60
         self._toplam_saniye = sure_dakika * 60
+
+        # Varsa eski pencereyi kapat
+        if hasattr(self, '_kilitle_pencere') and self._kilitle_pencere is not None:
+            try:
+                self._kilitle_pencere.close()
+            except Exception:
+                pass
+            self._kilitle_pencere = None
 
         # --- Kontrol penceresi ---
         self._kilitle_pencere = QWidget()
@@ -2206,6 +2222,7 @@ class Kilit(QMainWindow):
         self._saat_guncelle()
         self._saat_zamanlayici.start(1000)
         self._challenge_zamanlayici.start(50)
+        self.web_gorunum.reload()
         self.showFullScreen()
 
         # Videoyu devam ettir

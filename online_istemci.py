@@ -19,6 +19,7 @@ class OnlineIstemci(QObject):
     kilidi_ac_sinyali = pyqtSignal()
     ses_kapat_sinyali = pyqtSignal()
     ses_ac_sinyali = pyqtSignal()
+    kapat_sinyali = pyqtSignal()
     baglanti_durumu_sinyali = pyqtSignal(bool)  # True=bağlı, False=koptu
     hata_sinyali = pyqtSignal(str)  # Sunucudan gelen hata mesajı
     durum_bilgisi_sinyali = pyqtSignal(int, int)  # durum, ses
@@ -27,6 +28,7 @@ class OnlineIstemci(QObject):
     kurum_adi_sinyali = pyqtSignal(str)  # Sunucudan gelen kurum adı
     kurum_kodu_sinyali = pyqtSignal(str)  # Sunucudan gelen gerçek kurum kodu
     sinavlar_sinyali = pyqtSignal(list)  # Sınav listesi
+    icerik_guncellendi_sinyali = pyqtSignal()  # Panel'den içerik güncellendi bildirimi
 
     def __init__(self, kurum_kodu, tahta_adi, tahta_id="", anahtar="", parent=None):
         super().__init__(parent)
@@ -93,6 +95,8 @@ class OnlineIstemci(QObject):
                 self.ses_kapat_sinyali.emit()
             elif aksiyon == "ses_ac":
                 self.ses_ac_sinyali.emit()
+            elif aksiyon == "tahta_kapat":
+                self.kapat_sinyali.emit()
 
         @sio.on("hata")
         def hata_geldi(veri):
@@ -136,6 +140,10 @@ class OnlineIstemci(QObject):
             yeni_adi = veri.get("tahta_adi", "")
             if yeni_adi:
                 self.tahta_adi_sinyali.emit(yeni_adi)
+
+        @sio.on("icerik_guncellendi")
+        def icerik_guncellendi_geldi(veri):
+            self.icerik_guncellendi_sinyali.emit()
 
         return sio
 

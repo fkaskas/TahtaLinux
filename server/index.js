@@ -252,6 +252,49 @@ async function veritabaniBaslat() {
     ) ENGINE=InnoDB
   `);
 
+  // Duyurular tablosu
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS duyurular (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      kurum_id INT NOT NULL,
+      ekleyen_id INT NOT NULL,
+      baslik VARCHAR(255) NOT NULL,
+      icerik TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (kurum_id) REFERENCES kurumlar(id) ON DELETE CASCADE,
+      FOREIGN KEY (ekleyen_id) REFERENCES kullanicilar(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB
+  `);
+
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS duyuru_tahtalar (
+      duyuru_id INT NOT NULL,
+      tahta_id VARCHAR(36) NOT NULL,
+      PRIMARY KEY (duyuru_id, tahta_id),
+      FOREIGN KEY (duyuru_id) REFERENCES duyurular(id) ON DELETE CASCADE,
+      FOREIGN KEY (tahta_id) REFERENCES tahtalar(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB
+  `);
+
+  // İşlem kayıtları (loglar) tablosu
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS tahta_loglari (
+      id BIGINT AUTO_INCREMENT PRIMARY KEY,
+      kurum_id INT NOT NULL,
+      tahta_id VARCHAR(36) DEFAULT NULL,
+      tahta_adi VARCHAR(255) NOT NULL DEFAULT '',
+      kullanici_id INT DEFAULT NULL,
+      kullanici_adi VARCHAR(100) NOT NULL DEFAULT '',
+      ad_soyad VARCHAR(255) NOT NULL DEFAULT '',
+      rol ENUM('superadmin', 'yonetici', 'ogretmen') NOT NULL DEFAULT 'ogretmen',
+      aksiyon ENUM('kilitle','kilidi_ac','ses_kapat','ses_ac','tahta_kapat','tumu_kilitle','tumu_ac','tumu_kapat') NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_kurum_created (kurum_id, created_at),
+      INDEX idx_tahta (tahta_id),
+      FOREIGN KEY (kurum_id) REFERENCES kurumlar(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB
+  `);
+
   console.log("Veritabanı tabloları hazır.");
 }
 
@@ -1157,6 +1200,7 @@ app.post("/api/ayin-ogrencileri", authMiddleware, (req, res, next) => {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [kurumId, req.kullanici.id, siraNum, ad_soyad, sinif, odul || '', aciklama || null, fotoUrl]
     );
+    icerikGuncellendiGonder(kurumId);
     res.json({ mesaj: "Ayın öğrencisi eklendi" });
   } catch (err) {
     ayinFotoSil(fotoUrl);
@@ -1223,6 +1267,7 @@ app.put("/api/ayin-ogrencileri/:id", authMiddleware, (req, res, next) => {
         );
         // Çakışan kaydı eski sıramıza al (yer değiştirme tamamlandı)
         await db.execute("UPDATE ayin_ogrencileri SET sira = ? WHERE id = ?", [ogrenci.sira, cakisma[0].id]);
+        icerikGuncellendiGonder(ogrenci.kurum_id);
         return res.json({ mesaj: "Ayın öğrencisi güncellendi" });
       }
     }
@@ -1230,6 +1275,7 @@ app.put("/api/ayin-ogrencileri/:id", authMiddleware, (req, res, next) => {
       `UPDATE ayin_ogrencileri SET ad_soyad = ?, sinif = ?, odul = ?, aciklama = ?, foto_url = ?, sira = ? WHERE id = ?`,
       [yeniAdSoyad, yeniSinif, yeniOdul, yeniAciklama, yeniFotoUrl, yeniSira, ogrenciId]
     );
+    icerikGuncellendiGonder(ogrenci.kurum_id);
     res.json({ mesaj: "Ayın öğrencisi güncellendi" });
   } catch (err) {
     if (req.file) ayinFotoSil('/uploads/ayin/' + req.file.filename);
@@ -1258,6 +1304,7 @@ app.delete("/api/ayin-ogrencileri/:id", authMiddleware, async (req, res) => {
     }
     ayinFotoSil(ogrenci.foto_url);
     await db.execute("DELETE FROM ayin_ogrencileri WHERE id = ?", [ogrenciId]);
+    icerikGuncellendiGonder(ogrenci.kurum_id);
     res.json({ mesaj: "Ayın öğrencisi silindi" });
   } catch (err) {
     console.error("Ayın öğrencisi silme hatası:", err);
@@ -1354,6 +1401,7 @@ app.post("/api/slider", authMiddleware, (req, res, next) => {
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [kurumId, req.kullanici.id, siraNum, baslik, alt_yazi || null, gecerliBadge, fotoUrl]
     );
+    icerikGuncellendiGonder(kurumId);
     res.json({ mesaj: "Slide eklendi" });
   } catch (err) {
     sliderFotoSil(fotoUrl);
@@ -1405,6 +1453,7 @@ app.put("/api/slider/:id", authMiddleware, (req, res, next) => {
       `UPDATE slider SET baslik = ?, alt_yazi = ?, badge_turu = ?, sira = ?, foto_url = ? WHERE id = ?`,
       [yeniBaslik, yeniAltYazi, yeniBadge, yeniSira, yeniFotoUrl, slideId]
     );
+    icerikGuncellendiGonder(slide.kurum_id);
     res.json({ mesaj: "Slide güncellendi" });
   } catch (err) {
     if (req.file) sliderFotoSil('/uploads/slider/' + req.file.filename);
@@ -1433,9 +1482,176 @@ app.delete("/api/slider/:id", authMiddleware, async (req, res) => {
 
     sliderFotoSil(slide.foto_url);
     await db.execute("DELETE FROM slider WHERE id = ?", [slideId]);
+    icerikGuncellendiGonder(slide.kurum_id);
     res.json({ mesaj: "Slide silindi" });
   } catch (err) {
     console.error("Slider silme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// ===================== İçerik Güncelleme Bildirimi =====================
+function icerikGuncellendiGonder(kurumId) {
+  if (kurumId) {
+    io.to(`kurum_${kurumId}`).emit("icerik_guncellendi", {});
+  }
+}
+
+// ===================== Duyurular =====================
+
+// Duyuru listele (auth gerekli)
+app.get("/api/duyurular", authMiddleware, async (req, res) => {
+  try {
+    let rows;
+    if (req.kullanici.rol === "superadmin") {
+      const kurumId = req.query.kurum_id ? parseInt(req.query.kurum_id) : null;
+      if (kurumId) {
+        [rows] = await db.execute(
+          `SELECT d.*, k.ad_soyad AS ekleyen_adi,
+                  GROUP_CONCAT(dt.tahta_id ORDER BY dt.tahta_id SEPARATOR ',') AS tahta_ids_str
+           FROM duyurular d
+           JOIN kullanicilar k ON d.ekleyen_id = k.id
+           LEFT JOIN duyuru_tahtalar dt ON dt.duyuru_id = d.id
+           WHERE d.kurum_id = ? GROUP BY d.id ORDER BY d.created_at DESC`,
+          [kurumId]
+        );
+      } else {
+        [rows] = await db.execute(
+          `SELECT d.*, k.ad_soyad AS ekleyen_adi,
+                  GROUP_CONCAT(dt.tahta_id ORDER BY dt.tahta_id SEPARATOR ',') AS tahta_ids_str
+           FROM duyurular d
+           JOIN kullanicilar k ON d.ekleyen_id = k.id
+           LEFT JOIN duyuru_tahtalar dt ON dt.duyuru_id = d.id
+           GROUP BY d.id ORDER BY d.created_at DESC`
+        );
+      }
+    } else {
+      [rows] = await db.execute(
+        `SELECT d.*, k.ad_soyad AS ekleyen_adi,
+                GROUP_CONCAT(dt.tahta_id ORDER BY dt.tahta_id SEPARATOR ',') AS tahta_ids_str
+         FROM duyurular d
+         JOIN kullanicilar k ON d.ekleyen_id = k.id
+         LEFT JOIN duyuru_tahtalar dt ON dt.duyuru_id = d.id
+         WHERE d.kurum_id = ? GROUP BY d.id ORDER BY d.created_at DESC`,
+        [req.kullanici.kurum_id]
+      );
+    }
+    res.json(rows);
+  } catch (err) {
+    console.error("Duyuru listesi hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Duyuru listele (genel, tahta iklimleri için — kurum kodu veya tahta_id ile)
+app.get("/api/duyurular-genel", async (req, res) => {
+  try {
+    const { kod, tahta_id } = req.query;
+    let kurumId = null;
+    if (tahta_id) {
+      const [t] = await db.execute("SELECT kurum_id FROM tahtalar WHERE id = ?", [tahta_id]);
+      if (t.length > 0) kurumId = t[0].kurum_id;
+    } else if (kod) {
+      const [k] = await db.execute("SELECT id FROM kurumlar WHERE kurum_kodu = ?", [kod]);
+      if (k.length > 0) kurumId = k[0].id;
+    }
+    if (!kurumId) return res.json([]);
+    let rows;
+    if (tahta_id) {
+      [rows] = await db.execute(
+        `SELECT d.id, d.baslik, d.icerik, d.created_at, k.ad_soyad AS ekleyen_adi
+         FROM duyurular d
+         JOIN kullanicilar k ON d.ekleyen_id = k.id
+         JOIN duyuru_tahtalar dt ON dt.duyuru_id = d.id
+         WHERE d.kurum_id = ? AND dt.tahta_id = ? ORDER BY d.created_at DESC`,
+        [kurumId, tahta_id]
+      );
+    } else {
+      [rows] = await db.execute(
+        `SELECT d.id, d.baslik, d.icerik, d.created_at, k.ad_soyad AS ekleyen_adi
+         FROM duyurular d JOIN kullanicilar k ON d.ekleyen_id = k.id
+         WHERE d.kurum_id = ? ORDER BY d.created_at DESC`,
+        [kurumId]
+      );
+    }
+    res.json(rows);
+  } catch (err) {
+    console.error("Duyuru genel listesi hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Duyuru ekle
+app.post("/api/duyurular", authMiddleware, async (req, res) => {
+  if (req.kullanici.rol !== "ogretmen" && req.kullanici.rol !== "yonetici") {
+    return res.status(403).json({ hata: "Bu işlem için yetkiniz yok" });
+  }
+  const { baslik, icerik, tahta_ids } = req.body;
+  if (!baslik || !icerik || !Array.isArray(tahta_ids) || tahta_ids.length === 0) {
+    return res.status(400).json({ hata: "Başlık, içerik ve en az bir tahta gerekli" });
+  }
+  try {
+    const [result] = await db.execute(
+      "INSERT INTO duyurular (kurum_id, ekleyen_id, baslik, icerik) VALUES (?, ?, ?, ?)",
+      [req.kullanici.kurum_id, req.kullanici.id, baslik.trim(), icerik.trim()]
+    );
+    const newId = result.insertId;
+    for (const tid of tahta_ids) {
+      await db.execute("INSERT IGNORE INTO duyuru_tahtalar (duyuru_id, tahta_id) VALUES (?, ?)", [newId, String(tid)]);
+    }
+    icerikGuncellendiGonder(req.kullanici.kurum_id);
+    res.json({ mesaj: "Duyuru eklendi" });
+  } catch (err) {
+    console.error("Duyuru ekleme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Duyuru güncelle
+app.put("/api/duyurular/:id", authMiddleware, async (req, res) => {
+  const duyuruId = parseInt(req.params.id);
+  const { baslik, icerik, tahta_ids } = req.body;
+  if (!baslik || !icerik || !Array.isArray(tahta_ids) || tahta_ids.length === 0) {
+    return res.status(400).json({ hata: "Başlık, içerik ve en az bir tahta gerekli" });
+  }
+  try {
+    const [mevcut] = await db.execute("SELECT * FROM duyurular WHERE id = ?", [duyuruId]);
+    if (mevcut.length === 0) return res.status(404).json({ hata: "Duyuru bulunamadı" });
+    const d = mevcut[0];
+    if (req.kullanici.rol === "superadmin") return res.status(403).json({ hata: "Süper yönetici bu işlemi yapamaz" });
+    if (req.kullanici.rol === "ogretmen" && d.ekleyen_id !== req.kullanici.id) return res.status(403).json({ hata: "Sadece kendi duyurularınızı düzenleyebilirsiniz" });
+    if (d.kurum_id !== req.kullanici.kurum_id) return res.status(403).json({ hata: "Bu duyuruyu düzenleme yetkiniz yok" });
+    await db.execute(
+      "UPDATE duyurular SET baslik = ?, icerik = ? WHERE id = ?",
+      [baslik.trim(), icerik.trim(), duyuruId]
+    );
+    await db.execute("DELETE FROM duyuru_tahtalar WHERE duyuru_id = ?", [duyuruId]);
+    for (const tid of tahta_ids) {
+      await db.execute("INSERT INTO duyuru_tahtalar (duyuru_id, tahta_id) VALUES (?, ?)", [duyuruId, String(tid)]);
+    }
+    icerikGuncellendiGonder(d.kurum_id);
+    res.json({ mesaj: "Duyuru güncellendi" });
+  } catch (err) {
+    console.error("Duyuru güncelleme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Duyuru sil
+app.delete("/api/duyurular/:id", authMiddleware, async (req, res) => {
+  const duyuruId = parseInt(req.params.id);
+  try {
+    const [mevcut] = await db.execute("SELECT * FROM duyurular WHERE id = ?", [duyuruId]);
+    if (mevcut.length === 0) return res.status(404).json({ hata: "Duyuru bulunamadı" });
+    const d = mevcut[0];
+    if (req.kullanici.rol === "superadmin") return res.status(403).json({ hata: "Süper yönetici bu işlemi yapamaz" });
+    if (req.kullanici.rol === "ogretmen" && d.ekleyen_id !== req.kullanici.id) return res.status(403).json({ hata: "Sadece kendi duyurularınızı silebilirsiniz" });
+    if (d.kurum_id !== req.kullanici.kurum_id) return res.status(403).json({ hata: "Bu duyuruyu silme yetkiniz yok" });
+    await db.execute("DELETE FROM duyurular WHERE id = ?", [duyuruId]);
+    icerikGuncellendiGonder(d.kurum_id);
+    res.json({ mesaj: "Duyuru silindi" });
+  } catch (err) {
+    console.error("Duyuru silme hatası:", err);
     res.status(500).json({ hata: "Sunucu hatası" });
   }
 });
@@ -1508,6 +1724,72 @@ app.post("/api/dogrulama-kodu", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error("Doğrulama kodu hatası:", err);
     res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// ===================== İşlem Kayıt Yardımcı Fonksiyonları =====================
+async function logKaydet(kurumId, tahtaId, tahtaAdi, kullaniciId, kullaniciAdi, adSoyad, rol, aksiyon) {
+  try {
+    await db.execute(
+      `INSERT INTO tahta_loglari (kurum_id, tahta_id, tahta_adi, kullanici_id, kullanici_adi, ad_soyad, rol, aksiyon)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [kurumId, tahtaId || null, tahtaAdi || '', kullaniciId || null, kullaniciAdi || '', adSoyad || '', rol || 'ogretmen', aksiyon]
+    );
+  } catch (e) {
+    console.error('[LOG] Kayıt hatası:', e.message);
+  }
+}
+
+async function eskiLoglariTemizle() {
+  try {
+    const [result] = await db.execute(
+      `DELETE FROM tahta_loglari WHERE created_at < DATE_SUB(NOW(), INTERVAL 1 MONTH)`
+    );
+    if (result.affectedRows > 0) {
+      console.log(`[LOG TEMİZLİK] ${result.affectedRows} eski kayıt silindi`);
+    }
+  } catch (e) {
+    console.error('[LOG TEMİZLİK] Hata:', e.message);
+  }
+}
+
+// ===================== İşlem Kayıtları API =====================
+app.get('/api/loglar', authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { tahta_id, aksiyon, tarih_baslangic, tarih_bitis, arama } = req.query;
+    const limitNum = Math.min(parseInt(req.query.limit) || 50, 200);
+    const offsetNum = Math.max(parseInt(req.query.offset) || 0, 0);
+
+    const kurumId = req.query.kurum_id && req.kullanici.rol === 'superadmin'
+      ? parseInt(req.query.kurum_id)
+      : req.kullanici.kurum_id;
+
+    const kosullar = ['kurum_id = ?'];
+    const params = [kurumId];
+
+    if (tahta_id) { kosullar.push('tahta_id = ?'); params.push(tahta_id); }
+    if (aksiyon) { kosullar.push('aksiyon = ?'); params.push(aksiyon); }
+    if (tarih_baslangic) { kosullar.push('created_at >= ?'); params.push(tarih_baslangic + ' 00:00:00'); }
+    if (tarih_bitis) { kosullar.push('created_at <= ?'); params.push(tarih_bitis + ' 23:59:59'); }
+    if (arama) {
+      kosullar.push('(ad_soyad LIKE ? OR kullanici_adi LIKE ? OR tahta_adi LIKE ?)');
+      params.push(`%${arama}%`, `%${arama}%`, `%${arama}%`);
+    }
+
+    const where = kosullar.join(' AND ');
+    const [rows] = await db.execute(
+      `SELECT * FROM tahta_loglari WHERE ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
+      [...params, limitNum, offsetNum]
+    );
+    const [[{ toplam }]] = await db.execute(
+      `SELECT COUNT(*) AS toplam FROM tahta_loglari WHERE ${where}`,
+      params
+    );
+
+    res.json({ loglar: rows, toplam });
+  } catch (err) {
+    console.error('Log listesi hatası:', err);
+    res.status(500).json({ hata: 'Sunucu hatası' });
   }
 });
 
@@ -1709,6 +1991,9 @@ io.on("connection", (socket) => {
       await db.execute("UPDATE tahtalar SET durum = 1 WHERE id = ?", [tahtaId]);
       tahtayaKomutGonder(tahtaId, "kilitle");
       await panellereGonder(tahta.kurum_id);
+      logKaydet(tahta.kurum_id, tahtaId, tahta.tahta_adi,
+        socket.kullanici.id, socket.kullanici.kullanici_adi,
+        socket.kullanici.ad_soyad, socket.kullanici.rol, 'kilitle');
       console.log(
         `[KİLİT] ${tahta.tahta_adi} kilitlendi (${socket.kullanici.ad_soyad})`
       );
@@ -1727,6 +2012,9 @@ io.on("connection", (socket) => {
       await db.execute("UPDATE tahtalar SET durum = 0 WHERE id = ?", [tahtaId]);
       tahtayaKomutGonder(tahtaId, "kilidi_ac");
       await panellereGonder(tahta.kurum_id);
+      logKaydet(tahta.kurum_id, tahtaId, tahta.tahta_adi,
+        socket.kullanici.id, socket.kullanici.kullanici_adi,
+        socket.kullanici.ad_soyad, socket.kullanici.rol, 'kilidi_ac');
       console.log(
         `[AÇ] ${tahta.tahta_adi} açıldı (${socket.kullanici.ad_soyad})`
       );
@@ -1757,6 +2045,9 @@ io.on("connection", (socket) => {
       await db.execute("UPDATE tahtalar SET durum = 0 WHERE id = ?", [tahtaId]);
       tahtayaKomutGonder(tahtaId, "kilidi_ac");
       await panellereGonder(tahta.kurum_id);
+      logKaydet(tahta.kurum_id, tahtaId, tahta.tahta_adi,
+        socket.kullanici.id, socket.kullanici.kullanici_adi,
+        socket.kullanici.ad_soyad, socket.kullanici.rol, 'kilidi_ac');
       console.log(`[QR AÇ] ${tahta.tahta_adi} açıldı (${socket.kullanici.ad_soyad})`);
       cb({ basarili: true });
     } catch (err) {
@@ -1775,6 +2066,9 @@ io.on("connection", (socket) => {
       await db.execute("UPDATE tahtalar SET ses = 0 WHERE id = ?", [tahtaId]);
       tahtayaKomutGonder(tahtaId, "ses_kapat");
       await panellereGonder(tahta.kurum_id);
+      logKaydet(tahta.kurum_id, tahtaId, tahta.tahta_adi,
+        socket.kullanici.id, socket.kullanici.kullanici_adi,
+        socket.kullanici.ad_soyad, socket.kullanici.rol, 'ses_kapat');
     } catch (err) {
       console.error("Ses kapatma hatası:", err);
     }
@@ -1790,8 +2084,66 @@ io.on("connection", (socket) => {
       await db.execute("UPDATE tahtalar SET ses = 1 WHERE id = ?", [tahtaId]);
       tahtayaKomutGonder(tahtaId, "ses_ac");
       await panellereGonder(tahta.kurum_id);
+      logKaydet(tahta.kurum_id, tahtaId, tahta.tahta_adi,
+        socket.kullanici.id, socket.kullanici.kullanici_adi,
+        socket.kullanici.ad_soyad, socket.kullanici.rol, 'ses_ac');
     } catch (err) {
       console.error("Ses açma hatası:", err);
+    }
+  });
+
+  // ---- Tahta Kapat ----
+  socket.on("tahta_kapat", async (tahtaId) => {
+    if (!socket.kullanici) return;
+    if (socket.kullanici.rol === "ogretmen") return;
+    try {
+      const tahta = await tahtaBul(tahtaId, socket.kullanici.kurum_id, socket.kullanici.rol);
+      if (!tahta) return;
+
+      tahtayaKomutGonder(tahtaId, "tahta_kapat");
+      await panellereGonder(tahta.kurum_id);
+      logKaydet(tahta.kurum_id, tahtaId, tahta.tahta_adi,
+        socket.kullanici.id, socket.kullanici.kullanici_adi,
+        socket.kullanici.ad_soyad, socket.kullanici.rol, 'tahta_kapat');
+      console.log(
+        `[KAPAT] ${tahta.tahta_adi} kapatıldı (${socket.kullanici.ad_soyad})`
+      );
+    } catch (err) {
+      console.error("Tahta kapatma hatası:", err);
+    }
+  });
+
+  // ---- Tümünü Kapat ----
+  socket.on("tumu_kapat", async () => {
+    if (!socket.kullanici) return;
+    if (socket.kullanici.rol === "ogretmen") return;
+
+    try {
+      if (socket.kullanici.rol === "superadmin") {
+        Object.entries(bagliTahtalar).forEach(([sid]) => {
+          io.to(sid).emit("komut", { aksiyon: "tahta_kapat" });
+        });
+        const [kurumlar] = await db.execute("SELECT id FROM kurumlar");
+        for (const k of kurumlar) {
+          await panellereGonder(k.id);
+        }
+      } else {
+        const kurumId = socket.kullanici.kurum_id;
+        Object.entries(bagliTahtalar).forEach(([sid, t]) => {
+          if (t.kurumId === kurumId) {
+            io.to(sid).emit("komut", { aksiyon: "tahta_kapat" });
+          }
+        });
+        await panellereGonder(kurumId);
+      }
+      logKaydet(socket.kullanici.kurum_id, null, 'Tüm Tahtalar',
+        socket.kullanici.id, socket.kullanici.kullanici_adi,
+        socket.kullanici.ad_soyad, socket.kullanici.rol, 'tumu_kapat');
+      console.log(
+        `[TOPLU KAPAT] ${socket.kullanici.rol} (${socket.kullanici.ad_soyad})`
+      );
+    } catch (err) {
+      console.error("Toplu kapatma hatası:", err);
     }
   });
 
@@ -1823,6 +2175,9 @@ io.on("connection", (socket) => {
         });
         await panellereGonder(kurumId);
       }
+      logKaydet(socket.kullanici.kurum_id, null, 'Tüm Tahtalar',
+        socket.kullanici.id, socket.kullanici.kullanici_adi,
+        socket.kullanici.ad_soyad, socket.kullanici.rol, 'tumu_kilitle');
       console.log(
         `[TOPLU KİLİT] ${socket.kullanici.rol} (${socket.kullanici.ad_soyad})`
       );
@@ -1858,6 +2213,9 @@ io.on("connection", (socket) => {
         });
         await panellereGonder(kurumId);
       }
+      logKaydet(socket.kullanici.kurum_id, null, 'Tüm Tahtalar',
+        socket.kullanici.id, socket.kullanici.kullanici_adi,
+        socket.kullanici.ad_soyad, socket.kullanici.rol, 'tumu_ac');
       console.log(
         `[TOPLU AÇ] ${socket.kullanici.rol} (${socket.kullanici.ad_soyad})`
       );
@@ -2048,6 +2406,10 @@ const PORT = process.env.PORT || 3000;
 veritabaniBaslat()
   .then(() => ilkKurulum())
   .then(() => {
+    // Eski logları temizle (başlangıçta ve her 24 saatte bir)
+    eskiLoglariTemizle();
+    setInterval(eskiLoglariTemizle, 24 * 60 * 60 * 1000);
+
     server.listen(PORT, () => {
       console.log(`Tahta Kilit Sunucusu çalışıyor → http://localhost:${PORT}`);
     });

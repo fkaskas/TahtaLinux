@@ -681,71 +681,10 @@
           <h3>Duyurular</h3>
         </div>
         <div class="bilgi-kart-icerik duyurular-icerik">
-          <div class="duyurular-liste-sarici">
-            <div class="duyuru-item">
-              <div class="duyuru-ust">
-                <span class="duyuru-baslik">Veli Toplantısı</span>
-                <span class="duyuru-tarih">10 Mar</span>
-              </div>
-              <div class="duyuru-ogretmen">Ahmet Yılmaz</div>
-              <p class="duyuru-icerik-metin">15 Mart Cumartesi günü saat 14:00'da veli toplantısı yapılacaktır. Tüm velilerimizin katılımını bekliyoruz.</p>
-            </div>
-            <div class="duyuru-item">
-              <div class="duyuru-ust">
-                <span class="duyuru-baslik">Kütüphane Haftası</span>
-                <span class="duyuru-tarih">9 Mar</span>
-              </div>
-              <div class="duyuru-ogretmen">Müge Demir</div>
-              <p class="duyuru-icerik-metin">24–30 Mart tarihleri arasında Kütüphane Haftası etkinlikleri düzenlenecektir. Kitap fuarına davetlisiniz.</p>
-            </div>
-            <div class="duyuru-item">
-              <div class="duyuru-ust">
-                <span class="duyuru-baslik">Bahar Şenliği</span>
-                <span class="duyuru-tarih">8 Mar</span>
-              </div>
-              <div class="duyuru-ogretmen">Selin Kaya</div>
-              <p class="duyuru-icerik-metin">Okulumuzun geleneksel Bahar Şenliği 5 Nisan'da düzenlenecektir. Tüm öğrencilerimiz davetlidir.</p>
-            </div>
-            <div class="duyuru-item">
-              <div class="duyuru-ust">
-                <span class="duyuru-baslik">Sınav Takvimi Yayınlandı</span>
-                <span class="duyuru-tarih">7 Mar</span>
-              </div>
-              <div class="duyuru-ogretmen">Emre Öztürk</div>
-              <p class="duyuru-icerik-metin">2. dönem sınav takvimi yayınlanmıştır. e-Okul sistemi üzerinden takvime ulaşabilirsiniz.</p>
-            </div>
-            <!-- Sonsuz kaydırma için tekrar -->
-            <div class="duyuru-item">
-              <div class="duyuru-ust">
-                <span class="duyuru-baslik">Veli Toplantısı</span>
-                <span class="duyuru-tarih">10 Mar</span>
-              </div>
-              <div class="duyuru-ogretmen">Ahmet Yılmaz</div>
-              <p class="duyuru-icerik-metin">15 Mart Cumartesi günü saat 14:00'da veli toplantısı yapılacaktır. Tüm velilerimizin katılımını bekliyoruz.</p>
-            </div>
-            <div class="duyuru-item">
-              <div class="duyuru-ust">
-                <span class="duyuru-baslik">Kütüphane Haftası</span>
-                <span class="duyuru-tarih">9 Mar</span>
-              </div>
-              <div class="duyuru-ogretmen">Müge Demir</div>
-              <p class="duyuru-icerik-metin">24–30 Mart tarihleri arasında Kütüphane Haftası etkinlikleri düzenlenecektir. Kitap fuarına davetlisiniz.</p>
-            </div>
-            <div class="duyuru-item">
-              <div class="duyuru-ust">
-                <span class="duyuru-baslik">Bahar Şenliği</span>
-                <span class="duyuru-tarih">8 Mar</span>
-              </div>
-              <div class="duyuru-ogretmen">Selin Kaya</div>
-              <p class="duyuru-icerik-metin">Okulumuzun geleneksel Bahar Şenliği 5 Nisan'da düzenlenecektir. Tüm öğrencilerimiz davetlidir.</p>
-            </div>
-            <div class="duyuru-item">
-              <div class="duyuru-ust">
-                <span class="duyuru-baslik">Sınav Takvimi Yayınlandı</span>
-                <span class="duyuru-tarih">7 Mar</span>
-              </div>
-              <div class="duyuru-ogretmen">Emre Öztürk</div>
-              <p class="duyuru-icerik-metin">2. dönem sınav takvimi yayınlanmıştır. e-Okul sistemi üzerinden takvime ulaşabilirsiniz.</p>
+          <div class="duyurular-liste-sarici" id="duyurularSarici" style="animation:none">
+            <div style="text-align:center;color:#95a5a6;padding:2vh;font-size:clamp(11px,1.1vw,14px);">
+              <i class="fas fa-bullhorn" style="font-size:clamp(18px,2vw,28px);display:block;margin-bottom:1vh;opacity:0.3;color:#e53935;"></i>
+              Yükleniyor...
             </div>
           </div>
         </div>
@@ -960,12 +899,52 @@
         .then(r => r.json())
         .then(liste => { ayinOgrencileriGoster(liste); })
         .catch(() => { ayinOgrencileriGoster([]); });
+
+      // Duyuruları yükle
+      fetch('/api/duyurular-genel?' + q.toString())
+        .then(r => r.json())
+        .then(liste => { duyurularGoster(liste); })
+        .catch(() => { duyurularGoster([]); });
     } else {
       sliderOlustur([]);
     }
   })();
 
   function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  function duyurularGoster(liste) {
+    const sarici = document.getElementById('duyurularSarici');
+    if (!sarici) return;
+    if (!Array.isArray(liste) || liste.length === 0) {
+      sarici.style.animation = 'none';
+      sarici.innerHTML = '<div style="text-align:center;color:#95a5a6;padding:2vh;font-size:clamp(11px,1.1vw,14px);"><i class="fas fa-bullhorn" style="font-size:clamp(18px,2vw,28px);display:block;margin-bottom:1vh;opacity:0.3;color:#e53935;"></i>Henüz duyuru eklenmemiş</div>';
+      return;
+    }
+    const aylar = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+    function tarihFormat(iso) {
+      const d = new Date(iso);
+      return d.getDate() + ' ' + aylar[d.getMonth()];
+    }
+    function itemHTML(d) {
+      return '<div class="duyuru-item">'
+        + '<div class="duyuru-ust">'
+        + '<span class="duyuru-baslik">' + esc(d.baslik) + '</span>'
+        + '<span class="duyuru-tarih">' + tarihFormat(d.created_at) + '</span>'
+        + '</div>'
+        + '<div class="duyuru-ogretmen">' + esc(d.ekleyen_adi || '') + '</div>'
+        + '<p class="duyuru-icerik-metin">' + esc(d.icerik) + '</p>'
+        + '</div>';
+    }
+    const tekHTML = liste.map(itemHTML).join('');
+    if (liste.length > 1) {
+      sarici.innerHTML = tekHTML + tekHTML;
+      const sure = Math.max(12, liste.length * 5);
+      sarici.style.animation = 'duyuruKaydir ' + sure + 's linear infinite';
+    } else {
+      sarici.innerHTML = tekHTML;
+      sarici.style.animation = 'none';
+    }
+  }
 
   function ayinOgrencileriGoster(liste) {
     const anaEl = document.getElementById('ayinAna');

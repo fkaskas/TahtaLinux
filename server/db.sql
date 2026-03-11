@@ -68,3 +68,20 @@ CREATE TABLE IF NOT EXISTS ayin_ogrencileri (
     FOREIGN KEY (kurum_id) REFERENCES kurumlar(id) ON DELETE CASCADE,
     FOREIGN KEY (ekleyen_id) REFERENCES kullanicilar(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+-- İşlem kayıtları (loglar) tablosu — kurum özelinde max 1 aylık tutulur
+CREATE TABLE IF NOT EXISTS tahta_loglari (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    kurum_id INT NOT NULL,
+    tahta_id VARCHAR(36) DEFAULT NULL,
+    tahta_adi VARCHAR(255) NOT NULL DEFAULT '',
+    kullanici_id INT DEFAULT NULL,
+    kullanici_adi VARCHAR(100) NOT NULL DEFAULT '',
+    ad_soyad VARCHAR(255) NOT NULL DEFAULT '',
+    rol ENUM('superadmin', 'yonetici', 'ogretmen') NOT NULL DEFAULT 'ogretmen',
+    aksiyon ENUM('kilitle','kilidi_ac','ses_kapat','ses_ac','tahta_kapat','tumu_kilitle','tumu_ac','tumu_kapat') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_kurum_created (kurum_id, created_at),
+    INDEX idx_tahta (tahta_id),
+    FOREIGN KEY (kurum_id) REFERENCES kurumlar(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

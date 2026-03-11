@@ -145,6 +145,7 @@
       border-top: 1px solid var(--border);
       position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
       padding-bottom: var(--safe-bottom);
+      overflow: hidden;
     }
     .sekme {
       flex: 1; padding: 10px 4px 8px; cursor: pointer;
@@ -152,8 +153,35 @@
       text-align: center; transition: color 0.2s;
       display: flex; flex-direction: column; align-items: center; gap: 3px;
     }
+    .sekme.bar-gizli { display: none !important; }
     .sekme-icon { font-size: 20px; }
     .sekme.aktif { color: var(--accent); }
+
+    /* ===== Daha Fazla Popup Menü ===== */
+    .daha-fazla-menu {
+      display: none; position: fixed; z-index: 200;
+      bottom: calc(60px + var(--safe-bottom)); right: 0;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px 0 0 14px;
+      box-shadow: -6px -6px 28px rgba(0,0,0,0.45);
+      min-width: 185px; overflow: hidden;
+    }
+    .daha-fazla-menu.goster { display: block; }
+    .daha-fazla-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 20px; cursor: pointer;
+      font-size: 13px; font-weight: 600; color: var(--text3);
+      border-bottom: 1px solid var(--border);
+      transition: background 0.15s, color 0.15s;
+    }
+    .daha-fazla-item:last-child { border-bottom: none; }
+    .daha-fazla-item:active { background: var(--surface2); }
+    .daha-fazla-item.aktif { color: var(--accent); }
+    .daha-fazla-item i { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+    .daha-fazla-arka {
+      display: none; position: fixed; inset: 0; z-index: 199;
+    }
+    .daha-fazla-arka.goster { display: block; }
 
     .sekme-icerik { display: none; }
     .sekme-icerik.aktif { display: block; }
@@ -174,6 +202,7 @@
     .toolbar button:active { transform: scale(0.96); }
     .btn-kilitle { background: rgba(239,68,68,0.15); color: var(--danger); }
     .btn-ac { background: rgba(34,197,94,0.15); color: var(--success); }
+    .btn-kapat { background: rgba(100,116,139,0.15); color: var(--text3); }
     .toolbar .sayi {
       font-size: 12px; color: var(--text3); white-space: nowrap;
       margin-left: auto; font-weight: 600;
@@ -549,6 +578,11 @@
     }
     .sinav-form-tahtalar label:has(input:checked) { border-color: var(--accent); background: rgba(59,130,246,0.08); }
     .sinav-form-tahtalar input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+    .duyuru-tahta-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+    .duyuru-tahta-badges span {
+      font-size: 10px; padding: 2px 8px; border-radius: 10px;
+      background: rgba(229,57,53,0.1); color: #e53935; font-weight: 600;
+    }
     .sinav-ders-saat-grup { display: flex; gap: 10px; align-items: center; }
     .sinav-ders-saat-grup select {
       padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
@@ -588,6 +622,29 @@
     }
     .ayin-ogrenci-kart .ayin-islem .btn-ayin-duzenle { background: rgba(59,130,246,0.15); color: var(--accent); }
     .ayin-ogrenci-kart .ayin-islem .btn-ayin-sil { background: rgba(239,68,68,0.15); color: var(--danger); }
+
+    /* Duyuru Yönetimi */
+    .duyuru-kart {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px;
+      border-left: 3px solid #e53935;
+    }
+    .duyuru-kart .duyuru-ust {
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 6px;
+    }
+    .duyuru-kart .duyuru-baslik-alan { flex: 1; min-width: 0; }
+    .duyuru-kart .duyuru-baslik-alan h4 { font-size: 14px; font-weight: 700; color: var(--text); margin: 0 0 3px; }
+    .duyuru-kart .duyuru-meta { font-size: 11px; color: var(--text3); display: flex; gap: 10px; flex-wrap: wrap; }
+    .duyuru-kart .duyuru-meta i { margin-right: 3px; }
+    .duyuru-kart .duyuru-icerik-metin { font-size: 13px; color: var(--text2); line-height: 1.5; }
+    .duyuru-kart .duyuru-islem { display: flex; gap: 6px; flex-shrink: 0; }
+    .duyuru-kart .duyuru-islem button {
+      padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer;
+      font-size: 14px; font-weight: 600; transition: opacity 0.2s;
+      min-width: 38px; min-height: 38px; display: inline-flex; align-items: center; justify-content: center;
+    }
+    .duyuru-kart .btn-duyuru-duzenle { background: rgba(59,130,246,0.15); color: var(--accent); }
+    .duyuru-kart .btn-duyuru-sil { background: rgba(239,68,68,0.15); color: var(--danger); }
 
     /* Ders Saatleri Grid - izole tasarım */
     #icerik-ders-saatleri .yonetim-panel {
@@ -765,12 +822,15 @@
       .header .kullanici-bilgi strong { color: var(--text); }
       .sekmeler {
         border-top: 1px solid var(--border); border-bottom: none;
-        padding-bottom: 0;
+        padding-bottom: 0; overflow: unset;
       }
       .sekme {
-        flex: 1; flex-direction: row; gap: 6px;
+        flex: 1; min-width: unset; flex-direction: row; gap: 6px;
         padding: 12px 20px; font-size: 13px;
       }
+      .sekme.bar-gizli { display: flex !important; }
+      #sekme-daha-fazla { display: none !important; }
+      .daha-fazla-menu, .daha-fazla-arka { display: none !important; }
       .sekme-icon { font-size: 16px; }
       .toolbar { padding: 14px 24px; }
       .toolbar .sayi { margin-left: auto; }
@@ -909,6 +969,7 @@
       <div class="toolbar">
         <button class="btn-kilitle gizli" id="btnTopluKilitle" onclick="topluKilitle()"><i class="fas fa-lock"></i> Kilitle</button>
         <button class="btn-ac gizli" id="btnTopluAc" onclick="topluAc()"><i class="fas fa-lock-open"></i> Aç</button>
+        <button class="btn-kapat gizli" id="btnTopluKapat" onclick="topluKapatOnayla()"><i class="fas fa-power-off"></i> Kapat</button>
         <span class="sayi" id="tahtaSayisi">0 tahta</span>
       </div>
       <div class="grid" id="tahtaGrid">
@@ -1189,6 +1250,43 @@
       </div>
     </div>
 
+    <!-- Duyurular Sekmesi -->
+    <div class="sekme-icerik" id="icerik-duyurular">
+      <div class="yonetim-panel">
+        <h2><i class="fas fa-bullhorn" style="color:#e53935;"></i> Duyurular</h2>
+        <p style="color:var(--text3);font-size:13px;margin-bottom:16px;">
+          Öğrencilere yönelik duyuruları ekleyin. Kurum bilgi ekranında en yeniden en eskiye sıralanarak gösterilir.
+        </p>
+
+        <div class="gizli" id="duyuruKurumAlan" style="margin-bottom:16px;">
+          <label style="font-size:12px;color:var(--text2);font-weight:500;margin-bottom:5px;display:block;">Kurum Seç</label>
+          <select id="duyuruKurumSec" onchange="duyurularYukle()" style="padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;width:100%;max-width:400px;"></select>
+        </div>
+
+        <div id="duyuruEklemeFormu" class="form-satir" style="flex-direction:column;gap:12px;">
+          <div class="alan" style="min-width:100%;">
+            <label>Başlık</label>
+            <input type="text" id="duyuruBaslik" placeholder="Örn: Veli Toplantısı" />
+          </div>
+          <div class="alan" style="min-width:100%;">
+            <label>İçerik</label>
+            <textarea id="duyuruIcerik" placeholder="Duyuru metnini buraya yazın..." rows="4"
+              style="width:100%;padding:14px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;resize:vertical;font-family:inherit;"></textarea>
+          </div>
+          <div class="alan" style="min-width:100%;">
+            <label>Gösterilecek Tahtalar <span style="color:var(--danger);font-size:11px;">(en az bir tahta seçin)</span></label>
+            <div class="sinav-form-tahtalar" id="duyuruTahtaSecim"></div>
+          </div>
+          <button class="btn-ekle" onclick="duyuruEkle()"><i class="fas fa-plus"></i> Duyuru Ekle</button>
+        </div>
+
+        <h3 style="margin-top:20px;">Duyurular</h3>
+        <div id="duyuruListesi">
+          <div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">Yükleniyor...</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Slider Yönetimi Sekmesi -->
     <div class="sekme-icerik" id="icerik-slider">
       <div class="yonetim-panel">
@@ -1279,6 +1377,59 @@
         </button>
       </div>
     </div>
+
+    <!-- Loglar Sekmesi -->
+    <div class="sekme-icerik" id="icerik-loglar">
+      <div class="yonetim-panel">
+        <h2><i class="fas fa-history" style="color:var(--accent);"></i> İşlem Kayıtları</h2>
+        <p style="color:var(--text3);font-size:13px;margin-bottom:16px;">
+          Tahta üzerinde gerçekleştirilen işlemlerin kayıtları. Son 1 aylık kayıtlar tutulmaktadır.
+        </p>
+
+        <div class="gizli" id="loglarKurumAlan" style="margin-bottom:16px;">
+          <label style="font-size:12px;color:var(--text2);font-weight:500;margin-bottom:5px;display:block;">Kurum Seç</label>
+          <select id="loglarKurumSec" onchange="loglarYukle()" style="padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;width:100%;max-width:400px;"></select>
+        </div>
+
+        <!-- Filtreler -->
+        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:16px;align-items:flex-end;">
+          <div style="flex:1;min-width:180px;">
+            <label style="font-size:12px;color:var(--text2);font-weight:500;display:block;margin-bottom:5px;">Arama</label>
+            <input type="text" id="logArama" placeholder="Kullanıcı adı, tahta adı..." style="padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;width:100%;" onkeydown="if(event.key==='Enter') loglarYukle()" />
+          </div>
+          <div style="min-width:160px;">
+            <label style="font-size:12px;color:var(--text2);font-weight:500;display:block;margin-bottom:5px;">İşlem Türü</label>
+            <select id="logAksiyon" style="padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;width:100%;">
+              <option value="">Tümü</option>
+              <option value="kilitle">🔒 Kilitleme</option>
+              <option value="kilidi_ac">🔓 Kilit Açma</option>
+              <option value="ses_kapat">🔇 Ses Kapatma</option>
+              <option value="ses_ac">🔊 Ses Açma</option>
+              <option value="tahta_kapat">⏻ Tahta Kapatma</option>
+              <option value="tumu_kilitle">🔒 Tümünü Kilitle</option>
+              <option value="tumu_ac">🔓 Tümünü Aç</option>
+              <option value="tumu_kapat">⏻ Tümünü Kapat</option>
+            </select>
+          </div>
+          <div style="min-width:140px;">
+            <label style="font-size:12px;color:var(--text2);font-weight:500;display:block;margin-bottom:5px;">Başlangıç Tarihi</label>
+            <input type="date" id="logTarihBaslangic" style="padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;width:100%;" />
+          </div>
+          <div style="min-width:140px;">
+            <label style="font-size:12px;color:var(--text2);font-weight:500;display:block;margin-bottom:5px;">Bitiş Tarihi</label>
+            <input type="date" id="logTarihBitis" style="padding:10px 12px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:14px;width:100%;" />
+          </div>
+          <button onclick="loglarYukle()" style="padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap;height:42px;"><i class="fas fa-search"></i> Filtrele</button>
+          <button onclick="logFiltreSifirla()" style="padding:10px 16px;background:var(--surface2);color:var(--text2);border:none;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;white-space:nowrap;height:42px;"><i class="fas fa-times"></i> Sıfırla</button>
+        </div>
+
+        <div id="logToplamiYazi" style="font-size:13px;color:var(--text3);margin-bottom:8px;"></div>
+        <div id="logListesi">
+          <div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">Yükleniyor...</div>
+        </div>
+        <div id="logSayfalama" style="display:flex;gap:8px;justify-content:center;margin-top:16px;flex-wrap:wrap;"></div>
+      </div>
+    </div>
   </div>
 
   <div class="sekmeler" id="sekmeler">
@@ -1300,14 +1451,27 @@
     <div class="sekme" data-sekme="ayin-ogrencisi" id="sekme-ayin-ogrencisi">
       <span class="sekme-icon"><i class="fas fa-star"></i></span> Ayın Öğrencisi
     </div>
+    <div class="sekme" data-sekme="duyurular" id="sekme-duyurular">
+      <span class="sekme-icon"><i class="fas fa-bullhorn"></i></span> Duyurular
+    </div>
     <div class="sekme" data-sekme="slider" id="sekme-slider">
       <span class="sekme-icon"><i class="fas fa-images"></i></span> Slider
     </div>
     <div class="sekme gizli" data-sekme="ders-saatleri" id="sekme-ders-saatleri">
       <span class="sekme-icon"><i class="fas fa-clock"></i></span> Ders Saatleri
     </div>
+    <div class="sekme gizli" data-sekme="loglar" id="sekme-loglar">
+      <span class="sekme-icon"><i class="fas fa-history"></i></span> Loglar
+    </div>
+    <div class="sekme gizli" id="sekme-daha-fazla">
+      <span class="sekme-icon"><i class="fas fa-ellipsis-h"></i></span> Daha Fazla
+    </div>
   </div>
 </div>
+
+<!-- Daha Fazla Popup -->
+<div class="daha-fazla-arka" id="dahaFazlaArka"></div>
+<div class="daha-fazla-menu" id="dahaFazlaMenu"></div>
 
 <!-- QR Tarayıcı Modal -->
 <div class="qr-modal-arka" id="qrModal" onclick="qrTarayiciKapat()">
@@ -1507,6 +1671,26 @@
     <div class="modal-butonlar">
       <button class="btn-iptal" onclick="ayinDuzenleKapat()">İptal</button>
       <button class="btn-kaydet" onclick="ayinOgrenciGuncelle()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Duyuru Düzenle Modal -->
+<div class="modal-arka" id="duyuruDuzenleModal" onclick="duyuruDuzenleKapat()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3><i class="fas fa-edit"></i> Duyuru Düzenle</h3>
+    <input type="hidden" id="duyuruDuzenleId" />
+    <label>Başlık</label>
+    <input type="text" id="duyuruDuzenleBaslik" placeholder="Başlık" />
+    <label>İçerik</label>
+    <textarea id="duyuruDuzenleIcerik" rows="4"
+      style="width:100%;padding:14px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;resize:vertical;font-family:inherit;margin-bottom:14px;"
+    ></textarea>
+    <label>Gösterilecek Tahtalar</label>
+    <div class="sinav-form-tahtalar" id="duyuruDuzenleTahtaSecim" style="margin-bottom:14px;"></div>
+    <div class="modal-butonlar">
+      <button class="btn-iptal" onclick="duyuruDuzenleKapat()">İptal</button>
+      <button class="btn-kaydet" onclick="duyuruGuncelle()">Kaydet</button>
     </div>
   </div>
 </div>
@@ -1781,12 +1965,13 @@
   }
 
   // ===================== Onay Modalı =====================
-  function onayla({ baslik, mesaj, onayMetni = 'Evet', tehlike = false, callback }) {
+  function onayla({ baslik, mesaj, onayMetni = 'Evet', tehlike = false, ikon = null, callback }) {
     document.getElementById('onayBaslik').textContent = baslik;
     document.getElementById('onayMesaj').textContent = mesaj;
     const ikonEl = document.getElementById('onayIkon');
     ikonEl.className = 'onay-ikon' + (tehlike ? ' tehlike' : '');
-    ikonEl.innerHTML = tehlike ? '<i class="fas fa-trash-alt"></i>' : '<i class="fas fa-exclamation-triangle"></i>';
+    const varsayilanIkon = tehlike ? 'fa-trash-alt' : 'fa-exclamation-triangle';
+    ikonEl.innerHTML = `<i class="fas ${ikon || varsayilanIkon}"></i>`;
     const onayBtn = document.getElementById('onayOnayBtn');
     onayBtn.textContent = onayMetni;
     onayBtn.className = 'btn-onay' + (tehlike ? '' : ' uyari');
@@ -1885,7 +2070,9 @@
       document.getElementById("sekme-kullanici-yonetim").classList.remove("gizli");
       document.getElementById("btnTopluKilitle").classList.remove("gizli");
       document.getElementById("btnTopluAc").classList.remove("gizli");
+      document.getElementById("btnTopluKapat").classList.remove("gizli");
       document.getElementById("sekme-ders-saatleri").classList.remove("gizli");
+      document.getElementById("sekme-loglar").classList.remove("gizli");
     }
 
     // Yönetici için kurum anahtarı alanını göster
@@ -1904,6 +2091,8 @@
       document.getElementById("sinavKurumAlan").classList.remove("gizli");
       document.getElementById("ayinKurumAlan").classList.remove("gizli");
       document.getElementById("sliderKurumAlan").classList.remove("gizli");
+      document.getElementById("duyuruKurumAlan").classList.remove("gizli");
+      document.getElementById("loglarKurumAlan").classList.remove("gizli");
       // Tablo başlıklarına kurum sütunu ekle
       document.getElementById("tahtaYonetimBaslik").innerHTML = "<th>Tahta Adı</th><th>Kurum</th><th>Durum</th><th>Çevrimiçi</th><th>Son Bağlantı</th><th></th>";
       document.getElementById("kullaniciYonetimBaslik").innerHTML = "<th>Kullanıcı Adı</th><th>Ad Soyad</th><th>Branş</th><th>Doğum Tarihi</th><th>Rol</th><th>Kurum</th><th>Kayıt Tarihi</th><th></th>";
@@ -1911,31 +2100,24 @@
     }
 
     // Sekme olayları
-    document.querySelectorAll(".sekme").forEach((el) => {
-      el.addEventListener("click", () => {
-        document.querySelectorAll(".sekme").forEach((s) => s.classList.remove("aktif"));
-        document.querySelectorAll(".sekme-icerik").forEach((s) => s.classList.remove("aktif"));
-        el.classList.add("aktif");
-        document.getElementById("icerik-" + el.dataset.sekme).classList.add("aktif");
-        localStorage.setItem("aktif_sekme", el.dataset.sekme);
-
-        // Yönetim verilerini yükle
-        if (el.dataset.sekme === "tahta-yonetim") tahtaYonetimYukle();
-        if (el.dataset.sekme === "kullanici-yonetim") kullaniciYonetimYukle();
-        if (el.dataset.sekme === "kurum-yonetim") kurumYonetimYukle();
-        if (el.dataset.sekme === "ders-saatleri") dersSaatleriYukle();
-        if (el.dataset.sekme === "sinavlar") sinavlarYukle();
-        if (el.dataset.sekme === "ayin-ogrencisi") ayinOgrencileriYukle();
-        if (el.dataset.sekme === "slider") sliderYukle();
-      });
+    document.querySelectorAll(".sekme:not(#sekme-daha-fazla)").forEach((el) => {
+      el.addEventListener("click", () => sekmeAktifYap(el.dataset.sekme));
     });
+    document.getElementById("sekme-daha-fazla").addEventListener("click", function(e) {
+      e.stopPropagation();
+      document.getElementById("dahaFazlaMenu").classList.toggle("goster");
+      document.getElementById("dahaFazlaArka").classList.toggle("goster");
+    });
+    document.getElementById("dahaFazlaArka").addEventListener("click", dahaFazlaMenuKapat);
+    window.addEventListener("resize", sekmelerDuzenle);
+    sekmelerDuzenle();
 
     // Kayıtlı sekmeyi geri yükle
     const kayitliSekme = localStorage.getItem("aktif_sekme");
     if (kayitliSekme) {
       const sekmeEl = document.querySelector(`.sekme[data-sekme="${kayitliSekme}"]`);
       if (sekmeEl && !sekmeEl.classList.contains("gizli")) {
-        sekmeEl.click();
+        sekmeAktifYap(kayitliSekme);
       }
     }
 
@@ -2017,6 +2199,9 @@
               ? `<button style="background:rgba(245,158,11,0.15);color:#f59e0b${!t.cevrimici ? ";opacity:0.4" : ""}" onclick="sesKapat('${esc(t.id)}')" ${!t.cevrimici ? "disabled" : ""}><i class="fas fa-volume-mute"></i> Ses Kapat</button>`
               : `<button style="background:rgba(34,197,94,0.15);color:#22c55e${!t.cevrimici ? ";opacity:0.4" : ""}" onclick="sesAc('${esc(t.id)}')" ${!t.cevrimici ? "disabled" : ""}><i class="fas fa-volume-up"></i> Ses Aç</button>`
           }
+          ${kullanici && (kullanici.rol === 'yonetici' || kullanici.rol === 'superadmin')
+            ? `<button class="btn-kapat" onclick="tahtaKapatOnayla('${esc(t.id)}','${esc(t.tahta_adi || t.id.substring(0,8))}')" ${!t.cevrimici ? "disabled style='opacity:0.4'" : ""}><i class="fas fa-power-off"></i> Kapat</button>`
+            : ''}
         </div>
       </div>
     `
@@ -2031,6 +2216,26 @@
   function sesAc(id) { socket.emit("ses_ac", id); }
   function topluKilitle() { socket.emit("tumu_kilitle"); }
   function topluAc() { socket.emit("tumu_ac"); }
+  function tahtaKapatOnayla(id, ad) {
+    onayla({
+      baslik: 'Tahtayı Kapat',
+      mesaj: `"${ad}" adlı tahta bilgisayarı kapatılsın mı?`,
+      onayMetni: 'Kapat',
+      tehlike: true,
+      ikon: 'fa-power-off',
+      callback: () => socket.emit('tahta_kapat', id)
+    });
+  }
+  function topluKapatOnayla() {
+    onayla({
+      baslik: 'Tüm Tahtaları Kapat',
+      mesaj: 'Kurumdaki tüm çevrimiçi tahtalar kapatılsın mı?',
+      onayMetni: 'Hepsini Kapat',
+      tehlike: true,
+      ikon: 'fa-power-off',
+      callback: () => socket.emit('tumu_kapat')
+    });
+  }
 
   // ===================== QR Tarayıcı =====================
   let qrScanner = null;
@@ -2535,7 +2740,7 @@
       if (!yanit.ok) return;
       const liste = await yanit.json();
 
-      ["tahtaKurumSec", "kullaniciKurumSec", "dersSaatleriKurumSec", "sinavKurumSec", "ayinKurumSec", "sliderKurumSec"].forEach((id) => {
+      ["tahtaKurumSec", "kullaniciKurumSec", "dersSaatleriKurumSec", "sinavKurumSec", "ayinKurumSec", "sliderKurumSec", "loglarKurumSec"].forEach((id) => {
         const sel = document.getElementById(id);
         if (!sel) return;
         sel.innerHTML = liste.map((k) =>
@@ -3220,6 +3425,156 @@
     } else { onizleme.innerHTML = ''; }
   });
 
+  // ===================== Duyurular =====================
+  let duyuruListeCache = [];
+
+  function duyuruTahtaCheckboxOlustur(containerId, seciliIds) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (!tahtaListesi || tahtaListesi.length === 0) {
+      container.innerHTML = '<span style="color:var(--text3);font-size:13px;">Tahta bulunamadı</span>';
+      return;
+    }
+    const ids = Array.isArray(seciliIds) ? seciliIds.map(String) : [];
+    container.innerHTML = tahtaListesi.map(t =>
+      `<label><input type="checkbox" value="${esc(t.id)}" ${ids.includes(String(t.id)) ? 'checked' : ''} /> ${esc(t.tahta_adi || t.id.substring(0,8))}</label>`
+    ).join('');
+  }
+
+  async function duyurularYukle() {
+    const duyuruFormu = document.getElementById('duyuruEklemeFormu');
+    if (duyuruFormu) duyuruFormu.style.display = kullanici.rol === 'superadmin' ? 'none' : '';
+    if (kullanici.rol !== 'superadmin') {
+      duyuruTahtaCheckboxOlustur('duyuruTahtaSecim', []);
+    }
+    try {
+      let url = '/api/duyurular';
+      if (kullanici.rol === 'superadmin') {
+        const kurumSec = document.getElementById('duyuruKurumSec');
+        if (kurumSec && kurumSec.value) url += '?kurum_id=' + kurumSec.value;
+      }
+      const yanit = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+      if (!yanit.ok) { bildirimGoster('Duyurular listesi alınamadı', 'hata'); return; }
+      const liste = await yanit.json();
+      duyuruListeCache = liste;
+      const container = document.getElementById('duyuruListesi');
+      if (!Array.isArray(liste) || liste.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;"><i class="fas fa-bullhorn" style="font-size:28px;display:block;margin-bottom:8px;opacity:0.4;color:#e53935;"></i>Kayıtlı duyuru yok</div>';
+        return;
+      }
+      container.innerHTML = liste.map(d => duyuruKartHTML(d)).join('');
+    } catch (err) {
+      bildirimGoster('Duyurular listesi alınamadı', 'hata');
+    }
+  }
+
+  function duyuruKartHTML(d) {
+    const sahip = kullanici.rol === 'yonetici' || (kullanici.rol === 'ogretmen' && d.ekleyen_id === kullanici.id);
+    const tarih = new Date(d.created_at).toLocaleDateString('tr-TR', { day:'2-digit', month:'long', year:'numeric' });
+    const tahta_ids = d.tahta_ids_str ? d.tahta_ids_str.split(',') : [];
+    const tahtaAdlari = tahta_ids.map(tid => {
+      const t = tahtaListesi.find(x => String(x.id) === String(tid));
+      return t ? esc(t.tahta_adi || t.id.substring(0,8)) : null;
+    }).filter(Boolean);
+    return `<div class="duyuru-kart">
+      <div class="duyuru-ust">
+        <div class="duyuru-baslik-alan">
+          <h4>${esc(d.baslik)}</h4>
+          <div class="duyuru-meta">
+            <span><i class="fas fa-user"></i> ${esc(d.ekleyen_adi || '')}</span>
+            <span><i class="fas fa-calendar-alt"></i> ${tarih}</span>
+          </div>
+          ${tahtaAdlari.length ? '<div class="duyuru-tahta-badges">' + tahtaAdlari.map(a => '<span>' + a + '</span>').join('') + '</div>' : ''}
+        </div>
+        <div class="duyuru-islem">
+          ${sahip ? `<button class="btn-duyuru-duzenle" onclick="duyuruDuzenleAc(${d.id})"><i class="fas fa-edit"></i></button>` : ''}
+          ${sahip ? `<button class="btn-duyuru-sil" onclick="duyuruSil(${d.id})"><i class="fas fa-trash-alt"></i></button>` : ''}
+        </div>
+      </div>
+      <p class="duyuru-icerik-metin">${esc(d.icerik)}</p>
+    </div>`;
+  }
+
+  async function duyuruEkle() {
+    const baslik = document.getElementById('duyuruBaslik').value.trim();
+    const icerik = document.getElementById('duyuruIcerik').value.trim();
+    if (!baslik || !icerik) { bildirimGoster('Başlık ve içerik gerekli', 'hata'); return; }
+    const tahta_ids = [];
+    document.querySelectorAll('#duyuruTahtaSecim input[type=checkbox]:checked').forEach(cb => tahta_ids.push(cb.value));
+    if (tahta_ids.length === 0) { bildirimGoster('En az bir tahta seçin', 'hata'); return; }
+    try {
+      const yanit = await fetch('/api/duyurular', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ baslik, icerik, tahta_ids })
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+      bildirimGoster('Duyuru eklendi', 'basari');
+      document.getElementById('duyuruBaslik').value = '';
+      document.getElementById('duyuruIcerik').value = '';
+      duyurularYukle();
+    } catch (err) { bildirimGoster('Duyuru eklenemedi', 'hata'); }
+  }
+
+  function duyuruDuzenleAc(id) {
+    const d = duyuruListeCache.find(x => x.id === id);
+    if (!d) return;
+    document.getElementById('duyuruDuzenleId').value = id;
+    document.getElementById('duyuruDuzenleBaslik').value = d.baslik;
+    document.getElementById('duyuruDuzenleIcerik').value = d.icerik;
+    const tahta_ids = d.tahta_ids_str ? d.tahta_ids_str.split(',') : [];
+    duyuruTahtaCheckboxOlustur('duyuruDuzenleTahtaSecim', tahta_ids);
+    document.getElementById('duyuruDuzenleModal').classList.add('goster');
+  }
+
+  function duyuruDuzenleKapat() {
+    document.getElementById('duyuruDuzenleModal').classList.remove('goster');
+  }
+
+  async function duyuruGuncelle() {
+    const id = document.getElementById('duyuruDuzenleId').value;
+    const baslik = document.getElementById('duyuruDuzenleBaslik').value.trim();
+    const icerik = document.getElementById('duyuruDuzenleIcerik').value.trim();
+    if (!baslik || !icerik) { bildirimGoster('Başlık ve içerik gerekli', 'hata'); return; }
+    const tahta_ids = [];
+    document.querySelectorAll('#duyuruDuzenleTahtaSecim input[type=checkbox]:checked').forEach(cb => tahta_ids.push(cb.value));
+    if (tahta_ids.length === 0) { bildirimGoster('En az bir tahta seçin', 'hata'); return; }
+    try {
+      const yanit = await fetch('/api/duyurular/' + id, {
+        method: 'PUT',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ baslik, icerik, tahta_ids })
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+      bildirimGoster('Duyuru güncellendi', 'basari');
+      duyuruDuzenleKapat();
+      duyurularYukle();
+    } catch (err) { bildirimGoster('Duyuru güncellenemedi', 'hata'); }
+  }
+
+  async function duyuruSil(id) {
+    onayla({
+      baslik: 'Duyuruyu Sil',
+      mesaj: 'Bu duyuruyu silmek istediğinize emin misiniz?',
+      onayMetni: 'Sil',
+      tehlike: true,
+      callback: async () => {
+        try {
+          const yanit = await fetch('/api/duyurular/' + id, {
+            method: 'DELETE',
+            headers: { Authorization: 'Bearer ' + token }
+          });
+          const veri = await yanit.json();
+          if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+          bildirimGoster('Duyuru silindi', 'basari');
+          duyurularYukle();
+        } catch (err) { bildirimGoster('Duyuru silinemedi', 'hata'); }
+      }
+    });
+  }
+
   // ===================== Slider Yönetimi =====================
   let sliderListeCache = [];
 
@@ -3488,6 +3843,94 @@
     localStorage.removeItem("hatirla");
   }
 
+  // ===================== Sekme Yönetimi =====================
+  function sekmeAktifYap(veri) {
+    if (!veri) return;
+    document.querySelectorAll(".sekme").forEach((s) => s.classList.remove("aktif"));
+    document.querySelectorAll(".sekme-icerik").forEach((s) => s.classList.remove("aktif"));
+    const el = document.querySelector(`.sekme[data-sekme="${veri}"]`);
+    if (el) el.classList.add("aktif");
+    const icerik = document.getElementById("icerik-" + veri);
+    if (icerik) icerik.classList.add("aktif");
+    localStorage.setItem("aktif_sekme", veri);
+    dahaFazlaDurumGuncelle();
+    if (veri === "tahta-yonetim") tahtaYonetimYukle();
+    if (veri === "kullanici-yonetim") kullaniciYonetimYukle();
+    if (veri === "kurum-yonetim") kurumYonetimYukle();
+    if (veri === "ders-saatleri") dersSaatleriYukle();
+    if (veri === "sinavlar") sinavlarYukle();
+    if (veri === "ayin-ogrencisi") ayinOgrencileriYukle();
+    if (veri === "duyurular") duyurularYukle();
+    if (veri === "slider") sliderYukle();
+    if (veri === "loglar") loglarYukle();
+  }
+
+  function dahaFazlaMenuKapat() {
+    document.getElementById("dahaFazlaMenu").classList.remove("goster");
+    document.getElementById("dahaFazlaArka").classList.remove("goster");
+  }
+
+  function dahaFazlaDurumGuncelle() {
+    const menu = document.getElementById("dahaFazlaMenu");
+    const dahaFazlaBtn = document.getElementById("sekme-daha-fazla");
+    if (!menu || !dahaFazlaBtn) return;
+    const aktifSekme = localStorage.getItem("aktif_sekme");
+    let aktifMenude = false;
+    menu.querySelectorAll(".daha-fazla-item").forEach((item) => {
+      const isAktif = item.dataset.sekme === aktifSekme;
+      item.classList.toggle("aktif", isAktif);
+      if (isAktif) aktifMenude = true;
+    });
+    dahaFazlaBtn.classList.toggle("aktif", aktifMenude);
+  }
+
+  function sekmelerDuzenle() {
+    const ESIK = 6; // Bu sayı ve üzerinde "Daha Fazla" devreye girer
+    const MAX = ESIK - 1; // Bar'da gösterilecek maksimum sekme sayısı
+    const tumSekmeler = Array.from(document.querySelectorAll(".sekme:not(#sekme-daha-fazla)"));
+    const gorunenler = tumSekmeler.filter((s) => !s.classList.contains("gizli"));
+    const dahaFazlaBtn = document.getElementById("sekme-daha-fazla");
+    const menu = document.getElementById("dahaFazlaMenu");
+    if (!dahaFazlaBtn || !menu) return;
+
+    if (window.innerWidth >= 768) {
+      tumSekmeler.forEach((s) => s.classList.remove("bar-gizli"));
+      dahaFazlaBtn.classList.add("gizli");
+      dahaFazlaMenuKapat();
+      return;
+    }
+
+    if (gorunenler.length < ESIK) {
+      gorunenler.forEach((s) => s.classList.remove("bar-gizli"));
+      dahaFazlaBtn.classList.add("gizli");
+      menu.innerHTML = "";
+      return;
+    }
+
+    gorunenler.forEach((s, i) => {
+      if (i < MAX) s.classList.remove("bar-gizli");
+      else s.classList.add("bar-gizli");
+    });
+    dahaFazlaBtn.classList.remove("gizli");
+    menu.innerHTML = "";
+    const aktifSekme = localStorage.getItem("aktif_sekme");
+    gorunenler.slice(MAX).forEach((s) => {
+      const item = document.createElement("div");
+      item.className = "daha-fazla-item" + (s.dataset.sekme === aktifSekme ? " aktif" : "");
+      item.dataset.sekme = s.dataset.sekme;
+      const ikonEl = s.querySelector(".sekme-icon");
+      const metin = Array.from(s.childNodes)
+        .filter((n) => n.nodeType === 3)
+        .map((n) => n.textContent.trim())
+        .filter(Boolean)
+        .join(" ");
+      item.innerHTML = `${ikonEl ? ikonEl.innerHTML : ""} ${metin}`;
+      item.addEventListener("click", () => { dahaFazlaMenuKapat(); sekmeAktifYap(s.dataset.sekme); });
+      menu.appendChild(item);
+    });
+    dahaFazlaDurumGuncelle();
+  }
+
   // ===================== Çıkış =====================
   function cikisYap() {
     token = null;
@@ -3560,6 +4003,136 @@
       _dogrulamaEkraniGoster();
     }
   })();
+
+  // ===================== Loglar =====================
+  let logOffset = 0;
+  const LOG_LIMIT = 50;
+
+  async function loglarYukle(offset) {
+    if (offset === undefined) offset = 0;
+    logOffset = offset;
+    const listEl = document.getElementById('logListesi');
+    const toplamiEl = document.getElementById('logToplamiYazi');
+    const sayfalamaEl = document.getElementById('logSayfalama');
+    if (!listEl) return;
+    listEl.innerHTML = '<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;"><i class="fas fa-spinner fa-spin"></i> Yükleniyor...</div>';
+
+    const params = new URLSearchParams();
+    params.set('limit', LOG_LIMIT);
+    params.set('offset', offset);
+
+    const arama = document.getElementById('logArama').value.trim();
+    const aksiyon = document.getElementById('logAksiyon').value;
+    const tarihBaslangic = document.getElementById('logTarihBaslangic').value;
+    const tarihBitis = document.getElementById('logTarihBitis').value;
+
+    if (arama) params.set('arama', arama);
+    if (aksiyon) params.set('aksiyon', aksiyon);
+    if (tarihBaslangic) params.set('tarih_baslangic', tarihBaslangic);
+    if (tarihBitis) params.set('tarih_bitis', tarihBitis);
+
+    if (kullanici.rol === 'superadmin') {
+      const kurumSec = document.getElementById('loglarKurumSec');
+      if (kurumSec && kurumSec.value) params.set('kurum_id', kurumSec.value);
+    }
+
+    try {
+      const res = await fetch('/api/loglar?' + params.toString(), {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const veri = await res.json();
+
+      toplamiEl.textContent = 'Toplam ' + veri.toplam + ' kayıt';
+
+      if (!veri.loglar || !veri.loglar.length) {
+        listEl.innerHTML = '<div style="text-align:center;color:var(--text3);padding:30px;font-size:13px;"><i class="fas fa-inbox" style="font-size:28px;display:block;margin-bottom:10px;opacity:0.4;"></i>Kayıt bulunamadı.</div>';
+        sayfalamaEl.innerHTML = '';
+        return;
+      }
+
+      let html = '<div style="overflow-x:auto;"><table><thead><tr>';
+      html += '<th>Tarih / Saat</th><th>Kullanıcı</th><th>Rol</th><th>Tahta</th><th>İşlem</th>';
+      html += '</tr></thead><tbody>';
+
+      for (const log of veri.loglar) {
+        const dt = new Date(log.created_at);
+        const tarih = dt.toLocaleDateString('tr-TR') + ' ' + dt.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        html += '<tr>';
+        html += '<td style="white-space:nowrap;font-size:12px;">' + tarih + '</td>';
+        html += '<td><span style="font-weight:600;">' + escLog(log.ad_soyad) + '</span><br><span style="font-size:11px;color:var(--text3);">' + escLog(log.kullanici_adi) + '</span></td>';
+        html += '<td>' + logRolBadge(log.rol) + '</td>';
+        html += '<td style="font-size:13px;">' + escLog(log.tahta_adi || '—') + '</td>';
+        html += '<td>' + logAksiyonBadge(log.aksiyon) + '</td>';
+        html += '</tr>';
+      }
+      html += '</tbody></table></div>';
+      listEl.innerHTML = html;
+
+      // Sayfalama
+      const toplamSayfa = Math.ceil(veri.toplam / LOG_LIMIT);
+      const mevcutSayfa = Math.floor(offset / LOG_LIMIT) + 1;
+      let sayfalama = '';
+      if (mevcutSayfa > 1) {
+        sayfalama += '<button onclick="loglarYukle(' + (offset - LOG_LIMIT) + ')" style="padding:8px 16px;background:var(--surface2);color:var(--text);border:none;border-radius:8px;cursor:pointer;font-size:13px;"><i class="fas fa-chevron-left"></i> Önceki</button>';
+      }
+      if (toplamSayfa > 1) {
+        sayfalama += '<span style="padding:8px 14px;font-size:13px;color:var(--text2);">' + mevcutSayfa + ' / ' + toplamSayfa + '</span>';
+      }
+      if (mevcutSayfa < toplamSayfa) {
+        sayfalama += '<button onclick="loglarYukle(' + (offset + LOG_LIMIT) + ')" style="padding:8px 16px;background:var(--surface2);color:var(--text);border:none;border-radius:8px;cursor:pointer;font-size:13px;">Sonraki <i class="fas fa-chevron-right"></i></button>';
+      }
+      sayfalamaEl.innerHTML = sayfalama;
+
+    } catch (e) {
+      listEl.innerHTML = '<div style="text-align:center;color:var(--danger);padding:20px;font-size:13px;"><i class="fas fa-exclamation-triangle"></i> Yüklenirken hata oluştu.</div>';
+    }
+  }
+
+  function logFiltreSifirla() {
+    document.getElementById('logArama').value = '';
+    document.getElementById('logAksiyon').value = '';
+    document.getElementById('logTarihBaslangic').value = '';
+    document.getElementById('logTarihBitis').value = '';
+    loglarYukle(0);
+  }
+
+  function logAksiyonBadge(aksiyon) {
+    const renkler = {
+      kilitle: '#ef4444',
+      kilidi_ac: '#22c55e',
+      ses_kapat: '#f59e0b',
+      ses_ac: '#3b82f6',
+      tahta_kapat: '#8b5cf6',
+      tumu_kilitle: '#dc2626',
+      tumu_ac: '#16a34a',
+      tumu_kapat: '#7c3aed',
+    };
+    const metinler = {
+      kilitle: '🔒 Kilitleme',
+      kilidi_ac: '🔓 Kilit Açma',
+      ses_kapat: '🔇 Ses Kapatma',
+      ses_ac: '🔊 Ses Açma',
+      tahta_kapat: '⏻ Tahta Kapatma',
+      tumu_kilitle: '🔒 Tümünü Kilitle',
+      tumu_ac: '🔓 Tümünü Aç',
+      tumu_kapat: '⏻ Tümünü Kapat',
+    };
+    const renk = renkler[aksiyon] || '#64748b';
+    const metin = metinler[aksiyon] || aksiyon;
+    return '<span style="background:' + renk + '22;color:' + renk + ';padding:3px 9px;border-radius:6px;font-size:12px;font-weight:600;white-space:nowrap;">' + metin + '</span>';
+  }
+
+  function logRolBadge(rol) {
+    if (rol === 'superadmin') return '<span style="color:#f59e0b;font-size:12px;font-weight:600;">Süper Yönetici</span>';
+    if (rol === 'yonetici') return '<span style="color:#3b82f6;font-size:12px;font-weight:600;">Yönetici</span>';
+    return '<span style="color:#64748b;font-size:12px;">Öğretmen</span>';
+  }
+
+  function escLog(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
 </script>
 
 </body>
