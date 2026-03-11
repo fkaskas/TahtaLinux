@@ -1058,6 +1058,30 @@ app.get("/kurum", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "kurum.html"));
 });
 
+// Kurum adı API (kurum kodu ile sorgulama — auth gerektirmez)
+app.get("/api/kurum-adi", async (req, res) => {
+  const { kod, tahta_id } = req.query;
+  if (!kod && !tahta_id) return res.json({ kurum_adi: "" });
+  try {
+    // Önce kurum_kodu ile ara
+    if (kod) {
+      const [rows] = await db.execute("SELECT kurum_adi FROM kurumlar WHERE kurum_kodu = ?", [kod]);
+      if (rows.length > 0) return res.json({ kurum_adi: rows[0].kurum_adi });
+    }
+    // Fallback: tahta_id üzerinden kurum adını bul
+    if (tahta_id) {
+      const [rows2] = await db.execute(
+        "SELECT k.kurum_adi FROM kurumlar k INNER JOIN tahtalar t ON t.kurum_id = k.id WHERE t.id = ? LIMIT 1",
+        [tahta_id]
+      );
+      if (rows2.length > 0) return res.json({ kurum_adi: rows2[0].kurum_adi });
+    }
+    res.json({ kurum_adi: "" });
+  } catch (e) {
+    res.json({ kurum_adi: "" });
+  }
+});
+
 // ===================== Socket.IO =====================
 // Bağlı tahtaları takip eden obje: { socketId: { tahtaId, kurumId, kurumKodu } }
 const bagliTahtalar = {};
@@ -1134,7 +1158,7 @@ io.on("connection", (socket) => {
           [veri.tahtaAdi || tahta.tahta_adi, ipAdresi, gercekDurum, gercekSes, tahtaId]
         );
         // İlk bağlantıda tahtanın kendi durumunu geri gönder
-        socket.emit("durum_bilgisi", { durum: gercekDurum, ses: gercekSes, kurum_adi: tahta.kurum_adi });
+        socket.emit("durum_bilgisi", { durum: gercekDurum, ses: gercekSes, kurum_adi: tahta.kurum_adi, kurum_kodu: tahta.kurum_kodu });
       } else {
         // Sonraki bağlantılar: sunucu durumu baz alınır (tahta_adi, durum/ses ve anahtar güncellenmez)
         await db.execute(
@@ -1142,7 +1166,7 @@ io.on("connection", (socket) => {
           [ipAdresi, tahtaId]
         );
         // Sunucudaki mevcut durumu ve adı tahtaya gönder (tahta buna göre senkronize olacak)
-        socket.emit("durum_bilgisi", { durum: tahta.durum, ses: tahta.ses, tahta_adi: tahta.tahta_adi, kurum_adi: tahta.kurum_adi });
+        socket.emit("durum_bilgisi", { durum: tahta.durum, ses: tahta.ses, tahta_adi: tahta.tahta_adi, kurum_adi: tahta.kurum_adi, kurum_kodu: tahta.kurum_kodu });
       }
 
       bagliTahtalar[socket.id] = {

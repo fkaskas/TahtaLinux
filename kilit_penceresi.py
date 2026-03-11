@@ -37,7 +37,7 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QProgressBar, QStackedWidget, QToolButton,
                              QScrollArea)
 from PyQt5.QtCore import Qt, QTimer, QEvent, QUrl, QTime, QDate, QLocale, QSize, QSettings, pyqtSignal, QFileSystemWatcher
-from PyQt5.QtGui import QFont, QCursor, QPixmap, QPainter, QColor, QBrush, QPainterPath, QIcon, QRegion, QPalette, QFontDatabase
+from PyQt5.QtGui import QFont, QCursor, QPixmap, QPainter, QColor, QBrush, QPainterPath, QIcon, QRegion, QPalette, QFontDatabase, QPen
 import qtawesome as qta
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings, QWebEngineProfile
 import vlc
@@ -89,6 +89,49 @@ class YumusakIlerleme(QWidget):
             on = QPainterPath()
             on.addRoundedRect(0, 0, dolu_w, h, r, r)
             p.fillPath(on, QBrush(self._renk))
+
+        p.end()
+
+
+class PastaGeriSayim(QWidget):
+    """Yuvarlak pasta şeklinde azalan geri sayım widget'ı"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._oran = 1.0  # 1.0 = tam, 0.0 = bitti
+
+    def oran_ayarla(self, oran):
+        self._oran = max(0.0, min(1.0, oran))
+        self.update()
+
+    def _renk_hesapla(self):
+        if self._oran > 0.5:
+            return QColor("#28a745")  # yeşil
+        elif self._oran > 0.2:
+            return QColor("#e6930a")  # turuncu
+        else:
+            return QColor("#e74c3c")  # kırmızı
+
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        s = min(self.width(), self.height())
+        x = (self.width() - s) / 2
+        y = (self.height() - s) / 2
+        m = 1  # kenar boşluğu
+        r = s - 2 * m
+
+        # Arka plan daire (gri)
+        p.setPen(Qt.NoPen)
+        p.setBrush(QBrush(QColor("#ddd")))
+        p.drawEllipse(int(x + m), int(y + m), int(r), int(r))
+
+        # Dolu pasta dilimi
+        renk = self._renk_hesapla()
+        p.setBrush(QBrush(renk))
+        aci = int(self._oran * 360 * 16)  # Qt 1/16 derece kullanır
+        if aci > 0:
+            p.drawPie(int(x + m), int(y + m), int(r), int(r), 90 * 16, -aci)
 
         p.end()
 
@@ -434,6 +477,7 @@ class Kilit(QMainWindow):
         self._online.ders_saatleri_sinyali.connect(self._ders_saatleri_guncelle)
         self._online.tahta_adi_sinyali.connect(self._tahta_adi_guncelle)
         self._online.kurum_adi_sinyali.connect(self._kurum_adi_guncelle)
+        self._online.kurum_kodu_sinyali.connect(self._kurum_kodu_guncelle)
         self._online.sinavlar_sinyali.connect(self._sinavlari_guncelle)
         self._online.baslat()
 
@@ -726,34 +770,39 @@ class Kilit(QMainWindow):
         buton_satiri.addWidget(kapat_butonu)
 
         kenar_yerlesim.addLayout(buton_satiri)
-        kenar_yerlesim.addSpacing(20)
+        kenar_yerlesim.addSpacing(10)
 
-        # İmza
-        imza_etiketi = QLabel("@2026 KuluMtal")
-        imza_etiketi.setAlignment(Qt.AlignCenter)
-        imza_etiketi.setStyleSheet("color: #b0b0b0; border: none; font-size: 10px;")
-
-        # Sidebar ana layout: içerik + alt bar
+        # Sidebar ana layout: üst bar + içerik + alt bar
         sidebar_ana_yerlesim = QVBoxLayout()
         sidebar_ana_yerlesim.setContentsMargins(0, 0, 0, 0)
         sidebar_ana_yerlesim.setSpacing(0)
+
         sidebar_ana_yerlesim.addLayout(kenar_yerlesim)
 
-        # İmza - progress bar'ın hemen üstünde
-        imza_etiketi.setContentsMargins(0, 0, 0, 0)
-        sidebar_ana_yerlesim.addWidget(imza_etiketi)
-        sidebar_ana_yerlesim.addSpacing(2)
-
-        # Kapanma geri sayım barı (en altta, kenarlara sıfır mesafe)
+        # ── Alt Bar (kurum.html tarzı — pasta geri sayım) ──
         self._kapanma_suresi = 15 * 60  # 15 dakika
         self._kapanma_kalan = self._kapanma_suresi
-        self._kapanma_bar = YumusakIlerleme()
-        self._kapanma_bar.setFixedHeight(6)
-        self._kapanma_bar._renk = QColor("#e74c3c")
-        self._kapanma_bar._arka_renk = QColor("#ddd")
-        self._kapanma_bar._yuvarlak = 0.0
-        self._kapanma_bar.oran_ayarla(1.0)
-        sidebar_ana_yerlesim.addWidget(self._kapanma_bar)
+
+        alt_bar = QFrame()
+        alt_bar.setObjectName("altBar")
+        alt_bar.setFixedHeight(21)
+        alt_bar.setStyleSheet("""
+            QFrame#altBar {
+                background-color: #ffffff;
+                border-top: 1px solid #d0d5dc;
+            }
+        """)
+        alt_bar_yerlesim = QHBoxLayout()
+        alt_bar_yerlesim.setContentsMargins(4, 1, 4, 1)
+        alt_bar_yerlesim.setSpacing(0)
+
+        self._pasta_sayac = PastaGeriSayim()
+        self._pasta_sayac.setFixedSize(17, 17)
+        alt_bar_yerlesim.addWidget(self._pasta_sayac)
+        alt_bar_yerlesim.addStretch(1)
+
+        alt_bar.setLayout(alt_bar_yerlesim)
+        sidebar_ana_yerlesim.addWidget(alt_bar)
 
         kenar_cubugu.setLayout(sidebar_ana_yerlesim)
         ana_yerlesim.addWidget(kenar_cubugu)
@@ -790,6 +839,7 @@ class Kilit(QMainWindow):
         # URL'yi veritabanından oku, yoksa varsayılanı kullan
         db_url = self._vt.url_al(self._kurumkodu)
         webview_url = db_url if db_url else "https://kulumtal.com/php/"
+        webview_url = self._url_kurum_kodu_ekle(webview_url)
         self.web_gorunum.setUrl(QUrl(webview_url))
         self._web_yerlesim.addWidget(self.web_gorunum)
 
@@ -804,7 +854,8 @@ class Kilit(QMainWindow):
     def _kapanma_tikla(self):
         """Kapanma geri sayımını güncelle"""
         self._kapanma_kalan -= 1
-        self._kapanma_bar.oran_ayarla(max(self._kapanma_kalan, 0) / self._kapanma_suresi)
+        oran = max(self._kapanma_kalan, 0) / self._kapanma_suresi
+        self._pasta_sayac.oran_ayarla(oran)
         # Her 30 saniyede bir veya son 60 saniyede her saniye sunucuya bildir
         if self._kapanma_kalan % 30 == 0 or self._kapanma_kalan <= 60:
             try:
@@ -1013,6 +1064,16 @@ class Kilit(QMainWindow):
                     url=kayit.get("url", "")
                 )
 
+    def _kurum_kodu_guncelle(self, sunucu_kurum_kodu):
+        """Sunucudan gelen gerçek kurum kodunu yerelde güncelle"""
+        if not sunucu_kurum_kodu or sunucu_kurum_kodu == self._kurumkodu:
+            return
+        kayit = self._vt.tahta_kaydi_al(self._kurumkodu)
+        if kayit:
+            # Sadece kurumkodu alanını güncelle (id ve diğer alanlar aynı kalır)
+            self._vt.kurumkodu_guncelle(self._kurumkodu, sunucu_kurum_kodu)
+        self._kurumkodu = sunucu_kurum_kodu
+
     def _sinavlari_guncelle(self, sinavlar):
         """Sunucudan gelen sınav listesini kilit ekranında göster"""
         # Otomatik kaydırma timer'ını durdur
@@ -1118,12 +1179,14 @@ class Kilit(QMainWindow):
             tema_renk = "#27ae60"
             kart_bg = "qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #eafaf1,stop:1 #f5fdf9)"
             ders_renk = "#1a7a42"
-            etiket_metin = ""
+            gun_adlari = ["PAZARTESİ", "SALI", "ÇARŞAMBA", "PERŞEMBE", "CUMA", "CUMARTESİ", "PAZAR"]
+            etiket_metin = gun_adlari[sinav_tarih.weekday()]
         else:
             tema_renk = "#bdc3c7"
             kart_bg = "#f8f9fa"
             ders_renk = "#4a4a4a"
-            etiket_metin = ""
+            gun_adlari = ["PAZARTESİ", "SALI", "ÇARŞAMBA", "PERŞEMBE", "CUMA", "CUMARTESİ", "PAZAR"]
+            etiket_metin = gun_adlari[sinav_tarih.weekday()] if fark != 99 else ""
 
         # Ders saati metni
         if baslangic == bitis:
@@ -1606,10 +1669,20 @@ class Kilit(QMainWindow):
         if not logo_pixmap.isNull():
             self._logo_etiketi.setPixmap(logo_pixmap.scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
+    def _url_kurum_kodu_ekle(self, url):
+        """URL'ye kurum kodu ve tahta id parametresini ekle"""
+        if '/kurum' in url and 'kod=' not in url:
+            ayrac = '&' if '?' in url else '?'
+            url = f"{url}{ayrac}kod={self._kurumkodu}"
+            if hasattr(self, '_tahta_id') and self._tahta_id:
+                url = f"{url}&tahta_id={self._tahta_id}"
+        return url
+
     def _webview_url_yenile(self):
         """Ayarlar kaydedildikten sonra web görünüm URL'sini güncelle"""
         db_url = self._vt.url_al(self._kurumkodu)
         yeni_url = db_url if db_url else "https://kulumtal.com/php/"
+        yeni_url = self._url_kurum_kodu_ekle(yeni_url)
         mevcut_url = self.web_gorunum.url().toString()
         if mevcut_url != yeni_url:
             self.web_gorunum.setUrl(QUrl(yeni_url))
@@ -2126,7 +2199,7 @@ class Kilit(QMainWindow):
         QTimer.singleShot(500, self._girisleri_yakala)
         self._odak_zamanlayici.start(1000)
         self._kapanma_kalan = self._kapanma_suresi
-        self._kapanma_bar.oran_ayarla(1.0)
+        self._pasta_sayac.oran_ayarla(1.0)
         self._kapanma_zamanlayici.start(1000)
         try:
             self._online.kapanma_bildir(self._kapanma_suresi)

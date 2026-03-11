@@ -219,6 +219,33 @@ class VeritabaniYoneticisi:
             return kayit.get("url", "")
         return ""
 
+    def tahta_sil(self, kurumkodu):
+        """Kurum koduna göre tahta kaydını sil"""
+        with self._kilit:
+            conn = self._baglan()
+            try:
+                conn.execute("DELETE FROM tahta WHERE kurumkodu = ?", (kurumkodu,))
+                conn.commit()
+            except sqlite3.OperationalError:
+                pass
+            finally:
+                conn.close()
+
+    def kurumkodu_guncelle(self, eski_kurumkodu, yeni_kurumkodu):
+        """Mevcut kaydın kurumkodu alanını güncelle"""
+        with self._kilit:
+            conn = self._baglan()
+            try:
+                conn.execute(
+                    "UPDATE tahta SET kurumkodu = ? WHERE kurumkodu = ?",
+                    (yeni_kurumkodu, eski_kurumkodu)
+                )
+                conn.commit()
+            except sqlite3.OperationalError:
+                pass
+            finally:
+                conn.close()
+
     def ilk_kaydi_al(self):
         """Tablodaki ilk kaydı getir (kurulum kontrolü için)"""
         with self._kilit:

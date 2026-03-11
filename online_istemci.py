@@ -25,6 +25,7 @@ class OnlineIstemci(QObject):
     ders_saatleri_sinyali = pyqtSignal(dict)  # {"aktif": 0/1, "saatler": [...]}
     tahta_adi_sinyali = pyqtSignal(str)  # Sunucudan gelen yeni tahta adı
     kurum_adi_sinyali = pyqtSignal(str)  # Sunucudan gelen kurum adı
+    kurum_kodu_sinyali = pyqtSignal(str)  # Sunucudan gelen gerçek kurum kodu
     sinavlar_sinyali = pyqtSignal(list)  # Sınav listesi
 
     def __init__(self, kurum_kodu, tahta_adi, tahta_id="", anahtar="", parent=None):
@@ -116,6 +117,9 @@ class OnlineIstemci(QObject):
             kurum_adi = veri.get("kurum_adi", "")
             if kurum_adi:
                 self.kurum_adi_sinyali.emit(kurum_adi)
+            kurum_kodu = veri.get("kurum_kodu", "")
+            if kurum_kodu:
+                self.kurum_kodu_sinyali.emit(kurum_kodu)
 
         @sio.on("ders_saatleri")
         def ders_saatleri_geldi(veri):

@@ -15,7 +15,7 @@ class KurulumPenceresi(QDialog):
     def __init__(self, parent=None, mevcut_kurumkodu="", mevcut_adi=""):
         super().__init__(parent)
         self.setWindowTitle("Tahta Kilit — İlk Kurulum")
-        self.setFixedSize(420, 540)
+        self.setFixedSize(560, 540)
         self.setWindowFlags(Qt.Dialog | Qt.WindowStaysOnTopHint)
 
         self._kurumkodu = ""

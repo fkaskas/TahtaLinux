@@ -10,21 +10,21 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   <style>
     :root {
-      --bg: #0f172a;
-      --surface: #1e293b;
-      --surface2: #334155;
-      --border: #334155;
-      --accent: #3b82f6;
-      --accent2: #6366f1;
-      --danger: #ef4444;
-      --success: #22c55e;
-      --warn: #f59e0b;
-      --orange: #f97316;
-      --text: #f1f5f9;
-      --text2: #94a3b8;
-      --text3: #64748b;
+      --bg: #f5f5f5;
+      --surface: #ffffff;
+      --surface2: #eef1f5;
+      --border: #d0d5dc;
+      --accent: #2c6fce;
+      --accent2: #5558d4;
+      --danger: #dc3545;
+      --success: #28a745;
+      --warn: #e6930a;
+      --orange: #e06b10;
+      --text: #1a2533;
+      --text2: #34495e;
+      --text3: #95a5a6;
       --radius: 12px;
-      --gold: #fbbf24;
+      --gold: #d4a017;
     }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
@@ -46,29 +46,32 @@
 
     /* ===== HEADER ===== */
     .header {
-      background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 50%, #7f1d1d 100%);
-      padding: 0.6vh 2vw;
+      background: linear-gradient(to left, rgba(234,238,245,0.85) 0%, transparent 100%);
+      height: 38px;
+      padding: 0 1.5vw;
       display: flex;
       align-items: center;
-      justify-content: center;
-      border-bottom: 3px solid #e30a17;
+      justify-content: flex-end;
+      border-bottom: 1px solid transparent;
+      border-image: linear-gradient(to left, var(--border) 0%, transparent 100%) 1;
       flex-shrink: 0;
     }
     .header h1 {
-      font-size: clamp(12px, 1.8vw, 22px);
-      font-weight: 800;
-      color: #fff;
-      text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+      font-size: clamp(14px, 1.9vw, 24px);
+      font-weight: 700;
+      color: var(--text);
       white-space: nowrap;
-      text-align: center;
-      width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      letter-spacing: 0.3px;
+      text-align: right;
     }
 
     /* ===== İÇERİK ANA ALAN ===== */
     .ana-icerik {
       flex: 1;
       display: grid;
-      grid-template-columns: 1fr 0.4fr;
+      grid-template-columns: 1fr 0.25fr;
       grid-template-rows: 1fr auto;
       gap: 1.2vh 1.2vw;
       padding: 1.2vh 1.2vw;
@@ -84,6 +87,7 @@
       border: 1px solid var(--border);
       background: var(--surface);
       min-height: 0;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
     }
     .slider-track {
       display: flex;
@@ -95,8 +99,8 @@
       height: 100%;
       position: relative;
       display: flex;
-      align-items: center;
-      justify-content: center;
+      align-items: flex-end;
+      justify-content: flex-start;
       overflow: hidden;
     }
     .slide-bg {
@@ -108,8 +112,10 @@
     .slide-content {
       position: relative;
       z-index: 2;
-      text-align: center;
-      padding: 2vh 2vw;
+      text-align: left;
+      padding: 2vh 2.5vw;
+      width: 100%;
+      background: linear-gradient(0deg, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 60%, transparent 100%);
     }
     .slide-content .slide-badge {
       display: inline-block;
@@ -119,22 +125,21 @@
       font-weight: 700;
       margin-bottom: 1vh;
     }
-    .badge-duyuru { background: rgba(59,130,246,0.25); color: var(--accent); }
-    .badge-basari { background: rgba(251,191,36,0.25); color: var(--gold); }
-    .badge-etkinlik { background: rgba(249,115,22,0.25); color: var(--orange); }
-    .badge-yeni { background: rgba(34,197,94,0.25); color: var(--success); }
+    .badge-duyuru { background: rgba(44,111,206,0.15); color: #fff; }
+    .badge-basari { background: rgba(212,160,23,0.15); color: #fff; }
+    .badge-etkinlik { background: rgba(224,107,16,0.15); color: #fff; }
+    .badge-yeni { background: rgba(40,167,69,0.15); color: #fff; }
     .slide-content h2 {
       font-size: clamp(14px, 2.2vw, 26px);
       font-weight: 800;
       color: #fff;
       margin-bottom: 0.8vh;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5);
     }
     .slide-content p {
       font-size: clamp(10px, 1.2vw, 15px);
-      color: rgba(255,255,255,0.7);
-      max-width: 80%;
-      margin: 0 auto;
+      color: rgba(255,255,255,0.85);
+      max-width: 70%;
       line-height: 1.5;
     }
     .slider-btn {
@@ -144,8 +149,8 @@
       width: clamp(28px, 3vw, 40px);
       height: clamp(28px, 3vw, 40px);
       border-radius: 50%;
-      background: rgba(15,23,42,0.7);
-      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(26,37,51,0.6);
+      border: 1px solid rgba(255,255,255,0.2);
       color: #fff;
       font-size: clamp(12px, 1.5vw, 18px);
       cursor: pointer;
@@ -155,7 +160,7 @@
       z-index: 5;
       backdrop-filter: blur(4px);
     }
-    .slider-btn:hover { background: rgba(59,130,246,0.5); }
+    .slider-btn:hover { background: rgba(44,111,206,0.6); }
     .slider-btn.onceki { left: 0.8vw; }
     .slider-btn.sonraki { right: 0.8vw; }
     .slider-dots {
@@ -170,7 +175,7 @@
     .slider-dot {
       width: 7px; height: 7px;
       border-radius: 50%;
-      background: rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.4);
       cursor: pointer;
       transition: all 0.3s;
     }
@@ -189,108 +194,134 @@
       border-radius: var(--radius);
       overflow: hidden;
       min-height: 0;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
     }
     .ayin-baslik {
       display: flex;
       align-items: center;
-      gap: 0.6vw;
-      padding: 1vh 1.2vw;
-      background: var(--surface2);
+      gap: 0.5vw;
+      padding: 0.5vh 0.8vw;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
       flex-shrink: 0;
     }
-    .ayin-baslik span { font-size: clamp(14px, 1.5vw, 20px); }
+    .kart-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .kart-icon i { font-size: 11px; color: #fff; }
+    .kart-icon.ayin  { background: var(--gold); }
+    .kart-icon.ders  { background: var(--accent); }
+    .kart-icon.yemek { background: var(--orange); }
+    .kart-icon.hava  { background: #0e9aa7; }
+    .kart-icon.soz   { background: #7c5cbf; }
     .ayin-baslik h2 {
-      font-size: clamp(11px, 1.3vw, 16px);
+      font-size: clamp(12px, 1.3vw, 17px);
       font-weight: 700;
       color: var(--text);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
     .ayin-ana {
       flex: 1;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 1.5vw;
-      padding: 1.5vh 1.5vw;
+      justify-content: center;
+      gap: 1vh;
+      padding: 1.5vh 1vw;
       min-height: 0;
+      background: linear-gradient(180deg, #f8f9fb 0%, #ffffff 100%);
     }
     .ayin-foto-alan {
       position: relative;
       flex-shrink: 0;
     }
     .ayin-foto {
-      width: clamp(80px, 12vh, 140px);
-      height: clamp(80px, 12vh, 140px);
+      width: clamp(70px, 10vh, 120px);
+      height: clamp(70px, 10vh, 120px);
       border-radius: 50%;
       object-fit: cover;
-      border: 3px solid rgba(251,191,36,0.3);
-      box-shadow: 0 0 20px rgba(251,191,36,0.12);
+      border: 3px solid transparent;
+      background: linear-gradient(white, white) padding-box,
+                  linear-gradient(135deg, #d4a017, #e6930a, #d4a017) border-box;
+      box-shadow: 0 4px 20px rgba(212,160,23,0.25);
     }
     .ayin-rozet {
       position: absolute;
-      bottom: 2px; right: 2px;
-      width: clamp(24px, 3.5vh, 36px);
-      height: clamp(24px, 3.5vh, 36px);
+      bottom: 0; right: 0;
+      width: clamp(22px, 3vh, 32px);
+      height: clamp(22px, 3vh, 32px);
       border-radius: 50%;
-      background: linear-gradient(135deg, #f59e0b, #d97706);
+      background: linear-gradient(135deg, #d4a017, #b8860b);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: clamp(12px, 1.6vh, 16px);
-      box-shadow: 0 3px 10px rgba(245,158,11,0.4);
+      font-size: clamp(11px, 1.4vh, 15px);
+      box-shadow: 0 2px 8px rgba(212,160,23,0.4);
+      border: 2px solid #fff;
     }
     .ayin-bilgi {
-      flex: 1;
+      text-align: center;
       min-width: 0;
       overflow: hidden;
     }
     .ayin-bilgi h3 {
-      font-size: clamp(14px, 1.8vw, 22px);
+      font-size: clamp(14px, 1.6vw, 21px);
       font-weight: 800;
       color: var(--text);
-      margin-bottom: 0.3vh;
+      margin-bottom: 0.2vh;
     }
     .ayin-bilgi .ayin-sinif {
-      font-size: clamp(10px, 1.1vw, 14px);
+      font-size: clamp(11px, 1.1vw, 15px);
       color: var(--accent);
       font-weight: 600;
-      margin-bottom: 0.3vh;
+      margin-bottom: 0.2vh;
     }
     .ayin-bilgi .ayin-odul {
-      font-size: clamp(9px, 1vw, 13px);
+      font-size: clamp(10px, 1.05vw, 14px);
       color: var(--gold);
       font-weight: 600;
-      margin-bottom: 0.8vh;
+      margin-bottom: 0.6vh;
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 4px;
     }
     .ayin-bilgi .ayin-aciklama {
-      font-size: clamp(9px, 1vw, 13px);
+      font-size: clamp(10px, 1.05vw, 14px);
       color: var(--text2);
-      line-height: 1.5;
-      margin-bottom: 1.2vh;
+      line-height: 1.4;
+      margin-bottom: 0.8vh;
       display: -webkit-box;
-      -webkit-line-clamp: 3;
+      -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
     .ayin-istatistik {
       display: flex;
-      gap: 0.8vw;
+      justify-content: center;
+      gap: 0.6vw;
     }
     .ayin-stat {
       text-align: center;
       background: var(--bg);
-      border-radius: 10px;
-      padding: 0.6vh 0.8vw;
-      min-width: clamp(45px, 4vw, 65px);
+      border-radius: 8px;
+      padding: 0.5vh 0.6vw;
+      min-width: clamp(40px, 3.5vw, 55px);
     }
     .ayin-stat .stat-deger {
-      font-size: clamp(12px, 1.4vw, 18px);
+      font-size: clamp(13px, 1.4vw, 19px);
       font-weight: 800;
       color: var(--accent);
     }
     .ayin-stat .stat-etiket {
-      font-size: clamp(7px, 0.7vw, 10px);
+      font-size: clamp(8px, 0.8vw, 11px);
       color: var(--text3);
       font-weight: 600;
       text-transform: uppercase;
@@ -298,146 +329,221 @@
 
     /* Diğer öğrenciler */
     .diger-ogrenciler {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      display: flex;
+      flex-direction: column;
       border-top: 1px solid var(--border);
       flex-shrink: 0;
     }
     .diger-ogrenci {
       display: flex;
       align-items: center;
-      gap: 0.6vw;
-      padding: 0.8vh 1vw;
-      border-right: 1px solid var(--border);
+      gap: 0.5vw;
+      padding: 0.5vh 0.8vw;
+      border-bottom: 1px solid rgba(208,213,220,0.5);
     }
-    .diger-ogrenci:last-child { border-right: none; }
+    .diger-ogrenci:last-child { border-bottom: none; }
+    .diger-sira {
+      font-size: clamp(11px, 1.1vw, 14px);
+      font-weight: 800;
+      color: var(--text3);
+      min-width: 16px;
+      text-align: center;
+    }
     .diger-avatar {
-      width: clamp(28px, 3.5vh, 40px);
-      height: clamp(28px, 3.5vh, 40px);
+      width: clamp(22px, 2.8vh, 32px);
+      height: clamp(22px, 2.8vh, 32px);
       border-radius: 50%;
-      background: var(--surface2);
+      background: #eef1f5;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: clamp(12px, 1.4vh, 16px);
+      font-size: clamp(10px, 1.2vh, 14px);
       flex-shrink: 0;
     }
+    .diger-bilgi {
+      flex: 1;
+      min-width: 0;
+    }
     .diger-bilgi h4 {
-      font-size: clamp(9px, 1vw, 13px);
+      font-size: clamp(10px, 1.05vw, 14px);
       font-weight: 700;
       color: var(--text);
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .diger-bilgi .diger-sinif {
-      font-size: clamp(8px, 0.8vw, 10px);
-      color: var(--text3);
-    }
     .diger-bilgi .diger-basari {
-      font-size: clamp(8px, 0.8vw, 10px);
+      font-size: clamp(9px, 0.9vw, 12px);
       color: var(--accent);
       font-weight: 600;
     }
 
-    /* ===== ALT: DUYURULAR ===== */
-    .duyuru-alani {
+    /* ===== ALT: BİLGİ KARTLARI ===== */
+    .bilgi-alani {
       grid-column: 1 / -1;
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr 0.5fr 0.8fr;
+      gap: 0.8vw;
       min-height: 0;
       overflow: hidden;
     }
-    .duyuru-baslik-bar {
-      display: flex;
-      align-items: center;
-      gap: 0.6vw;
-      margin-bottom: 0.8vh;
-      flex-shrink: 0;
-    }
-    .duyuru-baslik-bar span { font-size: clamp(14px, 1.5vw, 20px); }
-    .duyuru-baslik-bar h2 {
-      font-size: clamp(11px, 1.2vw, 15px);
-      font-weight: 700;
-      color: var(--text);
-    }
-    .duyuru-baslik-bar .cizgi {
-      flex: 1;
-      height: 1px;
-      background: var(--border);
-    }
-    .duyuru-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 0.8vw;
-      flex: 1;
-      min-height: 0;
-    }
-    .duyuru-kart {
+    .bilgi-kart {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 1.2vh 1vw;
       display: flex;
       flex-direction: column;
       overflow: hidden;
       min-height: 0;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
     }
-    .duyuru-kart .duyuru-ust {
+    .bilgi-kart-baslik {
       display: flex;
       align-items: center;
       gap: 0.5vw;
-      margin-bottom: 0.6vh;
+      padding: 0.5vh 0.8vw;
       flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
     }
-    .duyuru-kart .duyuru-tip {
-      font-size: clamp(7px, 0.7vw, 10px);
-      font-weight: 700;
-      padding: 2px 8px;
-      border-radius: 20px;
-      text-transform: uppercase;
-      letter-spacing: 0.3px;
-    }
-    .tip-yarisma { background: rgba(249,115,22,0.15); color: var(--orange); }
-    .tip-saglik { background: rgba(34,197,94,0.15); color: var(--success); }
-    .tip-bilgi { background: rgba(59,130,246,0.15); color: var(--accent); }
-    .tip-etkinlik { background: rgba(251,191,36,0.15); color: var(--gold); }
-    .duyuru-kart .duyuru-tarih {
-      font-size: clamp(7px, 0.7vw, 10px);
-      color: var(--text3);
-      display: flex;
-      align-items: center;
-      gap: 3px;
-      margin-left: auto;
-    }
-    .duyuru-kart h3 {
+    .bilgi-kart-baslik h3 {
       font-size: clamp(10px, 1.1vw, 14px);
       font-weight: 700;
       color: var(--text);
-      margin-bottom: 0.4vh;
-      line-height: 1.3;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    .duyuru-kart p {
-      font-size: clamp(8px, 0.85vw, 12px);
-      color: var(--text2);
-      line-height: 1.5;
+    .bilgi-kart-icerik {
       flex: 1;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
+      padding: 0.6vh 0.8vw;
       overflow: hidden;
+      min-height: 0;
+    }
+
+    /* Ders Programı */
+    .ders-satir {
+      display: flex;
+      align-items: center;
+      gap: 0.5vw;
+      padding: 0.3vh 0;
+      border-bottom: 1px solid rgba(208,213,220,0.4);
+    }
+    .ders-satir:last-child { border-bottom: none; }
+    .ders-saat {
+      font-size: clamp(9px, 0.9vw, 12px);
+      font-weight: 700;
+      color: var(--accent);
+      min-width: clamp(42px, 4vw, 55px);
+      flex-shrink: 0;
+    }
+    .ders-ad {
+      font-size: clamp(9px, 0.95vw, 13px);
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .ders-ogretmen {
+      font-size: clamp(8px, 0.8vw, 11px);
+      color: var(--text3);
+      white-space: nowrap;
+    }
+    .ders-aktif {
+      background: rgba(44,111,206,0.06);
+      border-radius: 6px;
+      padding: 0.3vh 0.4vw;
+    }
+
+    /* Yemek Menüsü */
+    .yemek-satir {
+      display: flex;
+      align-items: center;
+      gap: 0.4vw;
+      padding: 0.35vh 0;
+    }
+    .yemek-icon {
+      font-size: clamp(12px, 1.2vw, 16px);
+      flex-shrink: 0;
+    }
+    .yemek-ad {
+      font-size: clamp(9px, 0.95vw, 13px);
+      color: var(--text);
+      font-weight: 500;
+    }
+    .yemek-kalori {
+      font-size: clamp(8px, 0.75vw, 11px);
+      color: var(--text3);
+      margin-left: auto;
+    }
+
+    /* Hava Durumu */
+    .hava-icerik {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 0.3vh;
+    }
+    .hava-icon {
+      font-size: clamp(24px, 3vw, 40px);
+      line-height: 1;
+    }
+    .hava-sicaklik {
+      font-size: clamp(20px, 2.5vw, 32px);
+      font-weight: 800;
+      color: var(--text);
+    }
+    .hava-durum {
+      font-size: clamp(9px, 0.95vw, 13px);
+      color: var(--text2);
+      font-weight: 600;
+    }
+    .hava-detay {
+      display: flex;
+      gap: 0.6vw;
+      font-size: clamp(8px, 0.8vw, 11px);
+      color: var(--text3);
+    }
+    .hava-detay span { display: flex; align-items: center; gap: 2px; }
+
+    /* Günün Sözü */
+    .soz-icerik {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      height: 100%;
+      text-align: center;
+      padding: 0.5vh 0.5vw;
+    }
+    .soz-tirnak {
+      font-size: clamp(20px, 2.5vw, 36px);
+      color: var(--accent);
+      opacity: 0.3;
+      line-height: 1;
+    }
+    .soz-metin {
+      font-size: clamp(10px, 1.05vw, 15px);
+      color: var(--text);
+      font-weight: 600;
+      font-style: italic;
+      line-height: 1.5;
+      margin: 0.4vh 0;
+    }
+    .soz-yazar {
+      font-size: clamp(9px, 0.85vw, 12px);
+      color: var(--accent);
+      font-weight: 700;
     }
 
     /* ===== FOOTER BAR ===== */
     .footer-bar {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      padding: 0.4vh 1.5vw;
+      justify-content: flex-end;
+      height: 21px;
+      padding: 0 1.5vw;
       background: var(--surface);
       border-top: 1px solid var(--border);
       flex-shrink: 0;
@@ -462,7 +568,7 @@
 
   <!-- ===== HEADER ===== -->
   <div class="header">
-    <h1>KULU MESLEKİ VE TEKNİK ANADOLU LİSESİ</h1>
+    <h1 id="kurumAdi">KULU MESLEKİ VE TEKNİK ANADOLU LİSESİ</h1>
   </div>
 
   <!-- ===== ANA İÇERİK ===== -->
@@ -472,7 +578,7 @@
     <div class="slider-wrapper">
       <div class="slider-track" id="sliderTrack">
         <div class="slide">
-          <div class="slide-bg" style="background: linear-gradient(135deg, rgba(30,58,95,0.7), rgba(12,26,46,0.7)), url('https://picsum.photos/seed/etkinlik/1200/600') center/cover;"></div>
+          <div class="slide-bg" style="background: url('https://picsum.photos/seed/etkinlik/1200/600') center/cover;"></div>
           <div class="slide-content">
             <span class="slide-badge badge-duyuru">📢 DUYURU</span>
             <h2>Yıl Sonu Etkinliği Başladı</h2>
@@ -480,7 +586,7 @@
           </div>
         </div>
         <div class="slide">
-          <div class="slide-bg" style="background: linear-gradient(135deg, rgba(26,26,46,0.7), rgba(22,33,62,0.7)), url('https://picsum.photos/seed/tubitak/1200/600') center/cover;"></div>
+          <div class="slide-bg" style="background: url('https://picsum.photos/seed/tubitak/1200/600') center/cover;"></div>
           <div class="slide-content">
             <span class="slide-badge badge-basari">🏆 BAŞARI</span>
             <h2>TÜBİTAK Yarışmasında Bölge Birincisi</h2>
@@ -488,7 +594,7 @@
           </div>
         </div>
         <div class="slide">
-          <div class="slide-bg" style="background: linear-gradient(135deg, rgba(15,32,39,0.7), rgba(32,58,67,0.7)), url('https://picsum.photos/seed/proje/1200/600') center/cover;"></div>
+          <div class="slide-bg" style="background: url('https://picsum.photos/seed/proje/1200/600') center/cover;"></div>
           <div class="slide-content">
             <span class="slide-badge badge-etkinlik">🎯 PROJE</span>
             <h2>Proje Yarışması Duyurusu</h2>
@@ -496,7 +602,7 @@
           </div>
         </div>
         <div class="slide">
-          <div class="slide-bg" style="background: linear-gradient(135deg, rgba(26,26,46,0.7), rgba(45,27,78,0.7)), url('https://picsum.photos/seed/kutuphane/1200/600') center/cover;"></div>
+          <div class="slide-bg" style="background: url('https://picsum.photos/seed/kutuphane/1200/600') center/cover;"></div>
           <div class="slide-content">
             <span class="slide-badge badge-yeni">📚 YENİ</span>
             <h2>Kütüphane Yenilendi</h2>
@@ -512,7 +618,7 @@
     <!-- SAĞ: AYIN ÖĞRENCİSİ -->
     <div class="ayin-panel">
       <div class="ayin-baslik">
-        <span>⭐</span>
+        <div class="kart-icon ayin"><i class="fas fa-star"></i></div>
         <h2>Ayın Öğrencisi</h2>
       </div>
       <div class="ayin-ana">
@@ -543,81 +649,151 @@
       </div>
       <div class="diger-ogrenciler">
         <div class="diger-ogrenci">
+          <span class="diger-sira">2</span>
           <div class="diger-avatar">📖</div>
           <div class="diger-bilgi">
             <h4>Ayşe Kaya</h4>
-            <div class="diger-sinif">10-B</div>
             <div class="diger-basari">Türkçe Başarısı</div>
           </div>
         </div>
         <div class="diger-ogrenci">
+          <span class="diger-sira">3</span>
           <div class="diger-avatar">🔬</div>
           <div class="diger-bilgi">
             <h4>Mehmet Demir</h4>
-            <div class="diger-sinif">9-C</div>
             <div class="diger-basari">Bilim Başarısı</div>
           </div>
         </div>
         <div class="diger-ogrenci">
+          <span class="diger-sira">4</span>
           <div class="diger-avatar">🎨</div>
           <div class="diger-bilgi">
             <h4>Seda Şahin</h4>
-            <div class="diger-sinif">11-A</div>
             <div class="diger-basari">Sanat Başarısı</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ALT: DUYURULAR -->
-    <div class="duyuru-alani">
-      <div class="duyuru-baslik-bar">
-        <span>📢</span>
-        <h2>Duyurular & Etkinlikler</h2>
-        <div class="cizgi"></div>
+    <!-- ALT: BİLGİ KARTLARI -->
+    <div class="bilgi-alani">
+
+      <!-- 1. DERS PROGRAMI -->
+      <div class="bilgi-kart">
+        <div class="bilgi-kart-baslik">
+          <div class="kart-icon ders"><i class="fas fa-book-open"></i></div>
+          <h3>Bugünün Dersleri</h3>
+        </div>
+        <div class="bilgi-kart-icerik">
+          <div class="ders-satir">
+            <span class="ders-saat">08:30</span>
+            <span class="ders-ad">Matematik</span>
+            <span class="ders-ogretmen">A. Yılmaz</span>
+          </div>
+          <div class="ders-satir">
+            <span class="ders-saat">09:20</span>
+            <span class="ders-ad">Fizik</span>
+            <span class="ders-ogretmen">M. Demir</span>
+          </div>
+          <div class="ders-satir ders-aktif">
+            <span class="ders-saat">10:10</span>
+            <span class="ders-ad">Türk Dili ve Edebiyatı</span>
+            <span class="ders-ogretmen">S. Kaya</span>
+          </div>
+          <div class="ders-satir">
+            <span class="ders-saat">11:00</span>
+            <span class="ders-ad">Tarih</span>
+            <span class="ders-ogretmen">E. Öztürk</span>
+          </div>
+          <div class="ders-satir">
+            <span class="ders-saat">13:00</span>
+            <span class="ders-ad">Beden Eğitimi</span>
+            <span class="ders-ogretmen">K. Arslan</span>
+          </div>
+          <div class="ders-satir">
+            <span class="ders-saat">13:50</span>
+            <span class="ders-ad">İngilizce</span>
+            <span class="ders-ogretmen">Z. Akın</span>
+          </div>
+        </div>
       </div>
-      <div class="duyuru-grid">
-        <div class="duyuru-kart">
-          <div class="duyuru-ust">
-            <span class="duyuru-tip tip-etkinlik">Etkinlik</span>
-            <span class="duyuru-tarih"><i class="fas fa-calendar-alt"></i> 15 Haz 2024</span>
-          </div>
-          <h3>Yıl Sonu Etkinliği Başladı</h3>
-          <p>Tüm öğrencilerimiz için hazırladığımız yıl sonu etkinliğine katılmaya davetlisiniz.</p>
+
+      <!-- 2. YEMEK MENÜSÜ -->
+      <div class="bilgi-kart">
+        <div class="bilgi-kart-baslik">
+          <div class="kart-icon yemek"><i class="fas fa-utensils"></i></div>
+          <h3>Yemek Menüsü</h3>
         </div>
-        <div class="duyuru-kart">
-          <div class="duyuru-ust">
-            <span class="duyuru-tip tip-yarisma">Yarışma</span>
-            <span class="duyuru-tarih"><i class="fas fa-calendar-alt"></i> 10 Haz 2024</span>
+        <div class="bilgi-kart-icerik">
+          <div class="yemek-satir">
+            <span class="yemek-icon">🍜</span>
+            <span class="yemek-ad">Mercimek Çorbası</span>
+            <span class="yemek-kalori">110 kcal</span>
           </div>
-          <h3>Proje Yarışması Duyurusu</h3>
-          <p>Öğrencilerimizin yaratıcılığını gösterebilecekleri proje yarışması başlıyor.</p>
-        </div>
-        <div class="duyuru-kart">
-          <div class="duyuru-ust">
-            <span class="duyuru-tip tip-saglik">Sağlık</span>
-            <span class="duyuru-tarih"><i class="fas fa-calendar-alt"></i> 05 Haz 2024</span>
+          <div class="yemek-satir">
+            <span class="yemek-icon">🍖</span>
+            <span class="yemek-ad">Tavuk Sote</span>
+            <span class="yemek-kalori">280 kcal</span>
           </div>
-          <h3>Sağlık Taraması Yapılacaktır</h3>
-          <p>Okul öncesi sağlık taraması için rehber öğretmenlerinize başvurunuz.</p>
-        </div>
-        <div class="duyuru-kart">
-          <div class="duyuru-ust">
-            <span class="duyuru-tip tip-bilgi">Bilgi</span>
-            <span class="duyuru-tarih"><i class="fas fa-calendar-alt"></i> 01 Haz 2024</span>
+          <div class="yemek-satir">
+            <span class="yemek-icon">🍚</span>
+            <span class="yemek-ad">Pilav</span>
+            <span class="yemek-kalori">200 kcal</span>
           </div>
-          <h3>Kütüphane Yenilendi</h3>
-          <p>Okul kütüphanemiz yeni kitap ve materyallerle yenilendi. Herkesi bekliyoruz!</p>
+          <div class="yemek-satir">
+            <span class="yemek-icon">🥗</span>
+            <span class="yemek-ad">Çoban Salata</span>
+            <span class="yemek-kalori">65 kcal</span>
+          </div>
+          <div class="yemek-satir">
+            <span class="yemek-icon">🍮</span>
+            <span class="yemek-ad">Sütlaç</span>
+            <span class="yemek-kalori">180 kcal</span>
+          </div>
         </div>
       </div>
+
+      <!-- 3. HAVA DURUMU -->
+      <div class="bilgi-kart">
+        <div class="bilgi-kart-baslik">
+          <div class="kart-icon hava"><i class="fas fa-cloud-sun"></i></div>
+          <h3>Hava Durumu</h3>
+        </div>
+        <div class="bilgi-kart-icerik">
+          <div class="hava-icerik">
+            <div class="hava-icon">🌤️</div>
+            <div class="hava-sicaklik">14°C</div>
+            <div class="hava-durum">Parçalı Bulutlu</div>
+            <div class="hava-detay">
+              <span><i class="fas fa-tint"></i> %42</span>
+              <span><i class="fas fa-wind"></i> 12 km/s</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. GÜNÜN SÖZÜ -->
+      <div class="bilgi-kart">
+        <div class="bilgi-kart-baslik">
+          <div class="kart-icon soz"><i class="fas fa-quote-left"></i></div>
+          <h3>Günün Sözü</h3>
+        </div>
+        <div class="bilgi-kart-icerik">
+          <div class="soz-icerik">
+            <div class="soz-tirnak">“</div>
+            <div class="soz-metin">Devletin temeli adalettir. Adaletten ayrılan devlet, yıkılmaya mahkumdur.</div>
+            <div class="soz-yazar">— Fatih Sultan Mehmet</div>
+          </div>
+        </div>
+      </div>
+
     </div>
 
   </div>
 
   <!-- ===== FOOTER BAR ===== -->
   <div class="footer-bar">
-    <div class="motto">MESLEK LİSESİ MEMLEKET MESELESİDİR</div>
-    <div class="versiyon">Tahta Kontrol Sistemi v3.0 &bull; &copy; 2026</div>
+    <div class="versiyon">Etap Tahta Kilit v1.0</div>
   </div>
 
 </div>
@@ -649,6 +825,22 @@
   function sliderGit(yon) { slaytaGit(mevcutSlayt + yon); }
 
   setInterval(() => sliderGit(1), 6000);
+
+  // ===== KURUM ADI =====
+  (function() {
+    const params = new URLSearchParams(window.location.search);
+    const kod = params.get('kod');
+    const tahta_id = params.get('tahta_id');
+    if (kod || tahta_id) {
+      const q = new URLSearchParams();
+      if (kod) q.set('kod', kod);
+      if (tahta_id) q.set('tahta_id', tahta_id);
+      fetch('/api/kurum-adi?' + q.toString())
+        .then(r => r.json())
+        .then(d => { if (d.kurum_adi) document.getElementById('kurumAdi').textContent = d.kurum_adi; })
+        .catch(() => {});
+    }
+  })();
 </script>
 
 </body>
