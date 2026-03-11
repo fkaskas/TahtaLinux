@@ -556,6 +556,39 @@
     }
     .sinav-ders-saat-grup span { color: var(--text3); font-size: 13px; white-space: nowrap; }
 
+    /* Ayın Öğrencisi Yönetimi */
+    .ayin-ogrenci-kart {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px;
+      border-left: 3px solid #d4a017;
+      display: flex; align-items: center; gap: 14px;
+    }
+    .ayin-ogrenci-kart .ayin-sira {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, #d4a017, #b8860b);
+      color: #fff; font-weight: 800; font-size: 14px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .ayin-ogrenci-kart .ayin-sira.sira-2 { background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
+    .ayin-ogrenci-kart .ayin-sira.sira-3 { background: linear-gradient(135deg, #cd7f32, #a0522d); }
+    .ayin-ogrenci-kart .ayin-sira.sira-4 { background: linear-gradient(135deg, var(--accent), #4a90d9); }
+    .ayin-ogrenci-kart .ayin-foto-kucuk {
+      width: 44px; height: 44px; border-radius: 50%; object-fit: cover;
+      border: 2px solid #d4a017; flex-shrink: 0;
+    }
+    .ayin-ogrenci-kart .ayin-bilgi-alan { flex: 1; min-width: 0; }
+    .ayin-ogrenci-kart .ayin-bilgi-alan h4 { font-size: 14px; font-weight: 600; color: var(--text); margin: 0; }
+    .ayin-ogrenci-kart .ayin-detay { font-size: 12px; color: var(--text2); display: flex; gap: 14px; flex-wrap: wrap; margin-top: 2px; }
+    .ayin-ogrenci-kart .ayin-detay i { margin-right: 4px; }
+    .ayin-ogrenci-kart .ayin-islem { display: flex; gap: 6px; flex-shrink: 0; }
+    .ayin-ogrenci-kart .ayin-islem button {
+      padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer;
+      font-size: 14px; font-weight: 600; transition: opacity 0.2s;
+      min-width: 38px; min-height: 38px; display: inline-flex; align-items: center; justify-content: center;
+    }
+    .ayin-ogrenci-kart .ayin-islem .btn-ayin-duzenle { background: rgba(59,130,246,0.15); color: var(--accent); }
+    .ayin-ogrenci-kart .ayin-islem .btn-ayin-sil { background: rgba(239,68,68,0.15); color: var(--danger); }
+
     /* Ders Saatleri Grid - izole tasarım */
     #icerik-ders-saatleri .yonetim-panel {
       overflow: hidden;
@@ -1097,6 +1130,120 @@
       </div>
     </div>
 
+    <!-- Ayın Öğrencisi Sekmesi -->
+    <div class="sekme-icerik" id="icerik-ayin-ogrencisi">
+      <div class="yonetim-panel">
+        <h2><i class="fas fa-star" style="color:#d4a017;"></i> Ayın Öğrencisi</h2>
+        <p style="color:var(--text3);font-size:13px;margin-bottom:16px;">
+          Ayın öğrencilerini ekleyin, kurum panelinde (kurum.html) otomatik gösterilecektir. En fazla 4 öğrenci eklenebilir (1.=Birinci, 2.=İkinci, 3.=Üçüncü, 4.=Dördüncü).
+        </p>
+
+        <div class="gizli" id="ayinKurumAlan" style="margin-bottom:16px;">
+          <label style="font-size:12px;color:var(--text2);font-weight:500;margin-bottom:5px;display:block;">Kurum Seç</label>
+          <select id="ayinKurumSec" onchange="ayinOgrencileriYukle()" style="padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;width:100%;max-width:400px;">
+          </select>
+        </div>
+
+        <div id="ayinEklemeFormu" class="form-satir" style="flex-direction:column;gap:12px;">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <div class="alan" style="flex:1;min-width:200px;">
+              <label>Sıra</label>
+              <select id="ayinSira" style="padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;width:100%;">
+                <option value="1">1. (Birinci)</option>
+                <option value="2">2. (İkinci)</option>
+                <option value="3">3. (Üçüncü)</option>
+                <option value="4">4. (Dördüncü)</option>
+              </select>
+            </div>
+            <div class="alan" style="flex:2;min-width:200px;">
+              <label>Ad Soyad</label>
+              <input type="text" id="ayinAdSoyad" placeholder="Örn: Ahmet Yılmaz" />
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <div class="alan" style="flex:1;min-width:150px;">
+              <label>Sınıf</label>
+              <input type="text" id="ayinSinif" placeholder="Örn: 9-A" />
+            </div>
+            <div class="alan" style="flex:2;min-width:200px;">
+              <label>Ödül / Başarı</label>
+              <input type="text" id="ayinOdul" placeholder="Örn: Matematik Başarı Ödülü" />
+            </div>
+          </div>
+          <div class="alan" style="min-width:100%;">
+            <label>Açıklama (Opsiyonel)</label>
+            <input type="text" id="ayinAciklama" placeholder="Kısa bir açıklama..." />
+          </div>
+          <div class="alan" style="min-width:100%;">
+            <label>Fotoğraf <span style="color:var(--danger);font-size:11px;">(zorunlu, max 5MB, JPG/PNG/WebP)</span></label>
+            <input type="file" id="ayinFoto" accept=".jpg,.jpeg,.png,.webp" style="padding:10px;" />
+            <div id="ayinFotoOnizleme" style="margin-top:8px;"></div>
+          </div>
+          <button class="btn-ekle" onclick="ayinOgrenciEkle()"><i class="fas fa-plus"></i> Öğrenci Ekle</button>
+        </div>
+
+        <h3 style="margin-top:20px;">Ayın Öğrencileri</h3>
+        <div id="ayinListesi">
+          <div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">Yükleniyor...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Slider Yönetimi Sekmesi -->
+    <div class="sekme-icerik" id="icerik-slider">
+      <div class="yonetim-panel">
+        <h2><i class="fas fa-images" style="color:var(--accent);"></i> Slider Yönetimi</h2>
+        <p style="color:var(--text3);font-size:13px;margin-bottom:16px;">
+          Kurum bilgi ekranındaki (kurum.html) slaytları yönetin. Yönetici tüm slaytlarda CRUD yapabilir; öğretmen yalnızca kendi eklediği slaytları düzenleyip silebilir.
+          <br><span style="color:var(--warn);font-size:12px;">Görsel önerisi: Geniş yatay format (örn. 1920×1080). Max 5MB, JPG/PNG/WebP.</span>
+        </p>
+
+        <div class="gizli" id="sliderKurumAlan" style="margin-bottom:16px;">
+          <label style="font-size:12px;color:var(--text2);font-weight:500;margin-bottom:5px;display:block;">Kurum Seç</label>
+          <select id="sliderKurumSec" onchange="sliderYukle()" style="padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;width:100%;max-width:400px;"></select>
+        </div>
+
+        <div id="sliderEklemeFormu" class="form-satir" style="flex-direction:column;gap:12px;">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <div class="alan" style="flex:2;min-width:200px;">
+              <label>Başlık</label>
+              <input type="text" id="sliderBaslik" placeholder="Örn: TÜBİTAK Başarımız" />
+            </div>
+            <div class="alan" style="flex:1;min-width:160px;">
+              <label>Etiket Türü</label>
+              <select id="sliderBadge" style="padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;width:100%;">
+                <option value="duyuru">📢 Duyuru</option>
+                <option value="basari">🏆 Başarı</option>
+                <option value="etkinlik">🎯 Etkinlik</option>
+                <option value="yeni">📚 Yeni</option>
+              </select>
+            </div>
+          </div>
+          <div class="alan" style="min-width:100%;">
+            <label>Alt Yazı (Opsiyonel)</label>
+            <input type="text" id="sliderAltYazi" placeholder="Kısa bir açıklama..." />
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;">
+            <div class="alan" style="flex:1;min-width:140px;">
+              <label>Sıra <span style="color:var(--text3);font-size:11px;">(1=önce)</span></label>
+              <input type="number" id="sliderSira" value="1" min="1" max="20" style="padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;width:100%;" />
+            </div>
+            <div class="alan" style="flex:3;min-width:200px;">
+              <label>Görsel <span style="color:var(--danger);font-size:11px;">(zorunlu, max 5MB, JPG/PNG/WebP, yatay önerilir)</span></label>
+              <input type="file" id="sliderFoto" accept=".jpg,.jpeg,.png,.webp" style="padding:10px;" />
+              <div id="sliderFotoOnizleme" style="margin-top:8px;"></div>
+            </div>
+          </div>
+          <button class="btn-ekle" onclick="sliderEkle()"><i class="fas fa-plus"></i> Slide Ekle</button>
+        </div>
+
+        <h3 style="margin-top:20px;">Mevcut Slaytlar</h3>
+        <div id="sliderListesi">
+          <div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">Yükleniyor...</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Ders Saatleri Sekmesi -->
     <div class="sekme-icerik" id="icerik-ders-saatleri">
       <div class="yonetim-panel">
@@ -1149,6 +1296,12 @@
     </div>
     <div class="sekme" data-sekme="sinavlar" id="sekme-sinavlar">
       <span class="sekme-icon"><i class="fas fa-calendar-alt"></i></span> Sınavlar
+    </div>
+    <div class="sekme" data-sekme="ayin-ogrencisi" id="sekme-ayin-ogrencisi">
+      <span class="sekme-icon"><i class="fas fa-star"></i></span> Ayın Öğrencisi
+    </div>
+    <div class="sekme" data-sekme="slider" id="sekme-slider">
+      <span class="sekme-icon"><i class="fas fa-images"></i></span> Slider
     </div>
     <div class="sekme gizli" data-sekme="ders-saatleri" id="sekme-ders-saatleri">
       <span class="sekme-icon"><i class="fas fa-clock"></i></span> Ders Saatleri
@@ -1324,6 +1477,64 @@
     <div class="modal-butonlar">
       <button class="btn-iptal" onclick="sinavDuzenleKapat()">İptal</button>
       <button class="btn-kaydet" onclick="sinavGuncelle()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Ayın Öğrencisi Düzenle Modal -->
+<div class="modal-arka" id="ayinDuzenleModal" onclick="ayinDuzenleKapat()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3><i class="fas fa-edit"></i> Ayın Öğrencisi Düzenle</h3>
+    <input type="hidden" id="ayinDuzenleId" />
+    <label>Sıra</label>
+    <select id="ayinDuzenleSira" style="padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;width:100%;margin-bottom:12px;">
+      <option value="1">1. (Birinci)</option>
+      <option value="2">2. (İkinci)</option>
+      <option value="3">3. (Üçüncü)</option>
+      <option value="4">4. (Dördüncü)</option>
+    </select>
+    <label>Ad Soyad</label>
+    <input type="text" id="ayinDuzenleAdSoyad" placeholder="Ad Soyad" />
+    <label>Sınıf</label>
+    <input type="text" id="ayinDuzenleSinif" placeholder="Sınıf" />
+    <label>Ödül / Başarı</label>
+    <input type="text" id="ayinDuzenleOdul" placeholder="Ödül" />
+    <label>Açıklama</label>
+    <input type="text" id="ayinDuzenleAciklama" placeholder="Açıklama" />
+    <label>Fotoğraf <span style="color:var(--text3);font-size:11px;">(yeni fotoğraf seçilmezse mevcut korunur)</span></label>
+    <input type="file" id="ayinDuzenleFoto" accept=".jpg,.jpeg,.png,.webp" style="padding:10px;" />
+    <div id="ayinDuzenleFotoOnizleme" style="margin-top:8px;"></div>
+    <div class="modal-butonlar">
+      <button class="btn-iptal" onclick="ayinDuzenleKapat()">İptal</button>
+      <button class="btn-kaydet" onclick="ayinOgrenciGuncelle()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Slider Düzenle Modal -->
+<div class="modal-arka" id="sliderDuzenleModal" onclick="sliderDuzenleKapat()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3><i class="fas fa-edit"></i> Slide Düzenle</h3>
+    <input type="hidden" id="sliderDuzenleId" />
+    <label>Başlık</label>
+    <input type="text" id="sliderDuzenleBaslik" placeholder="Başlık" />
+    <label>Etiket Türü</label>
+    <select id="sliderDuzenleBadge" style="padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;width:100%;margin-bottom:12px;">
+      <option value="duyuru">📢 Duyuru</option>
+      <option value="basari">🏆 Başarı</option>
+      <option value="etkinlik">🎯 Etkinlik</option>
+      <option value="yeni">📚 Yeni</option>
+    </select>
+    <label>Alt Yazı (Opsiyonel)</label>
+    <input type="text" id="sliderDuzenleAltYazi" placeholder="Kısa açıklama..." />
+    <label>Sıra</label>
+    <input type="number" id="sliderDuzenleSira" min="1" max="20" style="padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;width:100%;margin-bottom:12px;" />
+    <label>Görsel <span style="color:var(--text3);font-size:11px;">(yeni görsel seçilmezse mevcut korunur)</span></label>
+    <input type="file" id="sliderDuzenleFoto" accept=".jpg,.jpeg,.png,.webp" style="padding:10px;" />
+    <div id="sliderDuzenleFotoOnizleme" style="margin-top:8px;"></div>
+    <div class="modal-butonlar">
+      <button class="btn-iptal" onclick="sliderDuzenleKapat()">İptal</button>
+      <button class="btn-kaydet" onclick="sliderGuncelle()">Kaydet</button>
     </div>
   </div>
 </div>
@@ -1691,6 +1902,8 @@
       document.getElementById("rolSuperadmin").classList.remove("gizli");
       document.getElementById("dersSaatleriKurumAlan").classList.remove("gizli");
       document.getElementById("sinavKurumAlan").classList.remove("gizli");
+      document.getElementById("ayinKurumAlan").classList.remove("gizli");
+      document.getElementById("sliderKurumAlan").classList.remove("gizli");
       // Tablo başlıklarına kurum sütunu ekle
       document.getElementById("tahtaYonetimBaslik").innerHTML = "<th>Tahta Adı</th><th>Kurum</th><th>Durum</th><th>Çevrimiçi</th><th>Son Bağlantı</th><th></th>";
       document.getElementById("kullaniciYonetimBaslik").innerHTML = "<th>Kullanıcı Adı</th><th>Ad Soyad</th><th>Branş</th><th>Doğum Tarihi</th><th>Rol</th><th>Kurum</th><th>Kayıt Tarihi</th><th></th>";
@@ -1712,6 +1925,8 @@
         if (el.dataset.sekme === "kurum-yonetim") kurumYonetimYukle();
         if (el.dataset.sekme === "ders-saatleri") dersSaatleriYukle();
         if (el.dataset.sekme === "sinavlar") sinavlarYukle();
+        if (el.dataset.sekme === "ayin-ogrencisi") ayinOgrencileriYukle();
+        if (el.dataset.sekme === "slider") sliderYukle();
       });
     });
 
@@ -2320,7 +2535,7 @@
       if (!yanit.ok) return;
       const liste = await yanit.json();
 
-      ["tahtaKurumSec", "kullaniciKurumSec", "dersSaatleriKurumSec", "sinavKurumSec"].forEach((id) => {
+      ["tahtaKurumSec", "kullaniciKurumSec", "dersSaatleriKurumSec", "sinavKurumSec", "ayinKurumSec", "sliderKurumSec"].forEach((id) => {
         const sel = document.getElementById(id);
         if (!sel) return;
         sel.innerHTML = liste.map((k) =>
@@ -2795,6 +3010,365 @@
   }
 
   // ===================== Ders Çıkış Saatleri =====================
+
+  // ===================== Ayın Öğrencisi =====================
+  async function ayinOgrencileriYukle() {
+    // Superadmin ekleme yapamaz - formu gizle
+    const ayinFormu = document.getElementById('ayinEklemeFormu');
+    if (ayinFormu) ayinFormu.style.display = kullanici.rol === 'superadmin' ? 'none' : '';
+    try {
+      let url = '/api/ayin-ogrencileri';
+      if (kullanici.rol === 'superadmin') {
+        const kurumSec = document.getElementById('ayinKurumSec');
+        if (kurumSec && kurumSec.value) url += '?kurum_id=' + kurumSec.value;
+      }
+      const yanit = await fetch(url, {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      if (!yanit.ok) { bildirimGoster('Ayın öğrencileri listesi alınamadı', 'hata'); return; }
+      const liste = await yanit.json();
+      ayinOgrenciListeCache = liste;
+      const container = document.getElementById('ayinListesi');
+      if (!Array.isArray(liste) || liste.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;"><i class="fas fa-star" style="font-size:28px;display:block;margin-bottom:8px;opacity:0.4;color:#d4a017;"></i>Kayıtlı ayın öğrencisi yok</div>';
+        return;
+      }
+      container.innerHTML = liste.map(o => ayinKartHTML(o)).join('');
+    } catch (err) {
+      bildirimGoster('Ayın öğrencileri listesi alınamadı', 'hata');
+    }
+  }
+
+  function ayinKartHTML(o) {
+    const sahip = kullanici.rol === 'yonetici' || (kullanici.rol === 'ogretmen' && o.ekleyen_id === kullanici.id);
+    const siraClass = o.sira > 1 ? ' sira-' + o.sira : '';
+    const fotoHtml = o.foto_url
+      ? `<img src="${esc(o.foto_url)}" alt="" class="ayin-foto-kucuk" onerror="this.style.display='none'">`
+      : '';
+    return `<div class="ayin-ogrenci-kart">
+      <div class="ayin-sira${siraClass}">${o.sira}</div>
+      ${fotoHtml}
+      <div class="ayin-bilgi-alan">
+        <h4>${esc(o.ad_soyad)}</h4>
+        <div class="ayin-detay">
+          <span><i class="fas fa-graduation-cap"></i> ${esc(o.sinif)}</span>
+          ${o.odul ? `<span><i class="fas fa-medal"></i> ${esc(o.odul)}</span>` : ''}
+          <span><i class="fas fa-user"></i> ${esc(o.ekleyen_adi || '')}</span>
+        </div>
+        ${o.aciklama ? `<div style="font-size:11px;color:var(--text3);margin-top:2px;">${esc(o.aciklama)}</div>` : ''}
+      </div>
+      <div class="ayin-islem">
+        ${sahip ? `<button class="btn-ayin-duzenle" onclick="ayinDuzenleAc(${o.id}, ${o.sira})"><i class="fas fa-edit"></i></button>` : ''}
+        ${sahip ? `<button class="btn-ayin-sil" onclick="ayinOgrenciSil(${o.id})"><i class="fas fa-trash-alt"></i></button>` : ''}
+      </div>
+    </div>`;
+  }
+
+  async function ayinOgrenciEkle() {
+    const sira = document.getElementById('ayinSira').value;
+    const ad_soyad = document.getElementById('ayinAdSoyad').value.trim();
+    const sinif = document.getElementById('ayinSinif').value.trim();
+    const odul = document.getElementById('ayinOdul').value.trim();
+    const aciklama = document.getElementById('ayinAciklama').value.trim();
+    const fotoInput = document.getElementById('ayinFoto');
+    if (!ad_soyad || !sinif) {
+      bildirimGoster('Ad soyad ve sınıf gerekli', 'hata');
+      return;
+    }
+    if (!fotoInput.files || fotoInput.files.length === 0) {
+      bildirimGoster('Fotoğraf seçilmedi', 'hata');
+      return;
+    }
+    const formData = new FormData();
+    formData.append('sira', sira);
+    formData.append('ad_soyad', ad_soyad);
+    formData.append('sinif', sinif);
+    formData.append('odul', odul);
+    if (aciklama) formData.append('aciklama', aciklama);
+    formData.append('foto', fotoInput.files[0]);
+    try {
+      const yanit = await fetch('/api/ayin-ogrencileri', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token },
+        body: formData
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+      bildirimGoster('Ayın öğrencisi eklendi', 'basari');
+      document.getElementById('ayinAdSoyad').value = '';
+      document.getElementById('ayinSinif').value = '';
+      document.getElementById('ayinOdul').value = '';
+      document.getElementById('ayinAciklama').value = '';
+      fotoInput.value = '';
+      document.getElementById('ayinFotoOnizleme').innerHTML = '';
+      ayinOgrencileriYukle();
+    } catch (err) {
+      bildirimGoster('Ayın öğrencisi eklenemedi', 'hata');
+    }
+  }
+
+  // Ayın öğrencisi verisini sakla (düzenle için)
+  let ayinOgrenciListeCache = [];
+
+  function ayinDuzenleAc(id, sira) {
+    const o = ayinOgrenciListeCache.find(x => x.id === id);
+    if (!o) return;
+    document.getElementById('ayinDuzenleId').value = id;
+    document.getElementById('ayinDuzenleAdSoyad').value = o.ad_soyad;
+    document.getElementById('ayinDuzenleSinif').value = o.sinif;
+    document.getElementById('ayinDuzenleOdul').value = o.odul || '';
+    document.getElementById('ayinDuzenleAciklama').value = o.aciklama || '';
+    document.getElementById('ayinDuzenleSira').value = o.sira;
+    document.getElementById('ayinDuzenleFoto').value = '';
+    const onizleme = document.getElementById('ayinDuzenleFotoOnizleme');
+    onizleme.innerHTML = o.foto_url
+      ? `<img src="${esc(o.foto_url)}" style="width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid #d4a017;" />`
+      : '';
+    document.getElementById('ayinDuzenleModal').classList.add('goster');
+  }
+
+  function ayinDuzenleKapat() {
+    document.getElementById('ayinDuzenleModal').classList.remove('goster');
+  }
+
+  async function ayinOgrenciGuncelle() {
+    const id = document.getElementById('ayinDuzenleId').value;
+    const ad_soyad = document.getElementById('ayinDuzenleAdSoyad').value.trim();
+    const sinif = document.getElementById('ayinDuzenleSinif').value.trim();
+    const odul = document.getElementById('ayinDuzenleOdul').value.trim();
+    const aciklama = document.getElementById('ayinDuzenleAciklama').value.trim();
+    const sira = parseInt(document.getElementById('ayinDuzenleSira').value);
+    const fotoInput = document.getElementById('ayinDuzenleFoto');
+    if (!ad_soyad || !sinif) { bildirimGoster('Ad soyad ve sınıf gerekli', 'hata'); return; }
+    const formData = new FormData();
+    formData.append('ad_soyad', ad_soyad);
+    formData.append('sinif', sinif);
+    formData.append('odul', odul);
+    formData.append('aciklama', aciklama || '');
+    formData.append('sira', sira);
+    if (fotoInput.files && fotoInput.files.length > 0) {
+      formData.append('foto', fotoInput.files[0]);
+    }
+    try {
+      const yanit = await fetch('/api/ayin-ogrencileri/' + id, {
+        method: 'PUT',
+        headers: { Authorization: 'Bearer ' + token },
+        body: formData
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+      bildirimGoster('Ayın öğrencisi güncellendi', 'basari');
+      ayinDuzenleKapat();
+      ayinOgrencileriYukle();
+    } catch (err) { bildirimGoster('Ayın öğrencisi güncellenemedi', 'hata'); }
+  }
+
+  async function ayinOgrenciSil(id) {
+    onayla({
+      baslik: 'Ayın Öğrencisini Sil',
+      mesaj: 'Bu öğrenciyi silmek istediğinize emin misiniz?',
+      onayMetni: 'Sil',
+      tehlike: true,
+      callback: async () => {
+        try {
+          const yanit = await fetch('/api/ayin-ogrencileri/' + id, {
+            method: 'DELETE',
+            headers: { Authorization: 'Bearer ' + token }
+          });
+          const veri = await yanit.json();
+          if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+          bildirimGoster('Ayın öğrencisi silindi', 'basari');
+          ayinOgrencileriYukle();
+        } catch (err) { bildirimGoster('Ayın öğrencisi silinemedi', 'hata'); }
+      }
+    });
+  }
+
+  // Fotoğraf önizleme
+  document.getElementById('ayinFoto').addEventListener('change', function() {
+    const onizleme = document.getElementById('ayinFotoOnizleme');
+    if (this.files && this.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => { onizleme.innerHTML = '<img src="' + e.target.result + '" style="max-width:120px;max-height:120px;border-radius:8px;margin-top:4px;">'; };
+      reader.readAsDataURL(this.files[0]);
+    } else { onizleme.innerHTML = ''; }
+  });
+  document.getElementById('ayinDuzenleFoto').addEventListener('change', function() {
+    const onizleme = document.getElementById('ayinDuzenleFotoOnizleme');
+    if (this.files && this.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => { onizleme.innerHTML = '<img src="' + e.target.result + '" style="max-width:120px;max-height:120px;border-radius:8px;margin-top:4px;">'; };
+      reader.readAsDataURL(this.files[0]);
+    } else { onizleme.innerHTML = ''; }
+  });
+
+  // Slider fotoğraf önizlemeleri
+  document.getElementById('sliderFoto').addEventListener('change', function() {
+    const onizleme = document.getElementById('sliderFotoOnizleme');
+    if (this.files && this.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => { onizleme.innerHTML = '<img src="' + e.target.result + '" style="max-width:180px;max-height:100px;border-radius:8px;margin-top:4px;object-fit:cover;">'; };
+      reader.readAsDataURL(this.files[0]);
+    } else { onizleme.innerHTML = ''; }
+  });
+  document.getElementById('sliderDuzenleFoto').addEventListener('change', function() {
+    const onizleme = document.getElementById('sliderDuzenleFotoOnizleme');
+    if (this.files && this.files[0]) {
+      const reader = new FileReader();
+      reader.onload = e => { onizleme.innerHTML = '<img src="' + e.target.result + '" style="max-width:180px;max-height:100px;border-radius:8px;margin-top:4px;object-fit:cover;">'; };
+      reader.readAsDataURL(this.files[0]);
+    } else { onizleme.innerHTML = ''; }
+  });
+
+  // ===================== Slider Yönetimi =====================
+  let sliderListeCache = [];
+
+  async function sliderYukle() {
+    const sliderFormu = document.getElementById('sliderEklemeFormu');
+    if (sliderFormu) sliderFormu.style.display = kullanici.rol === 'superadmin' ? 'none' : '';
+    try {
+      let url = '/api/slider';
+      if (kullanici.rol === 'superadmin') {
+        const kurumSec = document.getElementById('sliderKurumSec');
+        if (kurumSec && kurumSec.value) url += '?kurum_id=' + kurumSec.value;
+      }
+      const yanit = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+      if (!yanit.ok) { bildirimGoster('Slider listesi alınamadı', 'hata'); return; }
+      const liste = await yanit.json();
+      sliderListeCache = liste;
+      const container = document.getElementById('sliderListesi');
+      if (!Array.isArray(liste) || liste.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;"><i class="fas fa-images" style="font-size:28px;display:block;margin-bottom:8px;opacity:0.4;"></i>Kayıtlı slide yok</div>';
+        return;
+      }
+      container.innerHTML = liste.map(s => sliderKartHTML(s)).join('');
+    } catch (err) {
+      bildirimGoster('Slider listesi alınamadı', 'hata');
+    }
+  }
+
+  const badgeEtiketler = { duyuru: '📢 Duyuru', basari: '🏆 Başarı', etkinlik: '🎯 Etkinlik', yeni: '📚 Yeni' };
+
+  function sliderKartHTML(s) {
+    const sahip = kullanici.rol === 'yonetici' || (kullanici.rol === 'ogretmen' && s.ekleyen_id === kullanici.id);
+    return `<div style="display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:8px;">
+      <div style="flex-shrink:0;">
+        <img src="${esc(s.foto_url)}" alt="" style="width:80px;height:48px;border-radius:6px;object-fit:cover;background:#334155;" onerror="this.style.opacity='0.3'" />
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.baslik)}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px;">${esc(badgeEtiketler[s.badge_turu] || s.badge_turu)} &nbsp;·&nbsp; Sıra: ${s.sira} &nbsp;·&nbsp; ${esc(s.ekleyen_adi || '')}</div>
+        ${s.alt_yazi ? `<div style="font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${esc(s.alt_yazi)}</div>` : ''}
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        ${sahip ? `<button class="btn-duzenle" style="padding:6px 10px;font-size:12px;" onclick="sliderDuzenleAc(${s.id})"><i class="fas fa-edit"></i></button>` : ''}
+        ${sahip ? `<button class="btn-sil" style="padding:6px 10px;font-size:12px;" onclick="sliderSil(${s.id})"><i class="fas fa-trash-alt"></i></button>` : ''}
+      </div>
+    </div>`;
+  }
+
+  async function sliderEkle() {
+    const baslik = document.getElementById('sliderBaslik').value.trim();
+    const alt_yazi = document.getElementById('sliderAltYazi').value.trim();
+    const badge_turu = document.getElementById('sliderBadge').value;
+    const sira = parseInt(document.getElementById('sliderSira').value) || 1;
+    const fotoInput = document.getElementById('sliderFoto');
+    if (!baslik) { bildirimGoster('Başlık gerekli', 'hata'); return; }
+    if (!fotoInput.files || fotoInput.files.length === 0) { bildirimGoster('Görsel seçilmedi', 'hata'); return; }
+    const formData = new FormData();
+    formData.append('baslik', baslik);
+    formData.append('alt_yazi', alt_yazi);
+    formData.append('badge_turu', badge_turu);
+    formData.append('sira', sira);
+    formData.append('foto', fotoInput.files[0]);
+    try {
+      const yanit = await fetch('/api/slider', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token },
+        body: formData
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+      bildirimGoster('Slide eklendi', 'basari');
+      document.getElementById('sliderBaslik').value = '';
+      document.getElementById('sliderAltYazi').value = '';
+      document.getElementById('sliderBadge').value = 'duyuru';
+      document.getElementById('sliderSira').value = '1';
+      fotoInput.value = '';
+      document.getElementById('sliderFotoOnizleme').innerHTML = '';
+      sliderYukle();
+    } catch (err) { bildirimGoster('Slide eklenemedi', 'hata'); }
+  }
+
+  function sliderDuzenleAc(id) {
+    const s = sliderListeCache.find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('sliderDuzenleId').value = id;
+    document.getElementById('sliderDuzenleBaslik').value = s.baslik;
+    document.getElementById('sliderDuzenleBadge').value = s.badge_turu;
+    document.getElementById('sliderDuzenleAltYazi').value = s.alt_yazi || '';
+    document.getElementById('sliderDuzenleSira').value = s.sira;
+    document.getElementById('sliderDuzenleFoto').value = '';
+    const onizleme = document.getElementById('sliderDuzenleFotoOnizleme');
+    onizleme.innerHTML = s.foto_url
+      ? `<img src="${esc(s.foto_url)}" style="max-width:180px;max-height:100px;border-radius:6px;object-fit:cover;border:1px solid var(--border);" />`
+      : '';
+    document.getElementById('sliderDuzenleModal').classList.add('goster');
+  }
+
+  function sliderDuzenleKapat() {
+    document.getElementById('sliderDuzenleModal').classList.remove('goster');
+  }
+
+  async function sliderGuncelle() {
+    const id = document.getElementById('sliderDuzenleId').value;
+    const baslik = document.getElementById('sliderDuzenleBaslik').value.trim();
+    const badge_turu = document.getElementById('sliderDuzenleBadge').value;
+    const alt_yazi = document.getElementById('sliderDuzenleAltYazi').value.trim();
+    const sira = parseInt(document.getElementById('sliderDuzenleSira').value) || 1;
+    const fotoInput = document.getElementById('sliderDuzenleFoto');
+    if (!baslik) { bildirimGoster('Başlık gerekli', 'hata'); return; }
+    const formData = new FormData();
+    formData.append('baslik', baslik);
+    formData.append('badge_turu', badge_turu);
+    formData.append('alt_yazi', alt_yazi);
+    formData.append('sira', sira);
+    if (fotoInput.files && fotoInput.files.length > 0) formData.append('foto', fotoInput.files[0]);
+    try {
+      const yanit = await fetch('/api/slider/' + id, {
+        method: 'PUT',
+        headers: { Authorization: 'Bearer ' + token },
+        body: formData
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+      bildirimGoster('Slide güncellendi', 'basari');
+      sliderDuzenleKapat();
+      sliderYukle();
+    } catch (err) { bildirimGoster('Slide güncellenemedi', 'hata'); }
+  }
+
+  async function sliderSil(id) {
+    onayla({
+      baslik: 'Slideı Sil',
+      mesaj: 'Bu slideı silmek istediğinize emin misiniz?',
+      onayMetni: 'Sil',
+      tehlike: true,
+      callback: async () => {
+        try {
+          const yanit = await fetch('/api/slider/' + id, {
+            method: 'DELETE',
+            headers: { Authorization: 'Bearer ' + token }
+          });
+          const veri = await yanit.json();
+          if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+          bildirimGoster('Slide silindi', 'basari');
+          sliderYukle();
+        } catch (err) { bildirimGoster('Slide silinemedi', 'hata'); }
+      }
+    });
+  }
+
   async function dersSaatleriYukle() {
     try {
       let url = "/api/ders-saatleri";

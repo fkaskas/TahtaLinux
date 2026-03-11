@@ -1908,12 +1908,25 @@ class Kilit(QMainWindow):
         if ekran:
             geometri = ekran.geometry()
             self.setGeometry(geometri)
+        # WebView sayfasını yenile
+        self.web_gorunum.reload()
         self.showFullScreen()
         QApplication.processEvents()
         QTimer.singleShot(200, self._icerik_yukle)
         QTimer.singleShot(500, self._girisleri_yakala)
 
         self._odak_zamanlayici.start(1000)
+
+        # Periyodik içerik yenileme zamanlayıcısını başlat (5 dakika)
+        if not hasattr(self, '_icerik_yenile_zamanlayici'):
+            self._icerik_yenile_zamanlayici = QTimer(self)
+            self._icerik_yenile_zamanlayici.timeout.connect(self._icerik_yenile)
+        self._icerik_yenile_zamanlayici.start(5 * 60 * 1000)
+
+    def _icerik_yenile(self):
+        """Kilit ekranı açıkken periyodik olarak webview'ı yenile"""
+        if not self._kilit_acma_istendi and self.isVisible():
+            self.web_gorunum.reload()
 
     def _girisleri_yakala(self):
         """Klavyeyi yakala"""
@@ -1944,6 +1957,8 @@ class Kilit(QMainWindow):
         self._challenge_zamanlayici.stop()
         self._saat_zamanlayici.stop()
         self._kapanma_zamanlayici.stop()
+        if hasattr(self, '_icerik_yenile_zamanlayici'):
+            self._icerik_yenile_zamanlayici.stop()
         self.releaseKeyboard()
 
         # Veritabanını güncelle (açık olarak işaretle)
@@ -1963,6 +1978,9 @@ class Kilit(QMainWindow):
                 self._vlc_list_player.stop()
             else:
                 self._vlc_list_player.pause()
+
+        # WebView sayfasını yenile (arka planda)
+        self.web_gorunum.reload()
 
         self.hide()
 

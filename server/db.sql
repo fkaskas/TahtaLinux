@@ -51,3 +51,20 @@ CREATE TABLE IF NOT EXISTS ders_saatleri (
     UNIQUE KEY unik_kurum_sira (kurum_id, sira),
     FOREIGN KEY (kurum_id) REFERENCES kurumlar(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
+
+-- Ayın öğrencileri tablosu (kurumla ilişkili)
+CREATE TABLE IF NOT EXISTS ayin_ogrencileri (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    kurum_id INT NOT NULL,
+    ekleyen_id INT NOT NULL,
+    sira TINYINT NOT NULL DEFAULT 1,          -- 1=birinci, 2=ikinci, 3=üçüncü, 4=dördüncü
+    ad_soyad VARCHAR(255) NOT NULL,
+    sinif VARCHAR(50) NOT NULL DEFAULT '',     -- Örn: 9-A
+    odul VARCHAR(255) NOT NULL DEFAULT '',     -- Örn: Matematik Başarı Ödülü
+    aciklama TEXT DEFAULT NULL,
+    foto_url VARCHAR(500) DEFAULT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unik_kurum_sira (kurum_id, sira),
+    FOREIGN KEY (kurum_id) REFERENCES kurumlar(id) ON DELETE CASCADE,
+    FOREIGN KEY (ekleyen_id) REFERENCES kullanicilar(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

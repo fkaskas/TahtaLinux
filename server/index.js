@@ -2,10 +2,58 @@ const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
 const path = require("path");
+const fs = require("fs");
 const mysql = require("mysql2/promise");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const multer = require("multer");
+
+// ===================== Fotoğraf Yükleme =====================
+const UPLOAD_DIR = path.join(__dirname, "public", "uploads", "ayin");
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+
+const ayinStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+  filename: (req, file, cb) => {
+    const uzanti = path.extname(file.originalname).toLowerCase();
+    const benzersiz = Date.now() + '-' + crypto.randomBytes(6).toString('hex');
+    cb(null, benzersiz + uzanti);
+  }
+});
+const ayinUpload = multer({
+  storage: ayinStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const izinli = ['.jpg', '.jpeg', '.png', '.webp'];
+    const uzanti = path.extname(file.originalname).toLowerCase();
+    if (izinli.includes(uzanti)) cb(null, true);
+    else cb(new Error('Sadece JPG, PNG ve WebP formatları kabul edilir'));
+  }
+});
+
+// ---- Slider Yükleme ----
+const SLIDER_UPLOAD_DIR = path.join(__dirname, "public", "uploads", "slider");
+if (!fs.existsSync(SLIDER_UPLOAD_DIR)) fs.mkdirSync(SLIDER_UPLOAD_DIR, { recursive: true });
+
+const sliderStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, SLIDER_UPLOAD_DIR),
+  filename: (req, file, cb) => {
+    const uzanti = path.extname(file.originalname).toLowerCase();
+    const benzersiz = Date.now() + '-' + crypto.randomBytes(6).toString('hex');
+    cb(null, benzersiz + uzanti);
+  }
+});
+const sliderUpload = multer({
+  storage: sliderStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const izinli = ['.jpg', '.jpeg', '.png', '.webp'];
+    const uzanti = path.extname(file.originalname).toLowerCase();
+    if (izinli.includes(uzanti)) cb(null, true);
+    else cb(new Error('Sadece JPG, PNG ve WebP formatları kabul edilir'));
+  }
+});
 
 // ===================== Yapılandırma =====================
 const JWT_SECRET = process.env.JWT_SECRET || "tahta-kilit-gizli-anahtar-2024";
@@ -162,6 +210,42 @@ async function veritabaniBaslat() {
       ders_saati_baslangic TINYINT NOT NULL,
       ders_saati_bitis TINYINT NOT NULL,
       tahtalar JSON NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (kurum_id) REFERENCES kurumlar(id) ON DELETE CASCADE,
+      FOREIGN KEY (ekleyen_id) REFERENCES kullanicilar(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB
+  `);
+
+  // Ayın öğrencileri tablosu
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS ayin_ogrencileri (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      kurum_id INT NOT NULL,
+      ekleyen_id INT NOT NULL,
+      sira TINYINT NOT NULL DEFAULT 1,
+      ad_soyad VARCHAR(255) NOT NULL,
+      sinif VARCHAR(50) NOT NULL DEFAULT '',
+      odul VARCHAR(255) NOT NULL DEFAULT '',
+      aciklama TEXT DEFAULT NULL,
+      foto_url VARCHAR(500) DEFAULT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY unik_kurum_sira (kurum_id, sira),
+      FOREIGN KEY (kurum_id) REFERENCES kurumlar(id) ON DELETE CASCADE,
+      FOREIGN KEY (ekleyen_id) REFERENCES kullanicilar(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB
+  `);
+
+  // Slider tablosu
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS slider (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      kurum_id INT NOT NULL,
+      ekleyen_id INT NOT NULL,
+      sira INT NOT NULL DEFAULT 1,
+      baslik VARCHAR(255) NOT NULL,
+      alt_yazi TEXT DEFAULT NULL,
+      badge_turu ENUM('duyuru','basari','etkinlik','yeni') NOT NULL DEFAULT 'duyuru',
+      foto_url VARCHAR(500) NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (kurum_id) REFERENCES kurumlar(id) ON DELETE CASCADE,
       FOREIGN KEY (ekleyen_id) REFERENCES kullanicilar(id) ON DELETE CASCADE
@@ -970,6 +1054,388 @@ app.delete("/api/sinavlar/:id", authMiddleware, async (req, res) => {
     res.json({ mesaj: "Sınav silindi" });
   } catch (err) {
     console.error("Sınav silme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// ===================== Ayın Öğrencisi =====================
+
+// Ayın öğrencilerini listele
+app.get("/api/ayin-ogrencileri", authMiddleware, async (req, res) => {
+  try {
+    const kurumId = req.query.kurum_id && req.kullanici.rol === "superadmin"
+      ? req.query.kurum_id
+      : req.kullanici.kurum_id;
+    const [rows] = await db.execute(
+      `SELECT a.*, k.ad_soyad AS ekleyen_adi
+       FROM ayin_ogrencileri a
+       JOIN kullanicilar k ON a.ekleyen_id = k.id
+       WHERE a.kurum_id = ?
+       ORDER BY a.sira ASC`,
+      [kurumId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("Ayın öğrencileri listesi hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Ayın öğrencilerini herkese açık listeleme (kurum.html için, auth gerektirmez)
+app.get("/api/ayin-ogrencileri-genel", async (req, res) => {
+  const { kod, tahta_id } = req.query;
+  if (!kod && !tahta_id) return res.json([]);
+  try {
+    let kurumId = null;
+    if (kod) {
+      const [rows] = await db.execute("SELECT id FROM kurumlar WHERE kurum_kodu = ?", [kod]);
+      if (rows.length > 0) kurumId = rows[0].id;
+    }
+    if (!kurumId && tahta_id) {
+      const [rows2] = await db.execute("SELECT kurum_id FROM tahtalar WHERE id = ?", [tahta_id]);
+      if (rows2.length > 0) kurumId = rows2[0].kurum_id;
+    }
+    if (!kurumId) return res.json([]);
+    const [ogrenciler] = await db.execute(
+      `SELECT ad_soyad, sinif, odul, aciklama, foto_url, sira
+       FROM ayin_ogrencileri
+       WHERE kurum_id = ?
+       ORDER BY sira ASC`,
+      [kurumId]
+    );
+    res.json(ogrenciler);
+  } catch (e) {
+    res.json([]);
+  }
+});
+
+// Fotoğraf dosyasını silen yardımcı fonksiyon
+function ayinFotoSil(fotoUrl) {
+  if (!fotoUrl) return;
+  const dosyaAdi = path.basename(fotoUrl);
+  const dosyaYolu = path.join(UPLOAD_DIR, dosyaAdi);
+  fs.unlink(dosyaYolu, () => {});
+}
+
+// Ayın öğrencisi ekle (multipart/form-data)
+app.post("/api/ayin-ogrencileri", authMiddleware, (req, res, next) => {
+  ayinUpload.single('foto')(req, res, (err) => {
+    if (err) return res.status(400).json({ hata: err.message });
+    next();
+  });
+}, async (req, res) => {
+  if (req.kullanici.rol !== "ogretmen" && req.kullanici.rol !== "yonetici") {
+    if (req.file) ayinFotoSil('/uploads/ayin/' + req.file.filename);
+    return res.status(403).json({ hata: "Bu işlem için yetkiniz yok" });
+  }
+  const { ad_soyad, sinif, odul, aciklama, sira } = req.body;
+  if (!ad_soyad || !sinif || !sira) {
+    if (req.file) ayinFotoSil('/uploads/ayin/' + req.file.filename);
+    return res.status(400).json({ hata: "Ad soyad, sınıf ve sıra gerekli" });
+  }
+  if (!req.file) {
+    return res.status(400).json({ hata: "Fotoğraf zorunludur" });
+  }
+  const siraNum = parseInt(sira);
+  if (siraNum < 1 || siraNum > 4) {
+    ayinFotoSil('/uploads/ayin/' + req.file.filename);
+    return res.status(400).json({ hata: "Sıra 1-4 arasında olmalıdır" });
+  }
+  const kurumId = req.kullanici.kurum_id;
+  const fotoUrl = '/uploads/ayin/' + req.file.filename;
+  try {
+    const [mevcut] = await db.execute(
+      "SELECT id FROM ayin_ogrencileri WHERE kurum_id = ? AND sira = ?",
+      [kurumId, siraNum]
+    );
+    if (mevcut.length > 0) {
+      ayinFotoSil(fotoUrl);
+      return res.status(400).json({ hata: `${siraNum}. sırada zaten bir öğrenci var. Önce silin veya düzenleyin.` });
+    }
+    await db.execute(
+      `INSERT INTO ayin_ogrencileri (kurum_id, ekleyen_id, sira, ad_soyad, sinif, odul, aciklama, foto_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [kurumId, req.kullanici.id, siraNum, ad_soyad, sinif, odul || '', aciklama || null, fotoUrl]
+    );
+    res.json({ mesaj: "Ayın öğrencisi eklendi" });
+  } catch (err) {
+    ayinFotoSil(fotoUrl);
+    console.error("Ayın öğrencisi ekleme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Ayın öğrencisi güncelle (multipart/form-data)
+app.put("/api/ayin-ogrencileri/:id", authMiddleware, (req, res, next) => {
+  ayinUpload.single('foto')(req, res, (err) => {
+    if (err) return res.status(400).json({ hata: err.message });
+    next();
+  });
+}, async (req, res) => {
+  const ogrenciId = parseInt(req.params.id);
+  const { ad_soyad, sinif, odul, aciklama, sira } = req.body;
+  try {
+    const [mevcut] = await db.execute("SELECT * FROM ayin_ogrencileri WHERE id = ?", [ogrenciId]);
+    if (mevcut.length === 0) {
+      if (req.file) ayinFotoSil('/uploads/ayin/' + req.file.filename);
+      return res.status(404).json({ hata: "Öğrenci bulunamadı" });
+    }
+    const ogrenci = mevcut[0];
+    if (req.kullanici.rol === "superadmin") {
+      if (req.file) ayinFotoSil('/uploads/ayin/' + req.file.filename);
+      return res.status(403).json({ hata: "Süper yönetici bu işlemi yapamaz" });
+    }
+    if (req.kullanici.rol === "ogretmen" && ogrenci.ekleyen_id !== req.kullanici.id) {
+      if (req.file) ayinFotoSil('/uploads/ayin/' + req.file.filename);
+      return res.status(403).json({ hata: "Sadece kendi eklediğiniz öğrencileri düzenleyebilirsiniz" });
+    }
+    if (ogrenci.kurum_id !== req.kullanici.kurum_id) {
+      if (req.file) ayinFotoSil('/uploads/ayin/' + req.file.filename);
+      return res.status(403).json({ hata: "Bu öğrenciyi düzenleme yetkiniz yok" });
+    }
+    const yeniAdSoyad = ad_soyad || ogrenci.ad_soyad;
+    const yeniSinif = sinif || ogrenci.sinif;
+    const yeniOdul = odul !== undefined ? odul : ogrenci.odul;
+    const yeniAciklama = aciklama !== undefined ? aciklama : ogrenci.aciklama;
+    const yeniSira = sira ? parseInt(sira) : ogrenci.sira;
+    // Yeni fotoğraf yüklendiyse eski dosyayı sil
+    let yeniFotoUrl = ogrenci.foto_url;
+    if (req.file) {
+      ayinFotoSil(ogrenci.foto_url);
+      yeniFotoUrl = '/uploads/ayin/' + req.file.filename;
+    }
+    if (yeniSira < 1 || yeniSira > 4) {
+      if (req.file) ayinFotoSil(yeniFotoUrl);
+      return res.status(400).json({ hata: "Sıra 1-4 arasında olmalıdır" });
+    }
+    if (yeniSira !== ogrenci.sira) {
+      const [cakisma] = await db.execute(
+        "SELECT id FROM ayin_ogrencileri WHERE kurum_id = ? AND sira = ? AND id != ?",
+        [ogrenci.kurum_id, yeniSira, ogrenciId]
+      );
+      if (cakisma.length > 0) {
+        // UNIQUE kısıtlamasını aşmak için: çakışan kaydı geçici sira=0'a al
+        await db.execute("UPDATE ayin_ogrencileri SET sira = 0 WHERE id = ?", [cakisma[0].id]);
+        // Ana kaydı yeni sıraya al
+        await db.execute(
+          `UPDATE ayin_ogrencileri SET ad_soyad = ?, sinif = ?, odul = ?, aciklama = ?, foto_url = ?, sira = ? WHERE id = ?`,
+          [yeniAdSoyad, yeniSinif, yeniOdul, yeniAciklama, yeniFotoUrl, yeniSira, ogrenciId]
+        );
+        // Çakışan kaydı eski sıramıza al (yer değiştirme tamamlandı)
+        await db.execute("UPDATE ayin_ogrencileri SET sira = ? WHERE id = ?", [ogrenci.sira, cakisma[0].id]);
+        return res.json({ mesaj: "Ayın öğrencisi güncellendi" });
+      }
+    }
+    await db.execute(
+      `UPDATE ayin_ogrencileri SET ad_soyad = ?, sinif = ?, odul = ?, aciklama = ?, foto_url = ?, sira = ? WHERE id = ?`,
+      [yeniAdSoyad, yeniSinif, yeniOdul, yeniAciklama, yeniFotoUrl, yeniSira, ogrenciId]
+    );
+    res.json({ mesaj: "Ayın öğrencisi güncellendi" });
+  } catch (err) {
+    if (req.file) ayinFotoSil('/uploads/ayin/' + req.file.filename);
+    console.error("Ayın öğrencisi güncelleme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Ayın öğrencisi sil
+app.delete("/api/ayin-ogrencileri/:id", authMiddleware, async (req, res) => {
+  const ogrenciId = parseInt(req.params.id);
+  try {
+    const [mevcut] = await db.execute("SELECT * FROM ayin_ogrencileri WHERE id = ?", [ogrenciId]);
+    if (mevcut.length === 0) {
+      return res.status(404).json({ hata: "Öğrenci bulunamadı" });
+    }
+    const ogrenci = mevcut[0];
+    if (req.kullanici.rol === "superadmin") {
+      return res.status(403).json({ hata: "Süper yönetici bu işlemi yapamaz" });
+    }
+    if (req.kullanici.rol === "ogretmen" && ogrenci.ekleyen_id !== req.kullanici.id) {
+      return res.status(403).json({ hata: "Sadece kendi eklediğiniz öğrencileri silebilirsiniz" });
+    }
+    if (ogrenci.kurum_id !== req.kullanici.kurum_id) {
+      return res.status(403).json({ hata: "Bu öğrenciyi silme yetkiniz yok" });
+    }
+    ayinFotoSil(ogrenci.foto_url);
+    await db.execute("DELETE FROM ayin_ogrencileri WHERE id = ?", [ogrenciId]);
+    res.json({ mesaj: "Ayın öğrencisi silindi" });
+  } catch (err) {
+    console.error("Ayın öğrencisi silme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// ===================== Slider =====================
+
+// Slider fotoğrafını silen yardımcı fonksiyon
+function sliderFotoSil(fotoUrl) {
+  if (!fotoUrl) return;
+  const dosyaAdi = path.basename(fotoUrl);
+  const dosyaYolu = path.join(SLIDER_UPLOAD_DIR, dosyaAdi);
+  fs.unlink(dosyaYolu, () => {});
+}
+
+// Slider listele (auth gerekli)
+app.get("/api/slider", authMiddleware, async (req, res) => {
+  try {
+    const kurumId = req.query.kurum_id && req.kullanici.rol === "superadmin"
+      ? req.query.kurum_id
+      : req.kullanici.kurum_id;
+    const [rows] = await db.execute(
+      `SELECT s.*, k.ad_soyad AS ekleyen_adi
+       FROM slider s
+       JOIN kullanicilar k ON s.ekleyen_id = k.id
+       WHERE s.kurum_id = ?
+       ORDER BY s.sira ASC, s.created_at ASC`,
+      [kurumId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("Slider listesi hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Slider herkese açık (kurum.html için)
+app.get("/api/slider-genel", async (req, res) => {
+  const { kod, tahta_id } = req.query;
+  if (!kod && !tahta_id) return res.json([]);
+  try {
+    let kurumId = null;
+    if (kod) {
+      const [rows] = await db.execute("SELECT id FROM kurumlar WHERE kurum_kodu = ?", [kod]);
+      if (rows.length > 0) kurumId = rows[0].id;
+    }
+    if (!kurumId && tahta_id) {
+      const [rows2] = await db.execute("SELECT kurum_id FROM tahtalar WHERE id = ?", [tahta_id]);
+      if (rows2.length > 0) kurumId = rows2[0].kurum_id;
+    }
+    if (!kurumId) return res.json([]);
+    const [slides] = await db.execute(
+      `SELECT id, baslik, alt_yazi, badge_turu, foto_url, sira
+       FROM slider
+       WHERE kurum_id = ?
+       ORDER BY sira ASC, created_at ASC`,
+      [kurumId]
+    );
+    res.json(slides);
+  } catch (e) {
+    res.json([]);
+  }
+});
+
+// Slider ekle
+app.post("/api/slider", authMiddleware, (req, res, next) => {
+  sliderUpload.single('foto')(req, res, (err) => {
+    if (err) return res.status(400).json({ hata: err.message });
+    next();
+  });
+}, async (req, res) => {
+  if (req.kullanici.rol !== "ogretmen" && req.kullanici.rol !== "yonetici") {
+    if (req.file) sliderFotoSil('/uploads/slider/' + req.file.filename);
+    return res.status(403).json({ hata: "Bu işlem için yetkiniz yok" });
+  }
+  const { baslik, alt_yazi, badge_turu, sira } = req.body;
+  if (!baslik) {
+    if (req.file) sliderFotoSil('/uploads/slider/' + req.file.filename);
+    return res.status(400).json({ hata: "Başlık gerekli" });
+  }
+  if (!req.file) {
+    return res.status(400).json({ hata: "Görsel zorunludur" });
+  }
+  const gecerliBadgeTurleri = ['duyuru', 'basari', 'etkinlik', 'yeni'];
+  const gecerliBadge = gecerliBadgeTurleri.includes(badge_turu) ? badge_turu : 'duyuru';
+  const siraNum = parseInt(sira) || 1;
+  const kurumId = req.kullanici.kurum_id;
+  const fotoUrl = '/uploads/slider/' + req.file.filename;
+  try {
+    await db.execute(
+      `INSERT INTO slider (kurum_id, ekleyen_id, sira, baslik, alt_yazi, badge_turu, foto_url)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [kurumId, req.kullanici.id, siraNum, baslik, alt_yazi || null, gecerliBadge, fotoUrl]
+    );
+    res.json({ mesaj: "Slide eklendi" });
+  } catch (err) {
+    sliderFotoSil(fotoUrl);
+    console.error("Slider ekleme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Slider güncelle
+app.put("/api/slider/:id", authMiddleware, (req, res, next) => {
+  sliderUpload.single('foto')(req, res, (err) => {
+    if (err) return res.status(400).json({ hata: err.message });
+    next();
+  });
+}, async (req, res) => {
+  const slideId = parseInt(req.params.id);
+  const { baslik, alt_yazi, badge_turu, sira } = req.body;
+  try {
+    const [mevcut] = await db.execute("SELECT * FROM slider WHERE id = ?", [slideId]);
+    if (mevcut.length === 0) {
+      if (req.file) sliderFotoSil('/uploads/slider/' + req.file.filename);
+      return res.status(404).json({ hata: "Slide bulunamadı" });
+    }
+    const slide = mevcut[0];
+
+    // Yetki kontrolü
+    if (req.kullanici.rol === "ogretmen" && slide.ekleyen_id !== req.kullanici.id) {
+      if (req.file) sliderFotoSil('/uploads/slider/' + req.file.filename);
+      return res.status(403).json({ hata: "Sadece kendi eklediğiniz slideleri düzenleyebilirsiniz" });
+    }
+    if (req.kullanici.rol !== "superadmin" && slide.kurum_id !== req.kullanici.kurum_id) {
+      if (req.file) sliderFotoSil('/uploads/slider/' + req.file.filename);
+      return res.status(403).json({ hata: "Bu slideı düzenleme yetkiniz yok" });
+    }
+
+    const gecerliBadgeTurleri = ['duyuru', 'basari', 'etkinlik', 'yeni'];
+    const yeniBaslik = baslik || slide.baslik;
+    const yeniAltYazi = alt_yazi !== undefined ? (alt_yazi || null) : slide.alt_yazi;
+    const yeniBadge = gecerliBadgeTurleri.includes(badge_turu) ? badge_turu : slide.badge_turu;
+    const yeniSira = sira ? parseInt(sira) : slide.sira;
+
+    let yeniFotoUrl = slide.foto_url;
+    if (req.file) {
+      sliderFotoSil(slide.foto_url);
+      yeniFotoUrl = '/uploads/slider/' + req.file.filename;
+    }
+
+    await db.execute(
+      `UPDATE slider SET baslik = ?, alt_yazi = ?, badge_turu = ?, sira = ?, foto_url = ? WHERE id = ?`,
+      [yeniBaslik, yeniAltYazi, yeniBadge, yeniSira, yeniFotoUrl, slideId]
+    );
+    res.json({ mesaj: "Slide güncellendi" });
+  } catch (err) {
+    if (req.file) sliderFotoSil('/uploads/slider/' + req.file.filename);
+    console.error("Slider güncelleme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Slider sil
+app.delete("/api/slider/:id", authMiddleware, async (req, res) => {
+  const slideId = parseInt(req.params.id);
+  try {
+    const [mevcut] = await db.execute("SELECT * FROM slider WHERE id = ?", [slideId]);
+    if (mevcut.length === 0) {
+      return res.status(404).json({ hata: "Slide bulunamadı" });
+    }
+    const slide = mevcut[0];
+
+    // Yetki kontrolü
+    if (req.kullanici.rol === "ogretmen" && slide.ekleyen_id !== req.kullanici.id) {
+      return res.status(403).json({ hata: "Sadece kendi eklediğiniz slideleri silebilirsiniz" });
+    }
+    if (req.kullanici.rol !== "superadmin" && slide.kurum_id !== req.kullanici.kurum_id) {
+      return res.status(403).json({ hata: "Bu slideı silme yetkiniz yok" });
+    }
+
+    sliderFotoSil(slide.foto_url);
+    await db.execute("DELETE FROM slider WHERE id = ?", [slideId]);
+    res.json({ mesaj: "Slide silindi" });
+  } catch (err) {
+    console.error("Slider silme hatası:", err);
     res.status(500).json({ hata: "Sunucu hatası" });
   }
 });

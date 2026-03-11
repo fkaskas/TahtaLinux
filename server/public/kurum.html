@@ -220,6 +220,7 @@
     .kart-icon.yemek { background: var(--orange); }
     .kart-icon.hava  { background: #0e9aa7; }
     .kart-icon.soz   { background: #7c5cbf; }
+    .kart-icon.duyuru { background: #e53935; }
     .ayin-baslik h2 {
       font-size: clamp(12px, 1.3vw, 17px);
       font-weight: 700;
@@ -272,19 +273,19 @@
       overflow: hidden;
     }
     .ayin-bilgi h3 {
-      font-size: clamp(14px, 1.6vw, 21px);
+      font-size: clamp(17px, 2vw, 26px);
       font-weight: 800;
       color: var(--text);
       margin-bottom: 0.2vh;
     }
     .ayin-bilgi .ayin-sinif {
-      font-size: clamp(11px, 1.1vw, 15px);
+      font-size: clamp(13px, 1.35vw, 18px);
       color: var(--accent);
       font-weight: 600;
       margin-bottom: 0.2vh;
     }
     .ayin-bilgi .ayin-odul {
-      font-size: clamp(10px, 1.05vw, 14px);
+      font-size: clamp(12px, 1.25vw, 17px);
       color: var(--gold);
       font-weight: 600;
       margin-bottom: 0.6vh;
@@ -294,14 +295,10 @@
       gap: 4px;
     }
     .ayin-bilgi .ayin-aciklama {
-      font-size: clamp(10px, 1.05vw, 14px);
+      font-size: clamp(10px, 0.95vw, 13px);
       color: var(--text2);
       line-height: 1.4;
       margin-bottom: 0.8vh;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
     }
     .ayin-istatistik {
       display: flex;
@@ -316,12 +313,12 @@
       min-width: clamp(40px, 3.5vw, 55px);
     }
     .ayin-stat .stat-deger {
-      font-size: clamp(13px, 1.4vw, 19px);
+      font-size: clamp(15px, 1.7vw, 23px);
       font-weight: 800;
       color: var(--accent);
     }
     .ayin-stat .stat-etiket {
-      font-size: clamp(8px, 0.8vw, 11px);
+      font-size: clamp(10px, 0.95vw, 13px);
       color: var(--text3);
       font-weight: 600;
       text-transform: uppercase;
@@ -343,7 +340,7 @@
     }
     .diger-ogrenci:last-child { border-bottom: none; }
     .diger-sira {
-      font-size: clamp(11px, 1.1vw, 14px);
+      font-size: clamp(12px, 1.25vw, 16px);
       font-weight: 800;
       color: var(--text3);
       min-width: 16px;
@@ -376,6 +373,81 @@
       font-size: clamp(9px, 0.9vw, 12px);
       color: var(--accent);
       font-weight: 600;
+    }
+
+    /* ===== SAĞ SÜTUN SARICI ===== */
+    .sag-sutun {
+      display: flex;
+      flex-direction: column;
+      gap: 1.2vh;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .sag-sutun .ayin-panel {
+      flex: 1.5;
+      min-height: 0;
+    }
+    .sag-sutun .duyurular-kart {
+      flex: 1;
+      min-height: 0;
+    }
+
+    /* ===== DUYURULAR ===== */
+    .duyurular-icerik {
+      overflow: hidden;
+      position: relative;
+      height: 100%;
+      padding: 0 !important;
+    }
+    .duyurular-liste-sarici {
+      display: flex;
+      flex-direction: column;
+      animation: duyuruKaydir 24s linear infinite;
+    }
+    .duyurular-liste-sarici:hover {
+      animation-play-state: paused;
+    }
+    @keyframes duyuruKaydir {
+      0%   { transform: translateY(0); }
+      100% { transform: translateY(-50%); }
+    }
+    .duyuru-item {
+      padding: 0.55vh 0.8vw;
+      border-bottom: 1px solid rgba(208,213,220,0.5);
+      flex-shrink: 0;
+    }
+    .duyuru-item:last-child { border-bottom: none; }
+    .duyuru-ust {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.3vw;
+      margin-bottom: 0.15vh;
+    }
+    .duyuru-baslik {
+      font-size: clamp(11px, 1.15vw, 16px);
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+    .duyuru-tarih {
+      font-size: clamp(9px, 0.9vw, 13px);
+      color: var(--text3);
+      flex-shrink: 0;
+    }
+    .duyuru-ogretmen {
+      font-size: clamp(10px, 0.95vw, 14px);
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.2vh;
+    }
+    .duyuru-icerik-metin {
+      font-size: clamp(10px, 1.05vw, 14px);
+      color: var(--text2);
+      line-height: 1.45;
     }
 
     /* ===== ALT: BİLGİ KARTLARI ===== */
@@ -577,103 +649,109 @@
     <!-- SOL: SLIDER -->
     <div class="slider-wrapper">
       <div class="slider-track" id="sliderTrack">
-        <div class="slide">
-          <div class="slide-bg" style="background: url('https://picsum.photos/seed/etkinlik/1200/600') center/cover;"></div>
-          <div class="slide-content">
-            <span class="slide-badge badge-duyuru">📢 DUYURU</span>
-            <h2>Yıl Sonu Etkinliği Başladı</h2>
-            <p>Tüm öğrencilerimiz için hazırladığımız yıl sonu etkinliğine katılmaya davetlisiniz.</p>
-          </div>
-        </div>
-        <div class="slide">
-          <div class="slide-bg" style="background: url('https://picsum.photos/seed/tubitak/1200/600') center/cover;"></div>
-          <div class="slide-content">
-            <span class="slide-badge badge-basari">🏆 BAŞARI</span>
-            <h2>TÜBİTAK Yarışmasında Bölge Birincisi</h2>
-            <p>Okulumuz öğrencileri TÜBİTAK proje yarışmasında bölge birinciliği elde etmiştir.</p>
-          </div>
-        </div>
-        <div class="slide">
-          <div class="slide-bg" style="background: url('https://picsum.photos/seed/proje/1200/600') center/cover;"></div>
-          <div class="slide-content">
-            <span class="slide-badge badge-etkinlik">🎯 PROJE</span>
-            <h2>Proje Yarışması Duyurusu</h2>
-            <p>Öğrencilerimizin yaratıcılığını gösterebilecekleri proje yarışması başlıyor.</p>
-          </div>
-        </div>
-        <div class="slide">
-          <div class="slide-bg" style="background: url('https://picsum.photos/seed/kutuphane/1200/600') center/cover;"></div>
-          <div class="slide-content">
-            <span class="slide-badge badge-yeni">📚 YENİ</span>
-            <h2>Kütüphane Yenilendi</h2>
-            <p>Okul kütüphanemiz yeni kitap ve materyallerle yenilendi. Herkesi bekliyoruz!</p>
-          </div>
-        </div>
+        <!-- Slaytlar JS tarafından doldurulur -->
       </div>
       <button class="slider-btn onceki" onclick="sliderGit(-1)">&#10094;</button>
       <button class="slider-btn sonraki" onclick="sliderGit(1)">&#10095;</button>
       <div class="slider-dots" id="sliderDots"></div>
     </div>
 
-    <!-- SAĞ: AYIN ÖĞRENCİSİ -->
-    <div class="ayin-panel">
-      <div class="ayin-baslik">
-        <div class="kart-icon ayin"><i class="fas fa-star"></i></div>
-        <h2>Ayın Öğrencisi</h2>
-      </div>
-      <div class="ayin-ana">
-        <div class="ayin-foto-alan">
-          <img src="https://picsum.photos/seed/ogrenci1/180/180" alt="Ayın Öğrencisi" class="ayin-foto">
-          <div class="ayin-rozet">🏆</div>
+    <!-- SAĞ: AYIN ÖĞRENCİSİ + DUYURULAR -->
+    <div class="sag-sutun">
+
+      <div class="ayin-panel" id="ayinPanel">
+        <div class="ayin-baslik">
+          <div class="kart-icon ayin"><i class="fas fa-star"></i></div>
+          <h2>Ayın Öğrencisi</h2>
         </div>
-        <div class="ayin-bilgi">
-          <h3>Ahmet Yılmaz</h3>
-          <div class="ayin-sinif">9-A Sınıfı</div>
-          <div class="ayin-odul"><i class="fas fa-medal"></i> Matematik Başarı Ödülü</div>
-          <p class="ayin-aciklama">Başarılı proje sunuşları ve akademik başarısı ile sınıfında örnek gösterilen öğrencimiz.</p>
-          <div class="ayin-istatistik">
-            <div class="ayin-stat">
-              <div class="stat-deger">4.0</div>
-              <div class="stat-etiket">GPA</div>
-            </div>
-            <div class="ayin-stat">
-              <div class="stat-deger">98<small>%</small></div>
-              <div class="stat-etiket">Başarı</div>
-            </div>
-            <div class="ayin-stat">
-              <div class="stat-deger">5</div>
-              <div class="stat-etiket">Ödül</div>
-            </div>
+        <div class="ayin-ana" id="ayinAna">
+          <div style="text-align:center;color:#95a5a6;padding:2vh;font-size:clamp(11px,1.1vw,14px);">
+            <i class="fas fa-star" style="font-size:clamp(20px,2.5vw,32px);display:block;margin-bottom:1vh;opacity:0.3;color:#d4a017;"></i>
+            Yükleniyor...
           </div>
+        </div>
+        <div class="diger-ogrenciler" id="digerOgrenciler" style="display:none;">
         </div>
       </div>
-      <div class="diger-ogrenciler">
-        <div class="diger-ogrenci">
-          <span class="diger-sira">2</span>
-          <div class="diger-avatar">📖</div>
-          <div class="diger-bilgi">
-            <h4>Ayşe Kaya</h4>
-            <div class="diger-basari">Türkçe Başarısı</div>
-          </div>
+
+      <!-- DUYURULAR -->
+      <div class="bilgi-kart duyurular-kart">
+        <div class="bilgi-kart-baslik">
+          <div class="kart-icon duyuru"><i class="fas fa-bullhorn"></i></div>
+          <h3>Duyurular</h3>
         </div>
-        <div class="diger-ogrenci">
-          <span class="diger-sira">3</span>
-          <div class="diger-avatar">🔬</div>
-          <div class="diger-bilgi">
-            <h4>Mehmet Demir</h4>
-            <div class="diger-basari">Bilim Başarısı</div>
-          </div>
-        </div>
-        <div class="diger-ogrenci">
-          <span class="diger-sira">4</span>
-          <div class="diger-avatar">🎨</div>
-          <div class="diger-bilgi">
-            <h4>Seda Şahin</h4>
-            <div class="diger-basari">Sanat Başarısı</div>
+        <div class="bilgi-kart-icerik duyurular-icerik">
+          <div class="duyurular-liste-sarici">
+            <div class="duyuru-item">
+              <div class="duyuru-ust">
+                <span class="duyuru-baslik">Veli Toplantısı</span>
+                <span class="duyuru-tarih">10 Mar</span>
+              </div>
+              <div class="duyuru-ogretmen">Ahmet Yılmaz</div>
+              <p class="duyuru-icerik-metin">15 Mart Cumartesi günü saat 14:00'da veli toplantısı yapılacaktır. Tüm velilerimizin katılımını bekliyoruz.</p>
+            </div>
+            <div class="duyuru-item">
+              <div class="duyuru-ust">
+                <span class="duyuru-baslik">Kütüphane Haftası</span>
+                <span class="duyuru-tarih">9 Mar</span>
+              </div>
+              <div class="duyuru-ogretmen">Müge Demir</div>
+              <p class="duyuru-icerik-metin">24–30 Mart tarihleri arasında Kütüphane Haftası etkinlikleri düzenlenecektir. Kitap fuarına davetlisiniz.</p>
+            </div>
+            <div class="duyuru-item">
+              <div class="duyuru-ust">
+                <span class="duyuru-baslik">Bahar Şenliği</span>
+                <span class="duyuru-tarih">8 Mar</span>
+              </div>
+              <div class="duyuru-ogretmen">Selin Kaya</div>
+              <p class="duyuru-icerik-metin">Okulumuzun geleneksel Bahar Şenliği 5 Nisan'da düzenlenecektir. Tüm öğrencilerimiz davetlidir.</p>
+            </div>
+            <div class="duyuru-item">
+              <div class="duyuru-ust">
+                <span class="duyuru-baslik">Sınav Takvimi Yayınlandı</span>
+                <span class="duyuru-tarih">7 Mar</span>
+              </div>
+              <div class="duyuru-ogretmen">Emre Öztürk</div>
+              <p class="duyuru-icerik-metin">2. dönem sınav takvimi yayınlanmıştır. e-Okul sistemi üzerinden takvime ulaşabilirsiniz.</p>
+            </div>
+            <!-- Sonsuz kaydırma için tekrar -->
+            <div class="duyuru-item">
+              <div class="duyuru-ust">
+                <span class="duyuru-baslik">Veli Toplantısı</span>
+                <span class="duyuru-tarih">10 Mar</span>
+              </div>
+              <div class="duyuru-ogretmen">Ahmet Yılmaz</div>
+              <p class="duyuru-icerik-metin">15 Mart Cumartesi günü saat 14:00'da veli toplantısı yapılacaktır. Tüm velilerimizin katılımını bekliyoruz.</p>
+            </div>
+            <div class="duyuru-item">
+              <div class="duyuru-ust">
+                <span class="duyuru-baslik">Kütüphane Haftası</span>
+                <span class="duyuru-tarih">9 Mar</span>
+              </div>
+              <div class="duyuru-ogretmen">Müge Demir</div>
+              <p class="duyuru-icerik-metin">24–30 Mart tarihleri arasında Kütüphane Haftası etkinlikleri düzenlenecektir. Kitap fuarına davetlisiniz.</p>
+            </div>
+            <div class="duyuru-item">
+              <div class="duyuru-ust">
+                <span class="duyuru-baslik">Bahar Şenliği</span>
+                <span class="duyuru-tarih">8 Mar</span>
+              </div>
+              <div class="duyuru-ogretmen">Selin Kaya</div>
+              <p class="duyuru-icerik-metin">Okulumuzun geleneksel Bahar Şenliği 5 Nisan'da düzenlenecektir. Tüm öğrencilerimiz davetlidir.</p>
+            </div>
+            <div class="duyuru-item">
+              <div class="duyuru-ust">
+                <span class="duyuru-baslik">Sınav Takvimi Yayınlandı</span>
+                <span class="duyuru-tarih">7 Mar</span>
+              </div>
+              <div class="duyuru-ogretmen">Emre Öztürk</div>
+              <p class="duyuru-icerik-metin">2. dönem sınav takvimi yayınlanmıştır. e-Okul sistemi üzerinden takvime ulaşabilirsiniz.</p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+    </div><!-- /.sag-sutun -->
 
     <!-- ALT: BİLGİ KARTLARI -->
     <div class="bilgi-alani">
@@ -801,21 +879,52 @@
 <script>
   // ===== SLIDER =====
   let mevcutSlayt = 0;
+  let sliderOtomatikTimer = null;
   const track = document.getElementById('sliderTrack');
-  const slaytlar = track.querySelectorAll('.slide');
   const dotsKapsam = document.getElementById('sliderDots');
 
-  slaytlar.forEach((_, i) => {
-    const dot = document.createElement('div');
-    dot.className = 'slider-dot' + (i === 0 ? ' aktif' : '');
-    dot.onclick = () => slaytaGit(i);
-    dotsKapsam.appendChild(dot);
-  });
+  const badgeEtiket = { duyuru: '📢 DUYURU', basari: '🏆 BAŞARI', etkinlik: '🎯 ETKİNLİK', yeni: '📚 YENİ' };
+  const badgeClass  = { duyuru: 'badge-duyuru', basari: 'badge-basari', etkinlik: 'badge-etkinlik', yeni: 'badge-yeni' };
+
+  function sliderOlustur(liste) {
+    mevcutSlayt = 0;
+    if (sliderOtomatikTimer) clearInterval(sliderOtomatikTimer);
+
+    if (!liste || liste.length === 0) {
+      track.innerHTML = `<div class="slide"><div class="slide-bg" style="background:#1a2533;"></div><div class="slide-content"><h2 style="color:#95a5a6;">Henüz slide eklenmemiş</h2></div></div>`;
+      dotsKapsam.innerHTML = '';
+      return;
+    }
+
+    track.innerHTML = liste.map(s => {
+      const badge = badgeEtiket[s.badge_turu] || s.badge_turu.toUpperCase();
+      const cls   = badgeClass[s.badge_turu] || 'badge-duyuru';
+      return `<div class="slide">
+        <div class="slide-bg" style="background-image:url('${esc(s.foto_url)}');background-size:cover;background-position:center;"></div>
+        <div class="slide-content">
+          <span class="slide-badge ${cls}">${badge}</span>
+          <h2>${esc(s.baslik)}</h2>
+          ${s.alt_yazi ? `<p>${esc(s.alt_yazi)}</p>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+
+    dotsKapsam.innerHTML = '';
+    liste.forEach((_, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'slider-dot' + (i === 0 ? ' aktif' : '');
+      dot.onclick = () => slaytaGit(i);
+      dotsKapsam.appendChild(dot);
+    });
+
+    slaytaGit(0);
+    sliderOtomatikTimer = setInterval(() => sliderGit(1), 6000);
+  }
 
   function slaytaGit(idx) {
-    mevcutSlayt = idx;
-    if (mevcutSlayt < 0) mevcutSlayt = slaytlar.length - 1;
-    if (mevcutSlayt >= slaytlar.length) mevcutSlayt = 0;
+    const slaytlar = track.querySelectorAll('.slide');
+    if (slaytlar.length === 0) return;
+    mevcutSlayt = ((idx % slaytlar.length) + slaytlar.length) % slaytlar.length;
     track.style.transform = 'translateX(-' + (mevcutSlayt * 100) + '%)';
     dotsKapsam.querySelectorAll('.slider-dot').forEach((d, i) => {
       d.classList.toggle('aktif', i === mevcutSlayt);
@@ -823,8 +932,6 @@
   }
 
   function sliderGit(yon) { slaytaGit(mevcutSlayt + yon); }
-
-  setInterval(() => sliderGit(1), 6000);
 
   // ===== KURUM ADI =====
   (function() {
@@ -835,12 +942,75 @@
       const q = new URLSearchParams();
       if (kod) q.set('kod', kod);
       if (tahta_id) q.set('tahta_id', tahta_id);
+
+      // Kurum adı
       fetch('/api/kurum-adi?' + q.toString())
         .then(r => r.json())
         .then(d => { if (d.kurum_adi) document.getElementById('kurumAdi').textContent = d.kurum_adi; })
         .catch(() => {});
+
+      // Slider slaytları
+      fetch('/api/slider-genel?' + q.toString())
+        .then(r => r.json())
+        .then(liste => sliderOlustur(liste))
+        .catch(() => sliderOlustur([]));
+
+      // Ayın öğrencilerini yükle
+      fetch('/api/ayin-ogrencileri-genel?' + q.toString())
+        .then(r => r.json())
+        .then(liste => { ayinOgrencileriGoster(liste); })
+        .catch(() => { ayinOgrencileriGoster([]); });
+    } else {
+      sliderOlustur([]);
     }
   })();
+
+  function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  function ayinOgrencileriGoster(liste) {
+    const anaEl = document.getElementById('ayinAna');
+    const digerEl = document.getElementById('digerOgrenciler');
+    if (!Array.isArray(liste) || liste.length === 0) {
+      anaEl.innerHTML = '<div style="text-align:center;color:#95a5a6;padding:2vh;font-size:clamp(11px,1.1vw,14px);"><i class="fas fa-star" style="font-size:clamp(20px,2.5vw,32px);display:block;margin-bottom:1vh;opacity:0.3;color:#d4a017;"></i>Henüz ayın öğrencisi eklenmemiş</div>';
+      digerEl.style.display = 'none';
+      return;
+    }
+    const birinci = liste.find(o => o.sira === 1);
+    const digerleri = liste.filter(o => o.sira > 1).sort((a,b) => a.sira - b.sira);
+    const emojiler = {2: '🥈', 3: '🥉', 4: '⭐'};
+
+    if (birinci) {
+      const fotoSrc = birinci.foto_url || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(birinci.ad_soyad) + '&background=d4a017&color=fff&size=180';
+      anaEl.innerHTML = `
+        <div class="ayin-foto-alan">
+          <img src="${esc(fotoSrc)}" alt="Ayın Öğrencisi" class="ayin-foto" onerror="this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(birinci.ad_soyad)}&background=d4a017&color=fff&size=180'">
+          <div class="ayin-rozet">🏆</div>
+        </div>
+        <div class="ayin-bilgi">
+          <h3>${esc(birinci.ad_soyad)}</h3>
+          <div class="ayin-sinif">${esc(birinci.sinif)} Sınıfı</div>
+          ${birinci.odul ? '<div class="ayin-odul"><i class="fas fa-medal"></i> ' + esc(birinci.odul) + '</div>' : ''}
+          ${birinci.aciklama ? '<p class="ayin-aciklama">' + esc(birinci.aciklama) + '</p>' : ''}
+        </div>`;
+    } else {
+      anaEl.innerHTML = '<div style="text-align:center;color:#95a5a6;padding:2vh;font-size:clamp(11px,1.1vw,14px);">1. sırada öğrenci yok</div>';
+    }
+
+    if (digerleri.length > 0) {
+      digerEl.style.display = '';
+      digerEl.innerHTML = digerleri.map(o => `
+        <div class="diger-ogrenci">
+          <span class="diger-sira">${o.sira}</span>
+          <div class="diger-avatar">${emojiler[o.sira] || '⭐'}</div>
+          <div class="diger-bilgi">
+            <h4>${esc(o.ad_soyad)}</h4>
+            <div class="diger-basari">${esc(o.odul || o.sinif)}</div>
+          </div>
+        </div>`).join('');
+    } else {
+      digerEl.style.display = 'none';
+    }
+  }
 </script>
 
 </body>
