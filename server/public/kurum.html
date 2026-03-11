@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kurum Bilgi Paneli</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface2: #334155;
+      --border: #334155;
+      --accent: #3b82f6;
+      --accent2: #6366f1;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warn: #f59e0b;
+      --orange: #f97316;
+      --text: #f1f5f9;
+      --text2: #94a3b8;
+      --text3: #64748b;
+      --radius: 12px;
+      --gold: #fbbf24;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Exo 2', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ===== ANA YAPI: Dikey Flex, 100vh ===== */
+    .sayfa {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ===== HEADER ===== */
+    .header {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 50%, #7f1d1d 100%);
+      padding: 0.6vh 2vw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 3px solid #e30a17;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-size: clamp(12px, 1.8vw, 22px);
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+      white-space: nowrap;
+      text-align: center;
+      width: 100%;
+    }
+
+    /* ===== İÇERİK ANA ALAN ===== */
+    .ana-icerik {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 0.4fr;
+      grid-template-rows: 1fr auto;
+      gap: 1.2vh 1.2vw;
+      padding: 1.2vh 1.2vw;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* ===== SOL: SLIDER ===== */
+    .slider-wrapper {
+      position: relative;
+      border-radius: var(--radius);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      min-height: 0;
+    }
+    .slider-track {
+      display: flex;
+      height: 100%;
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .slide {
+      min-width: 100%;
+      height: 100%;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .slide-bg {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center;
+    }
+    .slide-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      padding: 2vh 2vw;
+    }
+    .slide-content .slide-badge {
+      display: inline-block;
+      padding: 0.4vh 1.2vw;
+      border-radius: 20px;
+      font-size: clamp(9px, 1vw, 12px);
+      font-weight: 700;
+      margin-bottom: 1vh;
+    }
+    .badge-duyuru { background: rgba(59,130,246,0.25); color: var(--accent); }
+    .badge-basari { background: rgba(251,191,36,0.25); color: var(--gold); }
+    .badge-etkinlik { background: rgba(249,115,22,0.25); color: var(--orange); }
+    .badge-yeni { background: rgba(34,197,94,0.25); color: var(--success); }
+    .slide-content h2 {
+      font-size: clamp(14px, 2.2vw, 26px);
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 0.8vh;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.6);
+    }
+    .slide-content p {
+      font-size: clamp(10px, 1.2vw, 15px);
+      color: rgba(255,255,255,0.7);
+      max-width: 80%;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+    .slider-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: clamp(28px, 3vw, 40px);
+      height: clamp(28px, 3vw, 40px);
+      border-radius: 50%;
+      background: rgba(15,23,42,0.7);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #fff;
+      font-size: clamp(12px, 1.5vw, 18px);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+      backdrop-filter: blur(4px);
+    }
+    .slider-btn:hover { background: rgba(59,130,246,0.5); }
+    .slider-btn.onceki { left: 0.8vw; }
+    .slider-btn.sonraki { right: 0.8vw; }
+    .slider-dots {
+      position: absolute;
+      bottom: 1vh;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+      z-index: 5;
+    }
+    .slider-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.3);
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .slider-dot.aktif {
+      background: var(--accent);
+      width: 20px;
+      border-radius: 4px;
+    }
+
+    /* ===== SAĞ: AYIN ÖĞRENCİSİ ===== */
+    .ayin-panel {
+      display: flex;
+      flex-direction: column;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      min-height: 0;
+    }
+    .ayin-baslik {
+      display: flex;
+      align-items: center;
+      gap: 0.6vw;
+      padding: 1vh 1.2vw;
+      background: var(--surface2);
+      flex-shrink: 0;
+    }
+    .ayin-baslik span { font-size: clamp(14px, 1.5vw, 20px); }
+    .ayin-baslik h2 {
+      font-size: clamp(11px, 1.3vw, 16px);
+      font-weight: 700;
+      color: var(--text);
+    }
+    .ayin-ana {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 1.5vw;
+      padding: 1.5vh 1.5vw;
+      min-height: 0;
+    }
+    .ayin-foto-alan {
+      position: relative;
+      flex-shrink: 0;
+    }
+    .ayin-foto {
+      width: clamp(80px, 12vh, 140px);
+      height: clamp(80px, 12vh, 140px);
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid rgba(251,191,36,0.3);
+      box-shadow: 0 0 20px rgba(251,191,36,0.12);
+    }
+    .ayin-rozet {
+      position: absolute;
+      bottom: 2px; right: 2px;
+      width: clamp(24px, 3.5vh, 36px);
+      height: clamp(24px, 3.5vh, 36px);
+      border-radius: 50%;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(12px, 1.6vh, 16px);
+      box-shadow: 0 3px 10px rgba(245,158,11,0.4);
+    }
+    .ayin-bilgi {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .ayin-bilgi h3 {
+      font-size: clamp(14px, 1.8vw, 22px);
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 0.3vh;
+    }
+    .ayin-bilgi .ayin-sinif {
+      font-size: clamp(10px, 1.1vw, 14px);
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.3vh;
+    }
+    .ayin-bilgi .ayin-odul {
+      font-size: clamp(9px, 1vw, 13px);
+      color: var(--gold);
+      font-weight: 600;
+      margin-bottom: 0.8vh;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .ayin-bilgi .ayin-aciklama {
+      font-size: clamp(9px, 1vw, 13px);
+      color: var(--text2);
+      line-height: 1.5;
+      margin-bottom: 1.2vh;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .ayin-istatistik {
+      display: flex;
+      gap: 0.8vw;
+    }
+    .ayin-stat {
+      text-align: center;
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 0.6vh 0.8vw;
+      min-width: clamp(45px, 4vw, 65px);
+    }
+    .ayin-stat .stat-deger {
+      font-size: clamp(12px, 1.4vw, 18px);
+      font-weight: 800;
+      color: var(--accent);
+    }
+    .ayin-stat .stat-etiket {
+      font-size: clamp(7px, 0.7vw, 10px);
+      color: var(--text3);
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    /* Diğer öğrenciler */
+    .diger-ogrenciler {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .diger-ogrenci {
+      display: flex;
+      align-items: center;
+      gap: 0.6vw;
+      padding: 0.8vh 1vw;
+      border-right: 1px solid var(--border);
+    }
+    .diger-ogrenci:last-child { border-right: none; }
+    .diger-avatar {
+      width: clamp(28px, 3.5vh, 40px);
+      height: clamp(28px, 3.5vh, 40px);
+      border-radius: 50%;
+      background: var(--surface2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(12px, 1.4vh, 16px);
+      flex-shrink: 0;
+    }
+    .diger-bilgi h4 {
+      font-size: clamp(9px, 1vw, 13px);
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .diger-bilgi .diger-sinif {
+      font-size: clamp(8px, 0.8vw, 10px);
+      color: var(--text3);
+    }
+    .diger-bilgi .diger-basari {
+      font-size: clamp(8px, 0.8vw, 10px);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ===== ALT: DUYURULAR ===== */
+    .duyuru-alani {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .duyuru-baslik-bar {
+      display: flex;
+      align-items: center;
+      gap: 0.6vw;
+      margin-bottom: 0.8vh;
+      flex-shrink: 0;
+    }
+    .duyuru-baslik-bar span { font-size: clamp(14px, 1.5vw, 20px); }
+    .duyuru-baslik-bar h2 {
+      font-size: clamp(11px, 1.2vw, 15px);
+      font-weight: 700;
+      color: var(--text);
+    }
+    .duyuru-baslik-bar .cizgi {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+    .duyuru-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.8vw;
+      flex: 1;
+      min-height: 0;
+    }
+    .duyuru-kart {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.2vh 1vw;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .duyuru-kart .duyuru-ust {
+      display: flex;
+      align-items: center;
+      gap: 0.5vw;
+      margin-bottom: 0.6vh;
+      flex-shrink: 0;
+    }
+    .duyuru-kart .duyuru-tip {
+      font-size: clamp(7px, 0.7vw, 10px);
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .tip-yarisma { background: rgba(249,115,22,0.15); color: var(--orange); }
+    .tip-saglik { background: rgba(34,197,94,0.15); color: var(--success); }
+    .tip-bilgi { background: rgba(59,130,246,0.15); color: var(--accent); }
+    .tip-etkinlik { background: rgba(251,191,36,0.15); color: var(--gold); }
+    .duyuru-kart .duyuru-tarih {
+      font-size: clamp(7px, 0.7vw, 10px);
+      color: var(--text3);
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      margin-left: auto;
+    }
+    .duyuru-kart h3 {
+      font-size: clamp(10px, 1.1vw, 14px);
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.4vh;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .duyuru-kart p {
+      font-size: clamp(8px, 0.85vw, 12px);
+      color: var(--text2);
+      line-height: 1.5;
+      flex: 1;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* ===== FOOTER BAR ===== */
+    .footer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.4vh 1.5vw;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .footer-bar .motto {
+      font-size: clamp(8px, 0.9vw, 12px);
+      font-weight: 700;
+      color: var(--text2);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .footer-bar .versiyon {
+      font-size: clamp(7px, 0.7vw, 10px);
+      color: var(--text3);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<div class="sayfa">
+
+  <!-- ===== HEADER ===== -->
+  <div class="header">
+    <h1>KULU MESLEKİ VE TEKNİK ANADOLU LİSESİ</h1>
+  </div>
+
+  <!-- ===== ANA İÇERİK ===== -->
+  <div class="ana-icerik">
+
+    <!-- SOL: SLIDER -->
+    <div class="slider-wrapper">
+      <div class="slider-track" id="sliderTrack">
+        <div class="slide">
+          <div class="slide-bg" style="background: linear-gradient(135deg, rgba(30,58,95,0.7), rgba(12,26,46,0.7)), url('https://picsum.photos/seed/etkinlik/1200/600') center/cover;"></div>
+          <div class="slide-content">
+            <span class="slide-badge badge-duyuru">📢 DUYURU</span>
+            <h2>Yıl Sonu Etkinliği Başladı</h2>
+            <p>Tüm öğrencilerimiz için hazırladığımız yıl sonu etkinliğine katılmaya davetlisiniz.</p>
+          </div>
+        </div>
+        <div class="slide">
+          <div class="slide-bg" style="background: linear-gradient(135deg, rgba(26,26,46,0.7), rgba(22,33,62,0.7)), url('https://picsum.photos/seed/tubitak/1200/600') center/cover;"></div>
+          <div class="slide-content">
+            <span class="slide-badge badge-basari">🏆 BAŞARI</span>
+            <h2>TÜBİTAK Yarışmasında Bölge Birincisi</h2>
+            <p>Okulumuz öğrencileri TÜBİTAK proje yarışmasında bölge birinciliği elde etmiştir.</p>
+          </div>
+        </div>
+        <div class="slide">
+          <div class="slide-bg" style="background: linear-gradient(135deg, rgba(15,32,39,0.7), rgba(32,58,67,0.7)), url('https://picsum.photos/seed/proje/1200/600') center/cover;"></div>
+          <div class="slide-content">
+            <span class="slide-badge badge-etkinlik">🎯 PROJE</span>
+            <h2>Proje Yarışması Duyurusu</h2>
+            <p>Öğrencilerimizin yaratıcılığını gösterebilecekleri proje yarışması başlıyor.</p>
+          </div>
+        </div>
+        <div class="slide">
+          <div class="slide-bg" style="background: linear-gradient(135deg, rgba(26,26,46,0.7), rgba(45,27,78,0.7)), url('https://picsum.photos/seed/kutuphane/1200/600') center/cover;"></div>
+          <div class="slide-content">
+            <span class="slide-badge badge-yeni">📚 YENİ</span>
+            <h2>Kütüphane Yenilendi</h2>
+            <p>Okul kütüphanemiz yeni kitap ve materyallerle yenilendi. Herkesi bekliyoruz!</p>
+          </div>
+        </div>
+      </div>
+      <button class="slider-btn onceki" onclick="sliderGit(-1)">&#10094;</button>
+      <button class="slider-btn sonraki" onclick="sliderGit(1)">&#10095;</button>
+      <div class="slider-dots" id="sliderDots"></div>
+    </div>
+
+    <!-- SAĞ: AYIN ÖĞRENCİSİ -->
+    <div class="ayin-panel">
+      <div class="ayin-baslik">
+        <span>⭐</span>
+        <h2>Ayın Öğrencisi</h2>
+      </div>
+      <div class="ayin-ana">
+        <div class="ayin-foto-alan">
+          <img src="https://picsum.photos/seed/ogrenci1/180/180" alt="Ayın Öğrencisi" class="ayin-foto">
+          <div class="ayin-rozet">🏆</div>
+        </div>
+        <div class="ayin-bilgi">
+          <h3>Ahmet Yılmaz</h3>
+          <div class="ayin-sinif">9-A Sınıfı</div>
+          <div class="ayin-odul"><i class="fas fa-medal"></i> Matematik Başarı Ödülü</div>
+          <p class="ayin-aciklama">Başarılı proje sunuşları ve akademik başarısı ile sınıfında örnek gösterilen öğrencimiz.</p>
+          <div class="ayin-istatistik">
+            <div class="ayin-stat">
+              <div class="stat-deger">4.0</div>
+              <div class="stat-etiket">GPA</div>
+            </div>
+            <div class="ayin-stat">
+              <div class="stat-deger">98<small>%</small></div>
+              <div class="stat-etiket">Başarı</div>
+            </div>
+            <div class="ayin-stat">
+              <div class="stat-deger">5</div>
+              <div class="stat-etiket">Ödül</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="diger-ogrenciler">
+        <div class="diger-ogrenci">
+          <div class="diger-avatar">📖</div>
+          <div class="diger-bilgi">
+            <h4>Ayşe Kaya</h4>
+            <div class="diger-sinif">10-B</div>
+            <div class="diger-basari">Türkçe Başarısı</div>
+          </div>
+        </div>
+        <div class="diger-ogrenci">
+          <div class="diger-avatar">🔬</div>
+          <div class="diger-bilgi">
+            <h4>Mehmet Demir</h4>
+            <div class="diger-sinif">9-C</div>
+            <div class="diger-basari">Bilim Başarısı</div>
+          </div>
+        </div>
+        <div class="diger-ogrenci">
+          <div class="diger-avatar">🎨</div>
+          <div class="diger-bilgi">
+            <h4>Seda Şahin</h4>
+            <div class="diger-sinif">11-A</div>
+            <div class="diger-basari">Sanat Başarısı</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ALT: DUYURULAR -->
+    <div class="duyuru-alani">
+      <div class="duyuru-baslik-bar">
+        <span>📢</span>
+        <h2>Duyurular & Etkinlikler</h2>
+        <div class="cizgi"></div>
+      </div>
+      <div class="duyuru-grid">
+        <div class="duyuru-kart">
+          <div class="duyuru-ust">
+            <span class="duyuru-tip tip-etkinlik">Etkinlik</span>
+            <span class="duyuru-tarih"><i class="fas fa-calendar-alt"></i> 15 Haz 2024</span>
+          </div>
+          <h3>Yıl Sonu Etkinliği Başladı</h3>
+          <p>Tüm öğrencilerimiz için hazırladığımız yıl sonu etkinliğine katılmaya davetlisiniz.</p>
+        </div>
+        <div class="duyuru-kart">
+          <div class="duyuru-ust">
+            <span class="duyuru-tip tip-yarisma">Yarışma</span>
+            <span class="duyuru-tarih"><i class="fas fa-calendar-alt"></i> 10 Haz 2024</span>
+          </div>
+          <h3>Proje Yarışması Duyurusu</h3>
+          <p>Öğrencilerimizin yaratıcılığını gösterebilecekleri proje yarışması başlıyor.</p>
+        </div>
+        <div class="duyuru-kart">
+          <div class="duyuru-ust">
+            <span class="duyuru-tip tip-saglik">Sağlık</span>
+            <span class="duyuru-tarih"><i class="fas fa-calendar-alt"></i> 05 Haz 2024</span>
+          </div>
+          <h3>Sağlık Taraması Yapılacaktır</h3>
+          <p>Okul öncesi sağlık taraması için rehber öğretmenlerinize başvurunuz.</p>
+        </div>
+        <div class="duyuru-kart">
+          <div class="duyuru-ust">
+            <span class="duyuru-tip tip-bilgi">Bilgi</span>
+            <span class="duyuru-tarih"><i class="fas fa-calendar-alt"></i> 01 Haz 2024</span>
+          </div>
+          <h3>Kütüphane Yenilendi</h3>
+          <p>Okul kütüphanemiz yeni kitap ve materyallerle yenilendi. Herkesi bekliyoruz!</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== FOOTER BAR ===== -->
+  <div class="footer-bar">
+    <div class="motto">MESLEK LİSESİ MEMLEKET MESELESİDİR</div>
+    <div class="versiyon">Tahta Kontrol Sistemi v3.0 &bull; &copy; 2026</div>
+  </div>
+
+</div>
+
+<script>
+  // ===== SLIDER =====
+  let mevcutSlayt = 0;
+  const track = document.getElementById('sliderTrack');
+  const slaytlar = track.querySelectorAll('.slide');
+  const dotsKapsam = document.getElementById('sliderDots');
+
+  slaytlar.forEach((_, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'slider-dot' + (i === 0 ? ' aktif' : '');
+    dot.onclick = () => slaytaGit(i);
+    dotsKapsam.appendChild(dot);
+  });
+
+  function slaytaGit(idx) {
+    mevcutSlayt = idx;
+    if (mevcutSlayt < 0) mevcutSlayt = slaytlar.length - 1;
+    if (mevcutSlayt >= slaytlar.length) mevcutSlayt = 0;
+    track.style.transform = 'translateX(-' + (mevcutSlayt * 100) + '%)';
+    dotsKapsam.querySelectorAll('.slider-dot').forEach((d, i) => {
+      d.classList.toggle('aktif', i === mevcutSlayt);
+    });
+  }
+
+  function sliderGit(yon) { slaytaGit(mevcutSlayt + yon); }
+
+  setInterval(() => sliderGit(1), 6000);
+</script>
+
+</body>
+</html>

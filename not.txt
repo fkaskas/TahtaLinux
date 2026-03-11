@@ -274,3 +274,11 @@ Dosyaları root:root sahipliğinde bırakıp, .py dosyalarına 600 (sadece root 
 
 Tüm kodu tek bir native binary'ye derlemek. Daha önce kullandığınız yöntem — ama derleme ortamının hedef makineyle aynı olması gerekir.
 En pratik öneri: 1 ve 2'yi birleştirmek — .pyc olarak paketleyip dosya izinlerini 700 root:root yapmak. Kullanıcı ne kaynak kodu görebilir ne de dosyaları kopyalayabilir.
+
+
+kilit ekranında sınav tarihlerini gösteren bir yapıya ihtiyacım var. tabi bu bir liste olacak . bu listeyi Tahta isminin alt kısmında göstermek istiyorum . örneğin bir sınav için ders adı sınavın tarihi saat olmayacak sadece tarih ve sınavın hangi ders saatlerinde olacağı yani 1.ders veya 1-3.ders arasında gibi. bilgileri olacak. Ve sınavın hangi sınıfın tahtalarında gösterileceği bilgileri olacak(bu veri panel tarafında lazım çünkü öğretmen sınav eklerken hangi tahtalarda gösterileceğini bu alanla belirleyecek). Öğretmen ve yönetici rolleri bu işlemleri yapabilisin. Yönetici o kurumdaki bütün sınavları görüp işlem yapabilsin. Öğretmen bütün sınavları görsün ancak sadece kendi eklediği sınavlar için silme güncelleme yapabilsin. Sınav eklemnin şu kriteri olacak aynı tarhte aynı ders saatine iki sınav eklenemez. ve aynı tarihte en fazla 3 sınav olabilir.Kilit ekranı tarafındaki tasarımı nasıl yapabiliriz öncelikle bunu halledelim panel tarafını bunu hallettikten sonra bakalım.
+
+Sınav eklerken ders saatleri seçimi kısmında ilk seçim diğerinede uygunlansın 2. seçimi isteyen ileri alsın yani 2.dersi seçtiyse 2.seçimde 2.ders olsun otomatik olarak
+Süper yönetici kurum seçerek kurumdaki bütün sınavları görebilsin
+
+Kilit ekranında sınav kartı daha şık ve daha anlaşılır olsun istiyorum daha farklı bir tasarım yap flat bir tasarım olsun

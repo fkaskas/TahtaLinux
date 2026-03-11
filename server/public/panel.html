@@ -517,6 +517,45 @@
     .ders-switch input:checked + .ders-slider { background-color: var(--success); }
     .ders-switch input:checked + .ders-slider:before { transform: translateX(24px); }
 
+    /* Sınav Yönetimi */
+    .sinav-kart {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px;
+      border-left: 3px solid var(--accent);
+    }
+    .sinav-kart.gecmis { opacity: 0.5; border-left-color: var(--text3); }
+    .sinav-kart .sinav-baslik { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .sinav-kart .sinav-baslik h4 { font-size: 14px; font-weight: 600; color: var(--text); margin: 0; }
+    .sinav-kart .sinav-detay { font-size: 12px; color: var(--text2); display: flex; gap: 14px; flex-wrap: wrap; }
+    .sinav-kart .sinav-detay i { margin-right: 4px; }
+    .sinav-kart .sinav-islem { display: flex; gap: 6px; flex-shrink: 0; }
+    .sinav-kart .sinav-islem button {
+      padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer;
+      font-size: 14px; font-weight: 600; transition: opacity 0.2s;
+      min-width: 38px; min-height: 38px; display: inline-flex; align-items: center; justify-content: center;
+    }
+    .sinav-kart .sinav-islem .btn-sinav-duzenle { background: rgba(59,130,246,0.15); color: var(--accent); }
+    .sinav-kart .sinav-islem .btn-sinav-sil { background: rgba(239,68,68,0.15); color: var(--danger); }
+    .sinav-tahta-badges { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+    .sinav-tahta-badges span {
+      font-size: 10px; padding: 2px 8px; border-radius: 10px;
+      background: rgba(59,130,246,0.1); color: var(--accent); font-weight: 600;
+    }
+    .sinav-form-tahtalar { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .sinav-form-tahtalar label {
+      display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text);
+      background: var(--bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border);
+      cursor: pointer; transition: border-color 0.2s;
+    }
+    .sinav-form-tahtalar label:has(input:checked) { border-color: var(--accent); background: rgba(59,130,246,0.08); }
+    .sinav-form-tahtalar input[type="checkbox"] { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+    .sinav-ders-saat-grup { display: flex; gap: 10px; align-items: center; }
+    .sinav-ders-saat-grup select {
+      padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--text); font-size: 14px; flex: 1;
+    }
+    .sinav-ders-saat-grup span { color: var(--text3); font-size: 13px; white-space: nowrap; }
+
     /* Ders Saatleri Grid - izole tasarım */
     #icerik-ders-saatleri .yonetim-panel {
       overflow: hidden;
@@ -993,6 +1032,71 @@
       </div>
     </div>
 
+    <!-- Sınavlar Sekmesi -->
+    <div class="sekme-icerik" id="icerik-sinavlar">
+      <div class="yonetim-panel">
+        <h2><i class="fas fa-calendar-alt"></i> Sınav Takvimi</h2>
+        <p style="color:var(--text3);font-size:13px;margin-bottom:16px;">
+          Sınav ekleyin, tahtaların kilit ekranında sınav bilgileri gösterilecektir.
+        </p>
+
+        <div class="gizli" id="sinavKurumAlan" style="margin-bottom:16px;">
+          <label style="font-size:12px;color:var(--text2);font-weight:500;margin-bottom:5px;display:block;">Kurum Seç</label>
+          <select id="sinavKurumSec" onchange="sinavlarYukle()" style="padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;width:100%;max-width:400px;">
+          </select>
+        </div>
+
+        <div id="sinavEklemeFormu" class="form-satir" style="flex-direction:column;gap:12px;">
+          <div class="alan" style="min-width:100%;">
+            <label>Ders Adı</label>
+            <input type="text" id="sinavDersAdi" placeholder="Örn: Matematik" />
+          </div>
+          <div class="alan" style="min-width:100%;">
+            <label>Sınav Tarihi</label>
+            <input type="date" id="sinavTarihi" />
+          </div>
+          <div class="alan" style="min-width:100%;">
+            <label>Ders Saatleri</label>
+            <div class="sinav-ders-saat-grup">
+              <select id="sinavDersSaatBaslangic" onchange="document.getElementById('sinavDersSaatBitis').value = this.value">
+                <option value="1">1. Ders</option>
+                <option value="2">2. Ders</option>
+                <option value="3">3. Ders</option>
+                <option value="4">4. Ders</option>
+                <option value="5">5. Ders</option>
+                <option value="6">6. Ders</option>
+                <option value="7">7. Ders</option>
+                <option value="8">8. Ders</option>
+              </select>
+              <span>—</span>
+              <select id="sinavDersSaatBitis">
+                <option value="1">1. Ders</option>
+                <option value="2">2. Ders</option>
+                <option value="3">3. Ders</option>
+                <option value="4">4. Ders</option>
+                <option value="5">5. Ders</option>
+                <option value="6">6. Ders</option>
+                <option value="7">7. Ders</option>
+                <option value="8">8. Ders</option>
+              </select>
+            </div>
+          </div>
+          <div class="alan" style="min-width:100%;">
+            <label>Gösterilecek Tahtalar</label>
+            <div class="sinav-form-tahtalar" id="sinavTahtaSecim">
+              <span style="color:var(--text3);font-size:13px;">Yükleniyor...</span>
+            </div>
+          </div>
+          <button class="btn-ekle" onclick="sinavEkle()"><i class="fas fa-plus"></i> Sınav Ekle</button>
+        </div>
+
+        <h3 style="margin-top:20px;">Sınavlar</h3>
+        <div id="sinavListesi">
+          <div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">Yükleniyor...</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Ders Saatleri Sekmesi -->
     <div class="sekme-icerik" id="icerik-ders-saatleri">
       <div class="yonetim-panel">
@@ -1042,6 +1146,9 @@
     </div>
     <div class="sekme gizli" data-sekme="kurum-yonetim" id="sekme-kurum-yonetim">
       <span class="sekme-icon"><i class="fas fa-building"></i></span> Kurumlar
+    </div>
+    <div class="sekme" data-sekme="sinavlar" id="sekme-sinavlar">
+      <span class="sekme-icon"><i class="fas fa-calendar-alt"></i></span> Sınavlar
     </div>
     <div class="sekme gizli" data-sekme="ders-saatleri" id="sekme-ders-saatleri">
       <span class="sekme-icon"><i class="fas fa-clock"></i></span> Ders Saatleri
@@ -1174,6 +1281,49 @@
     <div class="modal-butonlar">
       <button class="btn-iptal" onclick="kullaniciDuzenleKapat()">İptal</button>
       <button class="btn-kaydet" onclick="kullaniciGuncelle()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sınav Düzenle Modal -->
+<div class="modal-arka" id="sinavDuzenleModal" onclick="sinavDuzenleKapat()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3><i class="fas fa-edit"></i> Sınav Düzenle</h3>
+    <input type="hidden" id="sinavDuzenleId" />
+    <label>Ders Adı</label>
+    <input type="text" id="sinavDuzenleDersAdi" placeholder="Ders adı" />
+    <label>Sınav Tarihi</label>
+    <input type="date" id="sinavDuzenleTarihi" />
+    <label>Ders Saatleri</label>
+    <div class="sinav-ders-saat-grup" style="margin-bottom:12px;">
+      <select id="sinavDuzenleBaslangic" onchange="var b=document.getElementById('sinavDuzenleBitis'); if(parseInt(b.value)<parseInt(this.value)) b.value=this.value">
+        <option value="1">1. Ders</option>
+        <option value="2">2. Ders</option>
+        <option value="3">3. Ders</option>
+        <option value="4">4. Ders</option>
+        <option value="5">5. Ders</option>
+        <option value="6">6. Ders</option>
+        <option value="7">7. Ders</option>
+        <option value="8">8. Ders</option>
+      </select>
+      <span>—</span>
+      <select id="sinavDuzenleBitis">
+        <option value="1">1. Ders</option>
+        <option value="2">2. Ders</option>
+        <option value="3">3. Ders</option>
+        <option value="4">4. Ders</option>
+        <option value="5">5. Ders</option>
+        <option value="6">6. Ders</option>
+        <option value="7">7. Ders</option>
+        <option value="8">8. Ders</option>
+      </select>
+    </div>
+    <label>Gösterilecek Tahtalar</label>
+    <div class="sinav-form-tahtalar" id="sinavDuzenleTahtaSecim">
+    </div>
+    <div class="modal-butonlar">
+      <button class="btn-iptal" onclick="sinavDuzenleKapat()">İptal</button>
+      <button class="btn-kaydet" onclick="sinavGuncelle()">Kaydet</button>
     </div>
   </div>
 </div>
@@ -1540,6 +1690,7 @@
       document.getElementById("kullaniciKurumAlan").classList.remove("gizli");
       document.getElementById("rolSuperadmin").classList.remove("gizli");
       document.getElementById("dersSaatleriKurumAlan").classList.remove("gizli");
+      document.getElementById("sinavKurumAlan").classList.remove("gizli");
       // Tablo başlıklarına kurum sütunu ekle
       document.getElementById("tahtaYonetimBaslik").innerHTML = "<th>Tahta Adı</th><th>Kurum</th><th>Durum</th><th>Çevrimiçi</th><th>Son Bağlantı</th><th></th>";
       document.getElementById("kullaniciYonetimBaslik").innerHTML = "<th>Kullanıcı Adı</th><th>Ad Soyad</th><th>Branş</th><th>Doğum Tarihi</th><th>Rol</th><th>Kurum</th><th>Kayıt Tarihi</th><th></th>";
@@ -1560,6 +1711,7 @@
         if (el.dataset.sekme === "kullanici-yonetim") kullaniciYonetimYukle();
         if (el.dataset.sekme === "kurum-yonetim") kurumYonetimYukle();
         if (el.dataset.sekme === "ders-saatleri") dersSaatleriYukle();
+        if (el.dataset.sekme === "sinavlar") sinavlarYukle();
       });
     });
 
@@ -2168,7 +2320,7 @@
       if (!yanit.ok) return;
       const liste = await yanit.json();
 
-      ["tahtaKurumSec", "kullaniciKurumSec", "dersSaatleriKurumSec"].forEach((id) => {
+      ["tahtaKurumSec", "kullaniciKurumSec", "dersSaatleriKurumSec", "sinavKurumSec"].forEach((id) => {
         const sel = document.getElementById(id);
         if (!sel) return;
         sel.innerHTML = liste.map((k) =>
@@ -2449,6 +2601,197 @@
     } catch (err) {
       bildirimGoster("Şifre değiştirilemedi", "hata");
     }
+  }
+
+  // ===================== Sınav Yönetimi =====================
+  async function sinavlarYukle() {
+    // Superadmin sınav ekleyemez
+    const sinavFormu = document.getElementById('sinavEklemeFormu');
+    if (sinavFormu) sinavFormu.style.display = kullanici.rol === 'superadmin' ? 'none' : '';
+    // Tahta checkbox'larını doldur
+    sinavTahtaCheckboxOlustur('sinavTahtaSecim');
+    try {
+      let sinavUrl = '/api/sinavlar';
+      if (kullanici.rol === 'superadmin') {
+        const kurumSec = document.getElementById('sinavKurumSec');
+        if (kurumSec && kurumSec.value) sinavUrl += '?kurum_id=' + kurumSec.value;
+      }
+      const yanit = await fetch(sinavUrl, {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      if (!yanit.ok) { bildirimGoster('Sınav listesi alınamadı', 'hata'); return; }
+      const liste = await yanit.json();
+      const container = document.getElementById('sinavListesi');
+      if (!Array.isArray(liste) || liste.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;"><i class="fas fa-calendar-check" style="font-size:28px;display:block;margin-bottom:8px;opacity:0.4"></i>Kayıtlı sınav yok</div>';
+        return;
+      }
+      const bugun = new Date().toISOString().slice(0, 10);
+      // Kendi sınavlarım ve diğerleri olarak ayır
+      const benimSinavlar = liste.filter(s => s.ekleyen_id === kullanici.id);
+      const digerSinavlar = liste.filter(s => s.ekleyen_id !== kullanici.id);
+      // Yeniden eskiye sırala
+      const yenidenEskiye = (a, b) => b.sinav_tarihi.localeCompare(a.sinav_tarihi) || b.ders_saati_baslangic - a.ders_saati_baslangic;
+      benimSinavlar.sort(yenidenEskiye);
+      digerSinavlar.sort(yenidenEskiye);
+
+      let html = '';
+      if (kullanici.rol !== 'superadmin' && benimSinavlar.length > 0) {
+        html += '<div style="font-size:13px;font-weight:600;color:var(--accent);margin-bottom:8px;margin-top:4px;"><i class="fas fa-user-edit" style="margin-right:5px;"></i>Eklediğim Sınavlar</div>';
+        html += benimSinavlar.map(s => sinavKartHTML(s, bugun, true)).join('');
+      }
+      if (digerSinavlar.length > 0) {
+        if (benimSinavlar.length > 0 && kullanici.rol !== 'superadmin') {
+          html += '<div style="font-size:13px;font-weight:600;color:var(--text3);margin-bottom:8px;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);"><i class="fas fa-users" style="margin-right:5px;"></i>Diğer Sınavlar</div>';
+        }
+        html += digerSinavlar.map(s => sinavKartHTML(s, bugun, false)).join('');
+      }
+      if (kullanici.rol === 'superadmin') {
+        // Superadmin için hepsini birleştir
+        const hepsi = [...liste].sort(yenidenEskiye);
+        html = hepsi.map(s => sinavKartHTML(s, bugun, false)).join('');
+      }
+      container.innerHTML = html;
+    } catch (err) {
+      bildirimGoster('Sınav listesi alınamadı', 'hata');
+    }
+  }
+
+  function sinavKartHTML(s, bugun, benimMi) {
+    const gecmis = s.sinav_tarihi < bugun;
+    const tahtalarArr = typeof s.tahtalar === 'string' ? JSON.parse(s.tahtalar) : (s.tahtalar || []);
+    const sahip = kullanici.rol === 'yonetici' || (kullanici.rol === 'ogretmen' && s.ekleyen_id === kullanici.id);
+    const saatMetin = s.ders_saati_baslangic === s.ders_saati_bitis ? s.ders_saati_baslangic + '. Ders' : s.ders_saati_baslangic + '-' + s.ders_saati_bitis + '. Ders';
+    const tahtaAdlari = tahtalarArr.map(tid => {
+      const t = tahtaListesi.find(x => x.id === tid);
+      return t ? (t.tahta_adi || t.id.substring(0,8)) : tid.substring(0,8);
+    });
+    const kartStil = benimMi && !gecmis ? 'border-left:3px solid var(--accent);' : '';
+    return `<div class="sinav-kart${gecmis ? ' gecmis' : ''}" style="${kartStil}">
+      <div class="sinav-baslik">
+        <h4>${esc(s.ders_adi)}</h4>
+        <div class="sinav-islem">
+          ${sahip ? `<button class="btn-sinav-duzenle" onclick="sinavDuzenleAc(${s.id}, '${esc(s.ders_adi)}', '${s.sinav_tarihi}', ${s.ders_saati_baslangic}, ${s.ders_saati_bitis}, '${btoa(JSON.stringify(tahtalarArr))}')"><i class="fas fa-edit"></i></button>` : ''}
+          ${sahip ? `<button class="btn-sinav-sil" onclick="sinavSil(${s.id})"><i class="fas fa-trash-alt"></i></button>` : ''}
+        </div>
+      </div>
+      <div class="sinav-detay">
+        <span><i class="fas fa-calendar"></i> ${tarihFormatSadeceTarih(s.sinav_tarihi)}</span>
+        <span><i class="fas fa-clock"></i> ${saatMetin}</span>
+        <span><i class="fas fa-user"></i> ${esc(s.ekleyen_adi || '')}</span>
+      </div>
+      ${tahtaAdlari.length ? '<div class="sinav-tahta-badges">' + tahtaAdlari.map(a => '<span>' + esc(a) + '</span>').join('') + '</div>' : ''}
+    </div>`;
+  }
+
+  function sinavTahtaCheckboxOlustur(containerId) {
+    const container = document.getElementById(containerId);
+    if (!tahtaListesi || tahtaListesi.length === 0) {
+      container.innerHTML = '<span style="color:var(--text3);font-size:13px;">Tahta bulunamadı</span>';
+      return;
+    }
+    container.innerHTML = tahtaListesi.map(t => 
+      `<label><input type="checkbox" value="${esc(t.id)}" /> ${esc(t.tahta_adi || t.id.substring(0,8))}</label>`
+    ).join('');
+  }
+
+  async function sinavEkle() {
+    const ders_adi = document.getElementById('sinavDersAdi').value.trim();
+    const sinav_tarihi = document.getElementById('sinavTarihi').value;
+    const ders_saati_baslangic = document.getElementById('sinavDersSaatBaslangic').value;
+    const ders_saati_bitis = document.getElementById('sinavDersSaatBitis').value;
+    if (!ders_adi || !sinav_tarihi) {
+      bildirimGoster('Ders adı ve sınav tarihi gerekli', 'hata');
+      return;
+    }
+    const tahtalar = [];
+    document.querySelectorAll('#sinavTahtaSecim input[type=checkbox]:checked').forEach(cb => tahtalar.push(cb.value));
+    if (tahtalar.length === 0) {
+      bildirimGoster('En az bir tahta seçin', 'hata');
+      return;
+    }
+    try {
+      const yanit = await fetch('/api/sinavlar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ ders_adi, sinav_tarihi, ders_saati_baslangic: parseInt(ders_saati_baslangic), ders_saati_bitis: parseInt(ders_saati_bitis), tahtalar })
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+      bildirimGoster('Sınav eklendi', 'basari');
+      document.getElementById('sinavDersAdi').value = '';
+      document.getElementById('sinavTarihi').value = '';
+      sinavlarYukle();
+    } catch (err) {
+      bildirimGoster('Sınav eklenemedi', 'hata');
+    }
+  }
+
+  function sinavDuzenleAc(id, dersAdi, tarih, baslangic, bitis, tahtalarJson) {
+    document.getElementById('sinavDuzenleId').value = id;
+    document.getElementById('sinavDuzenleDersAdi').value = dersAdi;
+    document.getElementById('sinavDuzenleTarihi').value = tarih;
+    document.getElementById('sinavDuzenleBaslangic').value = baslangic;
+    document.getElementById('sinavDuzenleBitis').value = bitis;
+    let tahtalarArr = [];
+    try { tahtalarArr = JSON.parse(atob(tahtalarJson)); } catch(e) {}
+    sinavTahtaCheckboxOlustur('sinavDuzenleTahtaSecim');
+    // Seçili tahtaları işaretle
+    setTimeout(() => {
+      document.querySelectorAll('#sinavDuzenleTahtaSecim input[type=checkbox]').forEach(cb => {
+        cb.checked = tahtalarArr.includes(cb.value);
+      });
+    }, 50);
+    document.getElementById('sinavDuzenleModal').classList.add('goster');
+  }
+
+  function sinavDuzenleKapat() {
+    document.getElementById('sinavDuzenleModal').classList.remove('goster');
+  }
+
+  async function sinavGuncelle() {
+    const id = document.getElementById('sinavDuzenleId').value;
+    const ders_adi = document.getElementById('sinavDuzenleDersAdi').value.trim();
+    const sinav_tarihi = document.getElementById('sinavDuzenleTarihi').value;
+    const ders_saati_baslangic = parseInt(document.getElementById('sinavDuzenleBaslangic').value);
+    const ders_saati_bitis = parseInt(document.getElementById('sinavDuzenleBitis').value);
+    const tahtalar = [];
+    document.querySelectorAll('#sinavDuzenleTahtaSecim input[type=checkbox]:checked').forEach(cb => tahtalar.push(cb.value));
+    if (!ders_adi || !sinav_tarihi) { bildirimGoster('Ders adı ve tarih gerekli', 'hata'); return; }
+    if (tahtalar.length === 0) { bildirimGoster('En az bir tahta seçin', 'hata'); return; }
+    try {
+      const yanit = await fetch('/api/sinavlar/' + id, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token },
+        body: JSON.stringify({ ders_adi, sinav_tarihi, ders_saati_baslangic, ders_saati_bitis, tahtalar })
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+      bildirimGoster('Sınav güncellendi', 'basari');
+      sinavDuzenleKapat();
+      sinavlarYukle();
+    } catch (err) { bildirimGoster('Sınav güncellenemedi', 'hata'); }
+  }
+
+  async function sinavSil(id) {
+    onayla({
+      baslik: 'Sınavı Sil',
+      mesaj: 'Bu sınavı silmek istediğinize emin misiniz?',
+      onayMetni: 'Sil',
+      tehlike: true,
+      callback: async () => {
+        try {
+          const yanit = await fetch('/api/sinavlar/' + id, {
+            method: 'DELETE',
+            headers: { Authorization: 'Bearer ' + token }
+          });
+          const veri = await yanit.json();
+          if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+          bildirimGoster('Sınav silindi', 'basari');
+          sinavlarYukle();
+        } catch (err) { bildirimGoster('Sınav silinemedi', 'hata'); }
+      }
+    });
   }
 
   // ===================== Ders Çıkış Saatleri =====================

@@ -151,6 +151,23 @@ async function veritabaniBaslat() {
     await db.execute(`ALTER TABLE kurumlar ADD COLUMN ders_saatleri_aktif TINYINT NOT NULL DEFAULT 0`);
   } catch (e) { /* sütun zaten var */ }
 
+  // Sınavlar tablosu
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS sinavlar (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      kurum_id INT NOT NULL,
+      ekleyen_id INT NOT NULL,
+      ders_adi VARCHAR(255) NOT NULL,
+      sinav_tarihi DATE NOT NULL,
+      ders_saati_baslangic TINYINT NOT NULL,
+      ders_saati_bitis TINYINT NOT NULL,
+      tahtalar JSON NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (kurum_id) REFERENCES kurumlar(id) ON DELETE CASCADE,
+      FOREIGN KEY (ekleyen_id) REFERENCES kullanicilar(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB
+  `);
+
   console.log("Veritabanı tabloları hazır.");
 }
 
@@ -788,6 +805,175 @@ app.post("/api/ders-saatleri", authMiddleware, adminMiddleware, async (req, res)
   }
 });
 
+// ===================== Sınavlar =====================
+
+// Sınav listesi
+app.get("/api/sinavlar", authMiddleware, async (req, res) => {
+  try {
+    const kurumId = req.query.kurum_id && req.kullanici.rol === "superadmin"
+      ? req.query.kurum_id
+      : req.kullanici.kurum_id;
+    const [rows] = await db.execute(
+      `SELECT s.*, k.ad_soyad AS ekleyen_adi
+       FROM sinavlar s
+       JOIN kullanicilar k ON s.ekleyen_id = k.id
+       WHERE s.kurum_id = ?
+       ORDER BY s.sinav_tarihi ASC, s.ders_saati_baslangic ASC`,
+      [kurumId]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("Sınav listesi hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Sınav ekle
+app.post("/api/sinavlar", authMiddleware, async (req, res) => {
+  if (req.kullanici.rol !== "ogretmen" && req.kullanici.rol !== "yonetici") {
+    return res.status(403).json({ hata: "Bu işlem için yetkiniz yok" });
+  }
+  const { ders_adi, sinav_tarihi, ders_saati_baslangic, ders_saati_bitis, tahtalar } = req.body;
+  if (!ders_adi || !sinav_tarihi || !ders_saati_baslangic || !ders_saati_bitis) {
+    return res.status(400).json({ hata: "Tüm alanlar gerekli" });
+  }
+  if (parseInt(ders_saati_baslangic) > parseInt(ders_saati_bitis)) {
+    return res.status(400).json({ hata: "Başlangıç ders saati bitiş ders saatinden büyük olamaz" });
+  }
+  if (!Array.isArray(tahtalar) || tahtalar.length === 0) {
+    return res.status(400).json({ hata: "En az bir tahta seçilmelidir" });
+  }
+  const kurumId = req.kullanici.kurum_id;
+  try {
+    // Aynı tarihte en fazla 3 sınav kontrolü
+    const [mevcutSinavlar] = await db.execute(
+      `SELECT s.ders_adi, s.ders_saati_baslangic, s.ders_saati_bitis, k.ad_soyad AS ekleyen_adi
+       FROM sinavlar s JOIN kullanicilar k ON s.ekleyen_id = k.id
+       WHERE s.kurum_id = ? AND s.sinav_tarihi = ?`,
+      [kurumId, sinav_tarihi]
+    );
+    if (mevcutSinavlar.length >= 3) {
+      const detay = mevcutSinavlar.map(s => {
+        const saat = s.ders_saati_baslangic === s.ders_saati_bitis ? s.ders_saati_baslangic + '. Ders' : s.ders_saati_baslangic + '-' + s.ders_saati_bitis + '. Ders';
+        return s.ders_adi + ' (' + saat + ') - ' + s.ekleyen_adi;
+      }).join('\n');
+      return res.status(400).json({ hata: "Aynı tarihte en fazla 3 sınav olabilir.\n\nMevcut sınavlar:\n" + detay });
+    }
+    // Aynı tarihte aynı ders saatlerine çakışma kontrolü
+    const [cakisanlar] = await db.execute(
+      `SELECT s.ders_adi, s.ders_saati_baslangic, s.ders_saati_bitis, k.ad_soyad AS ekleyen_adi
+       FROM sinavlar s JOIN kullanicilar k ON s.ekleyen_id = k.id
+       WHERE s.kurum_id = ? AND s.sinav_tarihi = ?
+       AND s.ders_saati_baslangic <= ? AND s.ders_saati_bitis >= ?`,
+      [kurumId, sinav_tarihi, parseInt(ders_saati_bitis), parseInt(ders_saati_baslangic)]
+    );
+    if (cakisanlar.length > 0) {
+      const detay = cakisanlar.map(s => {
+        const saat = s.ders_saati_baslangic === s.ders_saati_bitis ? s.ders_saati_baslangic + '. Ders' : s.ders_saati_baslangic + '-' + s.ders_saati_bitis + '. Ders';
+        return s.ders_adi + ' (' + saat + ') - ' + s.ekleyen_adi;
+      }).join('\n');
+      return res.status(400).json({ hata: "Bu tarihte seçilen ders saatleriyle çakışan sınav var:\n" + detay });
+    }
+    await db.execute(
+      `INSERT INTO sinavlar (kurum_id, ekleyen_id, ders_adi, sinav_tarihi, ders_saati_baslangic, ders_saati_bitis, tahtalar)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [kurumId, req.kullanici.id, ders_adi, sinav_tarihi, parseInt(ders_saati_baslangic), parseInt(ders_saati_bitis), JSON.stringify(tahtalar)]
+    );
+    // Bağlı tahtaları güncelle
+    await sinavlariGuncelleTahtalar(kurumId);
+    res.json({ mesaj: "Sınav eklendi" });
+  } catch (err) {
+    console.error("Sınav ekleme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Sınav güncelle
+app.put("/api/sinavlar/:id", authMiddleware, async (req, res) => {
+  const { ders_adi, sinav_tarihi, ders_saati_baslangic, ders_saati_bitis, tahtalar } = req.body;
+  const sinavId = parseInt(req.params.id);
+  try {
+    const [mevcut] = await db.execute("SELECT * FROM sinavlar WHERE id = ?", [sinavId]);
+    if (mevcut.length === 0) {
+      return res.status(404).json({ hata: "Sınav bulunamadı" });
+    }
+    const sinav = mevcut[0];
+    // Yetki kontrolü
+    if (req.kullanici.rol === "superadmin") {
+      return res.status(403).json({ hata: "Süper yönetici sınav düzenleyemez" });
+    }
+    if (req.kullanici.rol === "ogretmen" && sinav.ekleyen_id !== req.kullanici.id) {
+      return res.status(403).json({ hata: "Sadece kendi eklediğiniz sınavları düzenleyebilirsiniz" });
+    }
+    if (sinav.kurum_id !== req.kullanici.kurum_id) {
+      return res.status(403).json({ hata: "Bu sınavı düzenleme yetkiniz yok" });
+    }
+    const yeniDersAdi = ders_adi || sinav.ders_adi;
+    const yeniTarih = sinav_tarihi || sinav.sinav_tarihi;
+    const yeniBaslangic = ders_saati_baslangic ? parseInt(ders_saati_baslangic) : sinav.ders_saati_baslangic;
+    const yeniBitis = ders_saati_bitis ? parseInt(ders_saati_bitis) : sinav.ders_saati_bitis;
+    const yeniTahtalar = tahtalar || (typeof sinav.tahtalar === 'string' ? JSON.parse(sinav.tahtalar) : sinav.tahtalar);
+    if (yeniBaslangic > yeniBitis) {
+      return res.status(400).json({ hata: "Başlangıç ders saati bitiş ders saatinden büyük olamaz" });
+    }
+    // Max 3 sınav kontrolü (mevcut sınav hariç)
+    const [sayim] = await db.execute(
+      "SELECT COUNT(*) AS sayi FROM sinavlar WHERE kurum_id = ? AND sinav_tarihi = ? AND id != ?",
+      [sinav.kurum_id, yeniTarih, sinavId]
+    );
+    if (sayim[0].sayi >= 3) {
+      return res.status(400).json({ hata: "Aynı tarihte en fazla 3 sınav olabilir" });
+    }
+    // Çakışma kontrolü (mevcut sınav hariç)
+    const [cakisma] = await db.execute(
+      `SELECT COUNT(*) AS sayi FROM sinavlar
+       WHERE kurum_id = ? AND sinav_tarihi = ? AND id != ?
+       AND ders_saati_baslangic <= ? AND ders_saati_bitis >= ?`,
+      [sinav.kurum_id, yeniTarih, sinavId, yeniBitis, yeniBaslangic]
+    );
+    if (cakisma[0].sayi > 0) {
+      return res.status(400).json({ hata: "Bu tarihte seçilen ders saatleriyle çakışan bir sınav zaten var" });
+    }
+    await db.execute(
+      `UPDATE sinavlar SET ders_adi = ?, sinav_tarihi = ?, ders_saati_baslangic = ?, ders_saati_bitis = ?, tahtalar = ? WHERE id = ?`,
+      [yeniDersAdi, yeniTarih, yeniBaslangic, yeniBitis, JSON.stringify(yeniTahtalar), sinavId]
+    );
+    await sinavlariGuncelleTahtalar(sinav.kurum_id);
+    res.json({ mesaj: "Sınav güncellendi" });
+  } catch (err) {
+    console.error("Sınav güncelleme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Sınav sil
+app.delete("/api/sinavlar/:id", authMiddleware, async (req, res) => {
+  const sinavId = parseInt(req.params.id);
+  try {
+    const [mevcut] = await db.execute("SELECT * FROM sinavlar WHERE id = ?", [sinavId]);
+    if (mevcut.length === 0) {
+      return res.status(404).json({ hata: "Sınav bulunamadı" });
+    }
+    const sinav = mevcut[0];
+    // Yetki kontrolü
+    if (req.kullanici.rol === "superadmin") {
+      return res.status(403).json({ hata: "Süper yönetici sınav silemez" });
+    }
+    if (req.kullanici.rol === "ogretmen" && sinav.ekleyen_id !== req.kullanici.id) {
+      return res.status(403).json({ hata: "Sadece kendi eklediğiniz sınavları silebilirsiniz" });
+    }
+    if (sinav.kurum_id !== req.kullanici.kurum_id) {
+      return res.status(403).json({ hata: "Bu sınavı silme yetkiniz yok" });
+    }
+    await db.execute("DELETE FROM sinavlar WHERE id = ?", [sinavId]);
+    await sinavlariGuncelleTahtalar(sinav.kurum_id);
+    res.json({ mesaj: "Sınav silindi" });
+  } catch (err) {
+    console.error("Sınav silme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
 // ===================== Doğrulama Kodu Üretici =====================
 const KILIT_GIZLI_ANAHTAR = "tahta_ekran_secret_2024";
 const KOD_UZUNLUGU = 4;
@@ -867,6 +1053,11 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "panel.html"));
 });
 
+// Kurum bilgi sayfası (webview için)
+app.get("/kurum", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "kurum.html"));
+});
+
 // ===================== Socket.IO =====================
 // Bağlı tahtaları takip eden obje: { socketId: { tahtaId, kurumId, kurumKodu } }
 const bagliTahtalar = {};
@@ -890,7 +1081,7 @@ io.on("connection", (socket) => {
     try {
       // Veritabanında kayıtlı mı kontrol et (kurum anahtarını da çek)
       const [rows] = await db.execute(
-        `SELECT t.*, k.kurum_kodu, k.anahtar AS kurum_anahtari
+        `SELECT t.*, k.kurum_kodu, k.anahtar AS kurum_anahtari, k.kurum_adi
          FROM tahtalar t
          JOIN kurumlar k ON t.kurum_id = k.id
          WHERE t.id = ?`,
@@ -943,7 +1134,7 @@ io.on("connection", (socket) => {
           [veri.tahtaAdi || tahta.tahta_adi, ipAdresi, gercekDurum, gercekSes, tahtaId]
         );
         // İlk bağlantıda tahtanın kendi durumunu geri gönder
-        socket.emit("durum_bilgisi", { durum: gercekDurum, ses: gercekSes });
+        socket.emit("durum_bilgisi", { durum: gercekDurum, ses: gercekSes, kurum_adi: tahta.kurum_adi });
       } else {
         // Sonraki bağlantılar: sunucu durumu baz alınır (tahta_adi, durum/ses ve anahtar güncellenmez)
         await db.execute(
@@ -951,7 +1142,7 @@ io.on("connection", (socket) => {
           [ipAdresi, tahtaId]
         );
         // Sunucudaki mevcut durumu ve adı tahtaya gönder (tahta buna göre senkronize olacak)
-        socket.emit("durum_bilgisi", { durum: tahta.durum, ses: tahta.ses, tahta_adi: tahta.tahta_adi });
+        socket.emit("durum_bilgisi", { durum: tahta.durum, ses: tahta.ses, tahta_adi: tahta.tahta_adi, kurum_adi: tahta.kurum_adi });
       }
 
       bagliTahtalar[socket.id] = {
@@ -973,6 +1164,14 @@ io.on("connection", (socket) => {
         socket.emit("ders_saatleri", dersSaatleriVerisi);
       } catch (e) {
         console.error("Ders saatleri gönderilemedi:", e);
+      }
+
+      // Sınavları tahtaya gönder
+      try {
+        const sinavVerisi = await sinavlarAlTahta(tahtaId);
+        socket.emit("sinavlar", sinavVerisi);
+      } catch (e) {
+        console.error("Sınavlar gönderilemedi:", e);
       }
 
       // Panellere güncel listeyi gönder
@@ -1284,6 +1483,34 @@ async function dersSaatleriAl(kurumId) {
   );
   const aktif = kurumRows.length > 0 ? kurumRows[0].ders_saatleri_aktif : 0;
   return { aktif, saatler };
+}
+
+async function sinavlarAlTahta(tahtaId) {
+  const [rows] = await db.execute(
+    `SELECT s.id, s.ders_adi, s.sinav_tarihi, s.ders_saati_baslangic, s.ders_saati_bitis,
+            k.ad_soyad AS ekleyen_adi
+     FROM sinavlar s
+     LEFT JOIN kullanicilar k ON s.ekleyen_id = k.id
+     WHERE s.sinav_tarihi >= CURDATE()
+       AND JSON_CONTAINS(s.tahtalar, ?)
+     ORDER BY s.sinav_tarihi ASC, s.ders_saati_baslangic ASC
+     LIMIT 20`,
+    [JSON.stringify(tahtaId)]
+  );
+  return rows;
+}
+
+async function sinavlariGuncelleTahtalar(kurumId) {
+  for (const [sid, bilgi] of Object.entries(bagliTahtalar)) {
+    if (bilgi.kurumId === parseInt(kurumId)) {
+      try {
+        const sinavlar = await sinavlarAlTahta(bilgi.tahtaId);
+        io.to(sid).emit("sinavlar", sinavlar);
+      } catch (e) {
+        console.error("Sınav güncelleme hatası:", e);
+      }
+    }
+  }
 }
 
 function tahtayaKomutGonder(tahtaId, aksiyon) {

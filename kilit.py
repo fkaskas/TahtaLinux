@@ -30,6 +30,7 @@ def _qt_mesaj_filtresi(msg_type, context, message):
         or "GpuChannel" in message
         or "AtSpiAdaptor" in message
         or "Accessible invalid" in message
+        or "Cookie sqlite error" in message
     )
     if gizle:
         return

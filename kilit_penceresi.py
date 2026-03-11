@@ -7,6 +7,7 @@ import json
 import re
 import time
 import subprocess
+from datetime import datetime
 import threading
 import shutil
 from io import BytesIO
@@ -33,7 +34,8 @@ from PyQt5.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
                              QDialog, QSizePolicy, QGridLayout, QComboBox,
                              QLineEdit, QFormLayout, QDialogButtonBox,
                              QFileDialog, QSystemTrayIcon, QMenu, QAction,
-                             QProgressBar, QStackedWidget, QToolButton)
+                             QProgressBar, QStackedWidget, QToolButton,
+                             QScrollArea)
 from PyQt5.QtCore import Qt, QTimer, QEvent, QUrl, QTime, QDate, QLocale, QSize, QSettings, pyqtSignal, QFileSystemWatcher
 from PyQt5.QtGui import QFont, QCursor, QPixmap, QPainter, QColor, QBrush, QPainterPath, QIcon, QRegion, QPalette, QFontDatabase
 import qtawesome as qta
@@ -49,7 +51,8 @@ from online_istemci import OnlineIstemci
 
 def _fontlari_yukle():
     """Fontları yükle (QApplication oluştuktan sonra çağrılmalı)"""
-    for dosya in ["Merriweather-Bold.ttf", "Merriweather-Regular.ttf"]:
+    for dosya in ["Merriweather-Bold.ttf", "Merriweather-Regular.ttf",
+                  "Exo2-Regular.ttf", "Exo2-SemiBold.ttf", "Exo2-Bold.ttf"]:
         yol = os.path.join(BETIK_DIZINI, "resim", "fonts", dosya)
         if os.path.exists(yol):
             QFontDatabase.addApplicationFont(yol)
@@ -430,6 +433,8 @@ class Kilit(QMainWindow):
         self._online.durum_bilgisi_sinyali.connect(self._online_durum_senkronize)
         self._online.ders_saatleri_sinyali.connect(self._ders_saatleri_guncelle)
         self._online.tahta_adi_sinyali.connect(self._tahta_adi_guncelle)
+        self._online.kurum_adi_sinyali.connect(self._kurum_adi_guncelle)
+        self._online.sinavlar_sinyali.connect(self._sinavlari_guncelle)
         self._online.baslat()
 
         # Ders çıkış saatleri kontrolü (her saniye kontrol et)
@@ -514,25 +519,112 @@ class Kilit(QMainWindow):
         # Tahta adı etiketi
         ust_cizgi = QFrame()
         ust_cizgi.setFrameShape(QFrame.HLine)
-        ust_cizgi.setStyleSheet("color: #d0d0d0;")
+        ust_cizgi.setStyleSheet("color: #b0b0b0;")
         kenar_yerlesim.addSpacing(10)
         kenar_yerlesim.addWidget(ust_cizgi)
 
-        tahta_adi = self._vt.tahta_kaydi_al(self._kurumkodu)
-        tahta_adi_metin = tahta_adi["adi"] if tahta_adi else "Tahta"
+        tahta_kayit_veri = self._vt.tahta_kaydi_al(self._kurumkodu)
+        tahta_adi_metin = tahta_kayit_veri["adi"] if tahta_kayit_veri else "Tahta"
+        kurum_adi_metin = tahta_kayit_veri.get("kurum_adi", "") if tahta_kayit_veri else ""
+
+        # ── Kurum & Tahta bilgi kartı ──
+        bilgi_karti = QFrame()
+        bilgi_karti.setStyleSheet("""
+            QFrame#bilgiKarti {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #ffffff, stop:1 #eef1f5);
+                border: none;
+                border-radius: 10px;
+            }
+        """)
+        bilgi_karti.setObjectName("bilgiKarti")
+        bilgi_kart_yerlesim = QVBoxLayout()
+        bilgi_kart_yerlesim.setContentsMargins(14, 10, 14, 10)
+        bilgi_kart_yerlesim.setSpacing(2)
+
+        # Kurum adı
+        self._kurum_adi_etiketi = QLabel(kurum_adi_metin)
+        kurum_font = QFont("Exo 2", 13)
+        kurum_font.setWeight(QFont.DemiBold)
+        self._kurum_adi_etiketi.setFont(kurum_font)
+        self._kurum_adi_etiketi.setStyleSheet(
+            "color: #34495e; border: none; background: transparent;"
+        )
+        self._kurum_adi_etiketi.setAlignment(Qt.AlignCenter)
+        self._kurum_adi_etiketi.setWordWrap(True)
+        if not kurum_adi_metin:
+            self._kurum_adi_etiketi.hide()
+        bilgi_kart_yerlesim.addWidget(self._kurum_adi_etiketi)
+
+        # İnce ayırıcı çizgi
+        self._bilgi_ayirici = QFrame()
+        self._bilgi_ayirici.setFrameShape(QFrame.HLine)
+        self._bilgi_ayirici.setFixedWidth(40)
+        self._bilgi_ayirici.setStyleSheet("color: #d0d5dc; background: #d0d5dc; border: none; max-height: 1px;")
+        if not kurum_adi_metin:
+            self._bilgi_ayirici.hide()
+        ayirici_yerlesim = QHBoxLayout()
+        ayirici_yerlesim.addStretch()
+        ayirici_yerlesim.addWidget(self._bilgi_ayirici)
+        ayirici_yerlesim.addStretch()
+        bilgi_kart_yerlesim.addLayout(ayirici_yerlesim)
+
+        # Tahta adı
         self._tahta_adi_etiketi = QLabel(tahta_adi_metin)
-        sinif_yazi_tipi = QFont("Merriweather", 12)
+        sinif_yazi_tipi = QFont("Exo 2", 14)
         sinif_yazi_tipi.setWeight(QFont.Bold)
         self._tahta_adi_etiketi.setFont(sinif_yazi_tipi)
-        self._tahta_adi_etiketi.setStyleSheet("color: #2c3e50; border: none; padding: 10px;")
+        self._tahta_adi_etiketi.setStyleSheet(
+            "color: #2c3e50; border: none; background: transparent;"
+        )
         self._tahta_adi_etiketi.setAlignment(Qt.AlignCenter)
-        kenar_yerlesim.addWidget(self._tahta_adi_etiketi)
+        self._tahta_adi_etiketi.setWordWrap(True)
+        bilgi_kart_yerlesim.addWidget(self._tahta_adi_etiketi)
 
-        alt_cizgi = QFrame()
-        alt_cizgi.setFrameShape(QFrame.HLine)
-        alt_cizgi.setStyleSheet("color: #d0d0d0;")
-        kenar_yerlesim.addWidget(alt_cizgi)
+        bilgi_karti.setLayout(bilgi_kart_yerlesim)
+        kenar_yerlesim.addSpacing(6)
+        kenar_yerlesim.addWidget(bilgi_karti)
         kenar_yerlesim.addSpacing(10)
+
+        # ========== Sınav Takvimi ==========
+        self._sinav_kart_yukseklik = 62
+        self._sinav_kart_bosluk = 6
+
+        self._sinav_scroll = QScrollArea()
+        self._sinav_scroll.setWidgetResizable(True)
+        self._sinav_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self._sinav_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self._sinav_scroll.setStyleSheet("""
+            QScrollArea { border: none; background: transparent; }
+        """)
+        # Başlangıçta sabit yükseklik yok — içeriğe göre ayarlanacak
+        self._sinav_scroll.setMinimumHeight(0)
+        self._sinav_scroll.setMaximumHeight(16777215)
+        self._sinav_icerik = QWidget()
+        self._sinav_icerik.setStyleSheet("background: transparent;")
+        self._sinav_yerlesim = QVBoxLayout()
+        self._sinav_yerlesim.setContentsMargins(0, 5, 0, 5)
+        self._sinav_yerlesim.setSpacing(self._sinav_kart_bosluk)
+
+        self._sinav_icerik.setLayout(self._sinav_yerlesim)
+        self._sinav_scroll.setWidget(self._sinav_icerik)
+        self._sinav_scroll.hide()
+
+        self._sinav_ust_cizgi = QFrame()
+        self._sinav_ust_cizgi.setFrameShape(QFrame.HLine)
+        self._sinav_ust_cizgi.setStyleSheet("color: #b0b0b0;")
+        kenar_yerlesim.addWidget(self._sinav_ust_cizgi)
+        kenar_yerlesim.addSpacing(5)
+
+        kenar_yerlesim.addWidget(self._sinav_scroll)
+        kenar_yerlesim.addSpacing(5)
+
+        self._sinav_alt_cizgi = QFrame()
+        self._sinav_alt_cizgi.setFrameShape(QFrame.HLine)
+        self._sinav_alt_cizgi.setStyleSheet("color: #b0b0b0;")
+        kenar_yerlesim.addWidget(self._sinav_alt_cizgi)
+
+        kenar_yerlesim.addStretch(1)
 
         # Challenge sistemini başlat (widget'lar aşağıda oluşturulacak)
 
@@ -542,11 +634,9 @@ class Kilit(QMainWindow):
         self._saat_zamanlayici.timeout.connect(self._saat_guncelle)
         self._saat_zamanlayici.start(1000)
 
-        kenar_yerlesim.addStretch()
-
         qr_ust_cizgi = QFrame()
         qr_ust_cizgi.setFrameShape(QFrame.HLine)
-        qr_ust_cizgi.setStyleSheet("color: #d0d0d0;")
+        qr_ust_cizgi.setStyleSheet("color: #b0b0b0;")
         kenar_yerlesim.addWidget(qr_ust_cizgi)
         kenar_yerlesim.addSpacing(10)
 
@@ -907,6 +997,245 @@ class Kilit(QMainWindow):
         if yeni_adi and self._tahta_adi_etiketi.text() != yeni_adi:
             self._tahta_adi_etiketi.setText(yeni_adi)
             self._vt.adi_guncelle(self._kurumkodu, yeni_adi)
+
+    def _kurum_adi_guncelle(self, yeni_kurum_adi):
+        """Sunucudan gelen kurum adını güncelle"""
+        if yeni_kurum_adi and self._kurum_adi_etiketi.text() != yeni_kurum_adi:
+            self._kurum_adi_etiketi.setText(yeni_kurum_adi)
+            self._kurum_adi_etiketi.show()
+            self._bilgi_ayirici.show()
+            kayit = self._vt.tahta_kaydi_al(self._kurumkodu)
+            if kayit:
+                self._vt.tahta_kaydi_olustur(
+                    self._kurumkodu, kayit["adi"],
+                    durum=kayit["durum"], ses=kayit["ses"],
+                    anahtar=kayit["anahtar"], kurum_adi=yeni_kurum_adi,
+                    url=kayit.get("url", "")
+                )
+
+    def _sinavlari_guncelle(self, sinavlar):
+        """Sunucudan gelen sınav listesini kilit ekranında göster"""
+        # Otomatik kaydırma timer'ını durdur
+        if hasattr(self, '_sinav_kaydirma_timer'):
+            self._sinav_kaydirma_timer.stop()
+
+        # Mevcut widget'ları temizle
+        while self._sinav_yerlesim.count():
+            item = self._sinav_yerlesim.takeAt(0)
+            w = item.widget()
+            if w:
+                w.deleteLater()
+
+        # Bugün ve sonrası olan sınavları filtrele
+        bugun = datetime.now().strftime("%Y-%m-%d")
+        gelecek = [s for s in sinavlar if s.get("sinav_tarihi", "") >= bugun]
+        self._sinav_listesi_boyut = len(gelecek)
+
+        if not gelecek:
+            self._sinav_scroll.hide()
+        else:
+            # Tüm kartları ekle
+            for sinav in gelecek:
+                self._sinav_yerlesim.addWidget(self._sinav_karti_olustur(sinav))
+
+            # Sonsuz kaydırma için kartları iki kez daha ekle (toplam 3 kopya)
+            for sinav in gelecek:
+                self._sinav_yerlesim.addWidget(self._sinav_karti_olustur(sinav))
+            for sinav in gelecek:
+                self._sinav_yerlesim.addWidget(self._sinav_karti_olustur(sinav))
+
+            # Tam 3 kart sığacak yükseklik
+            sinav_gorunen = min(len(gelecek), 3) * self._sinav_kart_yukseklik + (min(len(gelecek), 3) - 1) * self._sinav_kart_bosluk + 10
+            self._sinav_scroll.setFixedHeight(sinav_gorunen)
+            self._sinav_scroll.show()
+
+            # Scroll'u başa al ve timer başlat
+            self._sinav_scroll.verticalScrollBar().setValue(0)
+            self._sinav_kaydirma_bekleme = 60  # Başta 3sn bekle
+            if not hasattr(self, '_sinav_kaydirma_timer'):
+                self._sinav_kaydirma_timer = QTimer(self)
+                self._sinav_kaydirma_timer.timeout.connect(self._sinav_otomatik_kaydir)
+            self._sinav_kaydirma_timer.start(80)
+
+    def _sinav_otomatik_kaydir(self):
+        """Sınav listesini sonsuz döngüde aşağı kaydır"""
+        sb = self._sinav_scroll.verticalScrollBar()
+        maks = sb.maximum()
+        if maks <= 0:
+            return
+
+        # Başlangıçta ve sıfırlama sonrası kısa bekleme
+        if self._sinav_kaydirma_bekleme > 0:
+            self._sinav_kaydirma_bekleme -= 1
+            return
+
+        # İlk setin piksel yüksekliği (kartlar 3 kopya eklendi, 1/3'te sıfırla)
+        bir_set = self._sinav_listesi_boyut * (self._sinav_kart_yukseklik + self._sinav_kart_bosluk)
+        if sb.value() >= bir_set:
+            sb.setValue(sb.value() - bir_set)
+            return
+
+        sb.setValue(sb.value() + 1)
+
+    def _sinav_karti_olustur(self, sinav):
+        """Tek bir sınav kartı widget'ı oluştur — flat tasarım"""
+        from datetime import timedelta
+        ay_kisa = {
+            1: "OCA", 2: "ŞUB", 3: "MAR", 4: "NİS",
+            5: "MAY", 6: "HAZ", 7: "TEM", 8: "AĞU",
+            9: "EYL", 10: "EKİ", 11: "KAS", 12: "ARA"
+        }
+
+        tarih_str = sinav.get("sinav_tarihi", "")
+        baslangic = sinav.get("ders_saati_baslangic", 1)
+        bitis = sinav.get("ders_saati_bitis", 1)
+        ders_adi = sinav.get("ders_adi", "")
+        ekleyen_adi = sinav.get("ekleyen_adi", "")
+
+        bugun = datetime.now().date()
+        try:
+            sinav_tarih = datetime.strptime(tarih_str, "%Y-%m-%d").date()
+            gun = str(sinav_tarih.day)
+            ay = ay_kisa.get(sinav_tarih.month, "")
+            fark = (sinav_tarih - bugun).days
+        except Exception:
+            gun = "?"
+            ay = ""
+            fark = 99
+
+        # Renk şeması: bugün=mavi, yarın=turuncu, 2 gün sonra=yeşil, diğer=gri
+        if fark == 0:
+            tema_renk = "#3498db"
+            kart_bg = "qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #eaf4fc,stop:1 #f7fbff)"
+            ders_renk = "#1a5276"
+            etiket_metin = "BUGÜN"
+        elif fark == 1:
+            tema_renk = "#e67e22"
+            kart_bg = "qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #fef5ec,stop:1 #fffbf5)"
+            ders_renk = "#7e4a12"
+            etiket_metin = "YARIN"
+        elif fark == 2:
+            tema_renk = "#27ae60"
+            kart_bg = "qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #eafaf1,stop:1 #f5fdf9)"
+            ders_renk = "#1a7a42"
+            etiket_metin = ""
+        else:
+            tema_renk = "#bdc3c7"
+            kart_bg = "#f8f9fa"
+            ders_renk = "#4a4a4a"
+            etiket_metin = ""
+
+        # Ders saati metni
+        if baslangic == bitis:
+            saat_metin = f"{baslangic}. Ders"
+        else:
+            saat_metin = f"{baslangic}-{bitis}. Ders"
+
+        # === Ana kart ===
+        kart = QFrame()
+        kart.setFixedHeight(self._sinav_kart_yukseklik)
+        kart.setStyleSheet(f"""
+            QFrame {{
+                background: {kart_bg};
+                border: none; border-radius: 6px;
+            }}
+        """)
+
+        ana_yerlesim = QHBoxLayout()
+        ana_yerlesim.setContentsMargins(0, 0, 10, 0)
+        ana_yerlesim.setSpacing(0)
+
+        # === Sol: Tarih bloğu ===
+        tarih_blok = QFrame()
+        tarih_blok.setStyleSheet(f"""
+            QFrame {{
+                background-color: {tema_renk};
+                border: none;
+                border-top-left-radius: 6px;
+                border-bottom-left-radius: 6px;
+                border-top-right-radius: 0px;
+                border-bottom-right-radius: 0px;
+            }}
+        """)
+        tarih_blok.setFixedWidth(44)
+        tarih_yerlesim = QVBoxLayout()
+        tarih_yerlesim.setContentsMargins(0, 6, 0, 6)
+        tarih_yerlesim.setSpacing(0)
+        tarih_yerlesim.setAlignment(Qt.AlignCenter)
+
+        gun_lbl = QLabel(gun)
+        gun_lbl.setFont(QFont("Exo 2", 15, QFont.Bold))
+        gun_lbl.setAlignment(Qt.AlignCenter)
+        gun_lbl.setStyleSheet("color: white; border: none; background: transparent;")
+        tarih_yerlesim.addWidget(gun_lbl)
+
+        ay_lbl = QLabel(ay)
+        ay_lbl.setFont(QFont("Exo 2", 7, QFont.Bold))
+        ay_lbl.setAlignment(Qt.AlignCenter)
+        ay_lbl.setStyleSheet("color: rgba(255,255,255,0.85); border: none; background: transparent;")
+        tarih_yerlesim.addWidget(ay_lbl)
+
+        tarih_blok.setLayout(tarih_yerlesim)
+        ana_yerlesim.addWidget(tarih_blok)
+
+        # === Sağ: Detay bloğu ===
+        detay_yerlesim = QVBoxLayout()
+        detay_yerlesim.setContentsMargins(10, 5, 0, 5)
+        detay_yerlesim.setSpacing(3)
+
+        # Ders adı
+        ders = QLabel(ders_adi)
+        ders.setFont(QFont("Exo 2", 10, QFont.Bold))
+        ders.setStyleSheet(f"color: {ders_renk}; border: none; background: transparent;")
+        ders.setWordWrap(True)
+        detay_yerlesim.addWidget(ders)
+
+        # Ders saati satırı
+        saat_satir = QHBoxLayout()
+        saat_satir.setSpacing(5)
+        saat_ikon = QLabel()
+        saat_ikon.setPixmap(qta.icon('fa5s.clock', color=tema_renk).pixmap(QSize(12, 12)))
+        saat_ikon.setStyleSheet("border: none; background: transparent;")
+        saat_ikon.setFixedSize(14, 14)
+        saat_satir.addWidget(saat_ikon)
+        saat_lbl = QLabel(saat_metin)
+        saat_lbl.setFont(QFont("Exo 2", 9))
+        saat_lbl.setStyleSheet(f"color: {tema_renk}; border: none; background: transparent;")
+        saat_satir.addWidget(saat_lbl)
+
+        # Etiket (BUGÜN / YARIN)
+        if etiket_metin:
+            etiket_lbl = QLabel(etiket_metin)
+            etiket_lbl.setFont(QFont("Exo 2", 7, QFont.Bold))
+            etiket_lbl.setStyleSheet(f"""
+                color: white; background-color: {tema_renk};
+                border: none; border-radius: 3px;
+                padding: 1px 6px;
+            """)
+            saat_satir.addWidget(etiket_lbl)
+
+        saat_satir.addStretch()
+        detay_yerlesim.addLayout(saat_satir)
+
+        # Öğretmen adı
+        if ekleyen_adi:
+            ogr_satir = QHBoxLayout()
+            ogr_satir.setSpacing(5)
+            ogr_ikon = QLabel()
+            ogr_ikon.setPixmap(qta.icon('fa5s.user', color='#aab0b5').pixmap(QSize(10, 10)))
+            ogr_ikon.setStyleSheet("border: none; background: transparent;")
+            ogr_ikon.setFixedSize(14, 14)
+            ogr_satir.addWidget(ogr_ikon)
+            ogr_lbl = QLabel(ekleyen_adi)
+            ogr_lbl.setFont(QFont("Exo 2", 8))
+            ogr_lbl.setStyleSheet("color: #aab0b5; border: none; background: transparent;")
+            ogr_satir.addWidget(ogr_lbl)
+            ogr_satir.addStretch()
+            detay_yerlesim.addLayout(ogr_satir)
+
+        ana_yerlesim.addLayout(detay_yerlesim, 1)
+        kart.setLayout(ana_yerlesim)
+        return kart
 
     def _db_durum_kontrol(self):
         """Veritabanındaki durum değişikliğini kontrol et"""
