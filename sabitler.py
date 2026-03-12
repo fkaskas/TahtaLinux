@@ -20,10 +20,11 @@ else:
 VARSAYILAN_KURUM_KODU = "755555"
 VARSAYILAN_TAHTA_ADI = "11E"
 
+# Cache dosyası (kurum sayfası HTML cache'i)
+if os.geteuid() == 0:
+    CACHE_HTML_YOLU = "/var/lib/tahta-kilit/kurum_cache.html"
+else:
+    CACHE_HTML_YOLU = os.path.join(BETIK_DIZINI, "kurum_cache.html")
+
 # Online sunucu ayarları
 SUNUCU_URL = "https://kulumtal.com"
-
-# WebView mod geçiş gecikmeleri
-OFFLINE_GECIKME_SANIYE = 15   # Bağlantı gidince çevrimdışı moda geçme süresi
-ONLINE_GECIKME_SANIYE = 15    # Bağlantı gelince çevrimiçi moda geçme süresi
-BASTANGIC_BEKLEME_SANIYE = 15  # Başlangıçta sunucu gelmezse offline geçme süresi

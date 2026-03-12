@@ -30,15 +30,17 @@ class OnlineIstemci(QObject):
     sinavlar_sinyali = pyqtSignal(list)  # Sınav listesi
     icerik_guncellendi_sinyali = pyqtSignal()  # Panel'den içerik güncellendi bildirimi
 
-    def __init__(self, kurum_kodu, tahta_adi, tahta_id="", anahtar="", parent=None):
+    def __init__(self, kurum_kodu, tahta_adi, tahta_id="", anahtar="", kayitli=False, parent=None):
         super().__init__(parent)
         self._kurum_kodu = kurum_kodu
         self._tahta_adi = tahta_adi
         self._tahta_id = tahta_id
         self._anahtar = anahtar
         self._aktif = False
+        self._kayitli = kayitli  # Daha önce sunucuya başarıyla kaydolmuş mu
         self._kayitsiz = False  # Sunucu "kayıtlı değil" dediğinde True olur
         self._kayitsiz_deneme = 0  # Kayıtsız hata sayısı
+        self._deneme_yapildi = False  # İlk bağlantı denemesi yapıldı mı (kayıtsız mod)
         self._yeniden_dene = threading.Event()  # Beklemeyi erken kırmak için
         self._durum = 1   # 1=kilitli, 0=açık (sunucu formatı)
         self._ses = 1     # 1=açık, 0=kapalı
@@ -115,7 +117,11 @@ class OnlineIstemci(QObject):
             ses = veri.get("ses", 1)
             self._durum = durum
             self._ses = ses
-            # Sunucu tahtayı kabul etti — şimdi gerçekten bağlıyız
+            # Sunucu tahtayı kabul etti — kayıtlı olarak işaretle
+            if not self._kayitli:
+                self._kayitli = True
+            self._kayitsiz = False
+            self._kayitsiz_deneme = 0
             self.baglanti_durumu_sinyali.emit(True)
             self.durum_bilgisi_sinyali.emit(durum, ses)
             tahta_adi = veri.get("tahta_adi", "")
@@ -159,20 +165,32 @@ class OnlineIstemci(QObject):
         t.start()
 
     def _baglan(self):
-        """Bağlantıyı kur — koparsa yeniden bağlan, kayıtsızsa 3 denemeden sonra dur"""
+        """Bağlantıyı kur — kayıtlı tahtalar sürekli yeniden dener, kayıtsızlar tek denemede durur"""
         bekleme = 1
         while self._aktif:
-            # Kayıtsız tahta 3 kez denediyse tamamen dur, sinyal bekle
-            if self._kayitsiz and self._kayitsiz_deneme >= 3:
-                print("[ONLİNE] Tahta sunucuda kayıtlı değil, bağlantı denemeleri durduruldu. Kilit aç/kapa ile tetiklenir.")
+            # ── Kayıtlı olmayan tahta: ilk deneme yapıldıysa dur ──
+            if not self._kayitli and self._deneme_yapildi:
+                print("[ONLİNE] Kayıtsız tahta — bağlantı denemeleri durduruldu. "
+                      "Ayarlar kaydedilince veya uygulama yeniden başlatılınca tekrar denenir.")
                 self.baglanti_durumu_sinyali.emit(False)
-                self._yeniden_dene.wait()  # Süresiz bekle, sadece baglantiyi_kontrol_et() ile uyanır
+                self._yeniden_dene.wait()  # Süresiz bekle
+                self._yeniden_dene.clear()
+                self._deneme_yapildi = False
+                self._kayitsiz = False
+                self._kayitsiz_deneme = 0
+                bekleme = 1
+                continue
+
+            # ── Kayıtlı tahta: sunucu "kayıtlı değil" derse 3 denemeden sonra dur ──
+            if self._kayitli and self._kayitsiz and self._kayitsiz_deneme >= 3:
+                print("[ONLİNE] Kayıtlı tahta sunucudan reddedildi — bağlantı denemeleri durduruldu.")
+                self.baglanti_durumu_sinyali.emit(False)
+                self._yeniden_dene.wait()
                 self._yeniden_dene.clear()
                 bekleme = 1
                 continue
 
             try:
-                # Her denemede temiz bir istemci oluştur
                 self._sio = self._yeni_istemci_olustur()
                 print(f"[ONLİNE] Bağlanılıyor: {SUNUCU_URL}")
                 self._sio.connect(
@@ -180,9 +198,9 @@ class OnlineIstemci(QObject):
                     transports=["polling", "websocket"],
                     wait_timeout=10,
                 )
-                self._sio.wait()  # Bağlantı tamamen kopana kadar bekle
+                self._sio.wait()
                 if not self._kayitsiz:
-                    bekleme = 1  # Başarılı bağlantıdan sonra sıfırla
+                    bekleme = 1
             except Exception as e:
                 print(f"[ONLİNE] Bağlantı hatası: {e}")
 
@@ -196,14 +214,19 @@ class OnlineIstemci(QObject):
             if not self._aktif:
                 return
 
-            # Kayıtsız tahta: kademeli bekleme
+            # ── Kayıtlı olmayan tahta: ilk deneme bitti ──
+            if not self._kayitli:
+                self._deneme_yapildi = True
+                continue  # Döngü başına dön, orada durdurulacak
+
+            # ── Kayıtlı tahta: backoff ile yeniden dene ──
             if self._kayitsiz:
                 if self._kayitsiz_deneme >= 3:
-                    continue  # Döngü başındaki beklemeye düşsün
+                    continue
                 bekleme = min(bekleme * 2, 30)
                 print(f"[ONLİNE] Tahta sunucuda kayıtlı değil, deneme {self._kayitsiz_deneme}/3")
             else:
-                bekleme = min(bekleme * 2, 30)  # Normal kopma: max 30s
+                bekleme = min(bekleme * 2, 30)
 
             self.baglanti_durumu_sinyali.emit(False)
             self._yeniden_dene.wait(timeout=bekleme)
@@ -213,7 +236,14 @@ class OnlineIstemci(QObject):
         """Bekleme süresini kırıp hemen bağlantı denemesi yap"""
         self._kayitsiz = False
         self._kayitsiz_deneme = 0
+        self._deneme_yapildi = False
         self._yeniden_dene.set()
+
+    def kayitli_yap(self):
+        """Sunucu tahtayı kabul etti — sürekli yeniden bağlanma moduna geç"""
+        self._kayitli = True
+        self._kayitsiz = False
+        self._kayitsiz_deneme = 0
 
     def durdur(self):
         """Bağlantıyı kapat"""

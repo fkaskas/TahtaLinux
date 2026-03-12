@@ -308,3 +308,31 @@ class VeritabaniYoneticisi:
                 return {"aktif": 0, "saatler": []}
             finally:
                 conn.close()
+
+    def sunucu_kayitli_mi(self):
+        """Tahta sunucuya en az bir kez başarıyla kaydolmuş mu?"""
+        with self._kilit:
+            conn = self._baglan()
+            try:
+                ayar = conn.execute(
+                    "SELECT deger FROM ayarlar WHERE anahtar = ?",
+                    ("sunucu_kayitli",)
+                ).fetchone()
+                return ayar is not None and ayar["deger"] == "1"
+            except sqlite3.OperationalError:
+                return False
+            finally:
+                conn.close()
+
+    def sunucu_kayitli_yap(self):
+        """Tahta sunucuya başarıyla kaydolduğunda işaretle"""
+        with self._kilit:
+            conn = self._baglan()
+            try:
+                conn.execute(
+                    "INSERT OR REPLACE INTO ayarlar (anahtar, deger) VALUES (?, ?)",
+                    ("sunucu_kayitli", "1")
+                )
+                conn.commit()
+            finally:
+                conn.close()

@@ -44,7 +44,7 @@ from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings, QWebEng
 import vlc
 import qrcode
 
-from sabitler import BETIK_DIZINI, YENILEME_ARALIGI_SANIYE, VARSAYILAN_KURUM_KODU, OFFLINE_GECIKME_SANIYE, BASTANGIC_BEKLEME_SANIYE
+from sabitler import BETIK_DIZINI, YENILEME_ARALIGI_SANIYE, VARSAYILAN_KURUM_KODU, CACHE_HTML_YOLU
 from servisler import KodUretici, DogrulamaServisi
 from dogrulama_penceresi import KodDogrulamaPenceresi
 from veritabani import VeritabaniYoneticisi
@@ -670,6 +670,9 @@ class Kilit(QMainWindow):
 
         self._son_db_durum = None  # Son okunan DB durumu
 
+        # Sunucu kaydı durumunu kontrol et
+        self._sunucu_kayitli = self._vt.sunucu_kayitli_mi()
+
         # Tahta ID'yi erken al (QR oluşturmada lazım)
         tahta_kayit = self._vt.tahta_kaydi_al(self._kurumkodu)
         tahta_adi = tahta_kayit["adi"] if tahta_kayit else "Tahta"
@@ -684,7 +687,7 @@ class Kilit(QMainWindow):
         self.arayuz_baslat()
 
         # Online istemciyi başlat
-        self._online = OnlineIstemci(self._kurumkodu, tahta_adi, tahta_id=tahta_id, anahtar=tahta_anahtar, parent=self)
+        self._online = OnlineIstemci(self._kurumkodu, tahta_adi, tahta_id=tahta_id, anahtar=tahta_anahtar, kayitli=self._sunucu_kayitli, parent=self)
         self._online.kilitle_sinyali.connect(self._online_kilitle)
         self._online.kilidi_ac_sinyali.connect(self._online_kilidi_ac)
         self._online.ses_kapat_sinyali.connect(self._online_ses_kapat)
@@ -880,6 +883,24 @@ class Kilit(QMainWindow):
         kenar_yerlesim.addWidget(self._sinav_ust_cizgi)
         kenar_yerlesim.addSpacing(5)
 
+        # Sınav başlığı
+        self._sinav_baslik = QLabel("📅  Sınavlar")
+        sinav_baslik_font = QFont("Exo 2", 10, QFont.Bold)
+        self._sinav_baslik.setFont(sinav_baslik_font)
+        self._sinav_baslik.setStyleSheet("color: #34495e; border: none; background: transparent;")
+        self._sinav_baslik.setAlignment(Qt.AlignLeft)
+        kenar_yerlesim.addWidget(self._sinav_baslik)
+        kenar_yerlesim.addSpacing(2)
+
+        # Sınav yok mesajı
+        self._sinav_yok_etiketi = QLabel("Planlanmış sınav bulunmuyor")
+        sinav_yok_font = QFont("Exo 2", 9)
+        self._sinav_yok_etiketi.setFont(sinav_yok_font)
+        self._sinav_yok_etiketi.setStyleSheet("color: #95a5a6; border: none; background: transparent;")
+        self._sinav_yok_etiketi.setAlignment(Qt.AlignCenter)
+        self._sinav_yok_etiketi.setFixedHeight(40)
+        kenar_yerlesim.addWidget(self._sinav_yok_etiketi)
+
         kenar_yerlesim.addWidget(self._sinav_scroll)
         kenar_yerlesim.addSpacing(5)
 
@@ -1067,19 +1088,21 @@ class Kilit(QMainWindow):
         self._webview_durum = 'yukluyor'
         self._sunucu_bagli = False    # Socket.IO bağlantı durumu
 
-        # Offline gecikme zamanlayıcısı: bağlantı koptuğunda ani geçiş olmasın
-        self._offline_gecikme_zamanlayici = QTimer(self)
-        self._offline_gecikme_zamanlayici.setSingleShot(True)
-        self._offline_gecikme_zamanlayici.timeout.connect(self._cevrimdisi_moda_gec)
-        # Başlangıç zaman aşımı: bu sürede sunucu gelmezse offline moda geç
-        self._baslangic_zamanlayici = QTimer(self)
-        self._baslangic_zamanlayici.setSingleShot(True)
-        self._baslangic_zamanlayici.timeout.connect(self._baslangic_zaman_asimi)
-        self._baslangic_zamanlayici.start(BASTANGIC_BEKLEME_SANIYE * 1000)
-
         self.web_gorunum.loadFinished.connect(self._webview_yukleme_bitti)
-        # Başlangıçta inline yükleniyor sayfası göster (dosya bağımlılığı yok)
-        self.web_gorunum.setHtml(self._YUKLENIYOR_HTML)
+        # Kayıtlı tahta: cache'den hemen yükle (DNS beklemeye gerek yok)
+        if self._sunucu_kayitli and os.path.isfile(CACHE_HTML_YOLU):
+            try:
+                with open(CACHE_HTML_YOLU, 'r', encoding='utf-8') as f:
+                    cache_html = f.read()
+                self.web_gorunum.setHtml(cache_html, QUrl(self._webview_hedef_url))
+                self._webview_durum = 'online'
+                print("[CACHE] Kurum sayfası cache'den yüklendi")
+            except Exception:
+                self.web_gorunum.setHtml(self._YUKLENIYOR_HTML)
+                self._webview_durum = 'yukluyor'
+        else:
+            # Kayıtsız tahta veya cache yok: yükleniyor spinner göster
+            self.web_gorunum.setHtml(self._YUKLENIYOR_HTML)
         self._web_yerlesim.addWidget(self.web_gorunum)
 
         ana_widget.setLayout(ana_yerlesim)
@@ -1145,13 +1168,13 @@ class Kilit(QMainWindow):
         subprocess.Popen(["systemctl", "poweroff"])
 
     def _online_hata_geldi(self, mesaj):
-        """Sunucudan hata geldi — kayıtlı değil ise online moda geçme"""
+        """Sunucudan hata geldi — kayıtlı değil ise çevrimdışı göster"""
         if "kayıtlı değil" in mesaj.lower():
-            self._offline_gecikme_zamanlayici.stop()
-            if self._webview_durum == 'online':
-                self._webview_sayfa_yukle('offline')
-            elif self._webview_durum == 'yukluyor':
-                self._webview_sayfa_yukle('offline')
+            if not self._sunucu_kayitli:
+                # Kayıtsız tahta: çevrimdışı sayfaya geç
+                if self._webview_durum != 'offline':
+                    self._webview_sayfa_yukle('offline')
+            # Kayıtlı tahta: mevcut sayfayı koru (cache veya online)
 
     def _online_baglanti_degisti(self, bagli):
         """Sunucu bağlantı durumu değişti"""
@@ -1161,23 +1184,24 @@ class Kilit(QMainWindow):
         renk = '#27ae60' if bagli else '#e74c3c'
         self._kilit_ac_butonu.setIcon(qta.icon('fa5s.lock-open', color=renk))
         if bagli:
-            # Tüm bekleme zamanlayıcılarını iptal et
-            self._baslangic_zamanlayici.stop()
-            self._offline_gecikme_zamanlayici.stop()
-            # Kurum sayfası göstermiyorsak hemen yükle
+            # Sunucu tahtayı kabul etti
+            if not self._sunucu_kayitli:
+                self._sunucu_kayitli = True
+                self._vt.sunucu_kayitli_yap()
+                self._online.kayitli_yap()
+                print("[ONLİNE] Tahta sunucuya kaydedildi — kayıtlı olarak işaretlendi")
+            # Kurum sayfasını yükle veya yenile
             if self._webview_durum != 'online':
                 self._webview_sayfa_yukle('online')
+            else:
+                # Zaten kurum sayfası gösteriliyor — gereksiz setUrl yapmadan yenile
+                self._webview_online_yenile()
         else:
-            if self._webview_durum == 'yukluyor':
-                # Henüz yükleniyor modunda, başlangıç timer'ı yoksa başlat
-                if not self._baslangic_zamanlayici.isActive():
-                    self._baslangic_zamanlayici.start(BASTANGIC_BEKLEME_SANIYE * 1000)
-            elif self._webview_durum == 'online':
-                # Çevrimiçiyken bağlantı koptu → gecikmeli offline geçiş
-                if not self._offline_gecikme_zamanlayici.isActive():
-                    print(f"[ONLİNE] {OFFLINE_GECIKME_SANIYE}s sonra çevrimdışı moda geçilecek")
-                    self._offline_gecikme_zamanlayici.start(OFFLINE_GECIKME_SANIYE * 1000)
-            # Zaten offline ise bir şey yapma
+            if not self._sunucu_kayitli:
+                # Kayıtsız tahta — yükleniyor gösteriliyorsa çevrimdışı göster
+                if self._webview_durum == 'yukluyor':
+                    self._webview_sayfa_yukle('offline')
+            # Kayıtlı tahta: mevcut sayfayı koru (cache veya önceki online)
 
     def _webview_sayfa_yukle(self, hedef):
         """WebView'ı hedef duruma geçir: 'online' veya 'offline'"""
@@ -1203,15 +1227,36 @@ class Kilit(QMainWindow):
             print(f"[WEBVIEW] URL uyumsuz, setUrl ile yeniden yükleniyor: {self._webview_hedef_url}")
             self.web_gorunum.setUrl(hedef)
 
-    def _cevrimdisi_moda_gec(self):
-        """Gecikme süresi doldu — hala bağlı değilse offline geç"""
-        if not self._sunucu_bagli and self._webview_durum != 'offline':
+    def _cevrimdisi_kontrol(self):
+        """Kayıtsız tahta için çevrimdışı sayfaya geçiş kontrolü"""
+        if not self._sunucu_bagli and not self._sunucu_kayitli and self._webview_durum != 'offline':
             self._webview_sayfa_yukle('offline')
 
-    def _baslangic_zaman_asimi(self):
-        """Başlangıçta sunucuya bağlanılamadı → çevrimdışı moda geç"""
-        if self._webview_durum == 'yukluyor' and not self._sunucu_bagli:
-            self._webview_sayfa_yukle('offline')
+    def _sayfa_cache_kaydet(self):
+        """Kurum sayfası HTML'ini yerel cache dosyasına kaydet"""
+        def _kaydet(html):
+            try:
+                cache_dizini = os.path.dirname(CACHE_HTML_YOLU)
+                if cache_dizini and not os.path.exists(cache_dizini):
+                    os.makedirs(cache_dizini, exist_ok=True)
+                with open(CACHE_HTML_YOLU, 'w', encoding='utf-8') as f:
+                    f.write(html)
+                print("[CACHE] Kurum sayfası cache'e kaydedildi")
+            except Exception as e:
+                print(f"[CACHE] Kaydetme hatası: {e}")
+        self.web_gorunum.page().toHtml(_kaydet)
+
+    def _cache_yukle(self):
+        """Cache dosyasından kurum sayfasını yükle"""
+        if os.path.isfile(CACHE_HTML_YOLU):
+            try:
+                with open(CACHE_HTML_YOLU, 'r', encoding='utf-8') as f:
+                    cache_html = f.read()
+                self.web_gorunum.setHtml(cache_html, QUrl(self._webview_hedef_url))
+                self._webview_durum = 'online'
+                print("[CACHE] Kurum sayfası cache'den yüklendi")
+            except Exception as e:
+                print(f"[CACHE] Yükleme hatası: {e}")
 
     def _online_durum_senkronize(self, durum, ses):
         """Sunucudan gelen durum bilgisiyle senkronize ol (sunucu formatı: 1=kilitli, 0=açık)"""
@@ -1392,14 +1437,16 @@ class Kilit(QMainWindow):
             if w:
                 w.deleteLater()
 
-        # Bugün ve sonrası olan sınavları filtrele
+        # Bugün ve sonrası olan sınavları filtrele (geçmiş sınavları gösterme)
         bugun = datetime.now().strftime("%Y-%m-%d")
         gelecek = [s for s in sinavlar if s.get("sinav_tarihi", "") >= bugun]
         self._sinav_listesi_boyut = len(gelecek)
 
         if not gelecek:
             self._sinav_scroll.hide()
+            self._sinav_yok_etiketi.show()
         else:
+            self._sinav_yok_etiketi.hide()
             # Tüm kartları ekle
             for sinav in gelecek:
                 self._sinav_yerlesim.addWidget(self._sinav_karti_olustur(sinav))
@@ -1847,15 +1894,13 @@ class Kilit(QMainWindow):
         if sonuc == QDialog.Accepted:
             self._video_yenile()
             self._logo_yenile()
-            self._webview_url_yenile()
             # Ayarlardan anahtar/kurum değişmiş olabilir — online istemciyi güncelle
             yeni_kayit = self._vt.tahta_kaydi_al(self._kurumkodu)
             if yeni_kayit:
-                yeni_anahtar = yeni_kayit.get("anahtar", "")
-                if yeni_anahtar != self._online._anahtar:
-                    self._online._anahtar = yeni_anahtar
-                    self._online.baglantiyi_kontrol_et()
-                    print(f"[ONLİNE] Anahtar güncellendi, yeniden bağlanılıyor")
+                self._online._anahtar = yeni_kayit.get("anahtar", "")
+                self._online._kurum_kodu = yeni_kayit.get("kurumkodu", self._kurumkodu)
+                self._online._tahta_adi = yeni_kayit.get("adi", "")
+            self._webview_url_yenile()  # URL güncelle + bağlantı denemesi yap
         self._odak_zamanlayici.start(1000)
         QTimer.singleShot(200, self._girisleri_yakala)
 
@@ -1989,12 +2034,10 @@ class Kilit(QMainWindow):
         yeni_url = db_url if db_url else "https://kulumtal.com/php/"
         yeni_url = self._url_kurum_kodu_ekle(yeni_url)
         self._webview_hedef_url = yeni_url
+        # Her kaydetmede bağlantı denemesi yap (kayıtsız tahtalar için önemli)
+        self._online.baglantiyi_kontrol_et()
         if self._sunucu_bagli:
-            self._baslangic_zamanlayici.stop()
-            self._offline_gecikme_zamanlayici.stop()
-            mevcut_url = self.web_gorunum.url().toString()
-            if mevcut_url != yeni_url:
-                self._webview_sayfa_yukle('online')
+            self._webview_sayfa_yukle('online')
 
     # ===================== ÇEVRİMDIŞI FALLBACK =====================
 
@@ -2036,11 +2079,20 @@ class Kilit(QMainWindow):
         mevcut_url = self.web_gorunum.url().toString()
         url_goster = mevcut_url if not mevcut_url.startswith("data:") else mevcut_url[:40] + "…"
         print(f"[WEBVIEW] loadFinished: basarili={basarili}, durum={self._webview_durum}, url={url_goster}")
+        if basarili and self._webview_durum == 'online' and self._sunucu_kayitli:
+            # Başarılı yükleme — yalnızca gerçek URL yüklendiyse cache'e kaydet
+            # (data: URL'li setHtml içeriğini kaydetme)
+            if not mevcut_url.startswith("data:"):
+                self._sayfa_cache_kaydet()
         if self._webview_durum == 'online' and not basarili:
-            # Kurum sayfası yüklenemedi — sunucu hala bağlıysa 5s sonra tekrar dene
+            # Kurum sayfası yüklenemedi
             if self._sunucu_bagli:
                 print("[WEBVIEW] Sayfa yüklenemedi, 5s sonra tekrar denenecek")
                 QTimer.singleShot(5000, self._kurum_sayfasi_tekrar_dene)
+            elif self._sunucu_kayitli:
+                # Kayıtlı tahta çevrimdışı — cache'den yükle
+                print("[WEBVIEW] Sayfa yüklenemedi ve çevrimdışı — cache'den yükleniyor")
+                self._cache_yukle()
 
     def _kurum_sayfasi_tekrar_dene(self):
         """Sunucu bağlıysa ve hala online moddaysak kurum sayfasını tekrar yükle"""
@@ -2271,12 +2323,13 @@ class Kilit(QMainWindow):
             self.setGeometry(geometri)
         # WebView sayfasını duruma göre yükle
         if self._sunucu_bagli:
-            if self._webview_durum != 'online':
-                self._webview_sayfa_yukle('online')
-            else:
-                self._webview_online_yenile()
+            self._webview_sayfa_yukle('online')
+        elif self._sunucu_kayitli:
+            # Kayıtlı ama bağlı değil — mevcut sayfayı koru (cache veya önceki online)
+            if self._webview_durum == 'yukluyor':
+                self._cache_yukle()
         elif self._webview_durum == 'yukluyor':
-            # Henüz bağlantı yok, yükleniyor ekranını korr
+            # Henüz bağlantı bekleniyor
             pass
         elif self._webview_durum != 'offline':
             self._webview_sayfa_yukle('offline')
@@ -2296,12 +2349,7 @@ class Kilit(QMainWindow):
     def _icerik_guncellendi(self):
         """Sunucudan içerik güncellemesi bildirimi geldi → webview yenile"""
         if not self._kilit_acma_istendi and self.isVisible():
-            if self._webview_durum == 'online':
-                self._webview_online_yenile()
-            else:
-                # Sunucudan sinyal geldi → bağlantı kesin var, hemen online geç
-                self._baslangic_zamanlayici.stop()
-                self._offline_gecikme_zamanlayici.stop()
+            if self._sunucu_bagli:
                 self._webview_sayfa_yukle('online')
 
     def _girisleri_yakala(self):
@@ -2594,10 +2642,11 @@ class Kilit(QMainWindow):
         self._saat_guncelle()
         self._saat_zamanlayici.start(1000)
         self._challenge_zamanlayici.start(50)
-        if self._webview_durum == 'online':
-            self._webview_online_yenile()
-        elif self._sunucu_bagli:
+        if self._sunucu_bagli:
             self._webview_sayfa_yukle('online')
+        elif self._sunucu_kayitli and self._webview_durum == 'online':
+            # Kayıtlı ama bağlı değil — mevcut sayfayı koru
+            pass
         self.showFullScreen()
 
         # Videoyu devam ettir
