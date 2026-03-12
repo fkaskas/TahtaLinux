@@ -233,7 +233,7 @@ class AyarlarPenceresi(QDialog):
         self._vt = vt_yoneticisi or VeritabaniYoneticisi()
         self._kurumkodu = kurumkodu or VARSAYILAN_KURUM_KODU
 
-        self.setStyleSheet("background-color: #F0F2F5;")
+        self.setStyleSheet("background-color: #F0F2F5; font-family: 'Exo 2', 'Exo2', sans-serif;")
 
         self._arayuz_olustur()
         self._verileri_yukle()
@@ -243,7 +243,7 @@ class AyarlarPenceresi(QDialog):
     @staticmethod
     def _etiket(metin):
         lbl = QLabel(metin)
-        lbl.setFont(QFont("Sans", 11))
+        lbl.setFont(QFont("Exo 2", 11))
         lbl.setStyleSheet("color: #475569; font-weight: 600; background: transparent;")
         lbl.setFixedWidth(130)
         lbl.setFixedHeight(36)
@@ -266,7 +266,7 @@ class AyarlarPenceresi(QDialog):
         w.setPlaceholderText(placeholder)
         w.setFixedHeight(36)
         w.setReadOnly(readonly)
-        w.setFont(QFont("Sans", 11))
+        w.setFont(QFont("Exo 2", 11))
         # Dokunmatik için özel menü: QTimer ile erteleyerek touch grab sorununu önler,
         # kopyala/yapıştır/seç işlemlerine dokunmatik ekrandan erişim sağlar.
         w.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -290,8 +290,8 @@ class AyarlarPenceresi(QDialog):
         ic.setSpacing(4)
 
         lbl = QLabel(f"{ikon}  {baslik}" if ikon else baslik)
-        lbl.setFont(QFont("Sans", 10, QFont.Bold))
-        lbl.setStyleSheet("color: #3B82F6; background: transparent;")
+        lbl.setFont(QFont("Exo 2", 10, QFont.Bold))
+        lbl.setStyleSheet("color: #34495e; background: transparent;")
         lbl.setFixedHeight(24)
         ic.addWidget(lbl)
 
@@ -327,17 +327,17 @@ class AyarlarPenceresi(QDialog):
         # ── Başlık Bandı ─────────────────────────────────────────────────────
         bant = QFrame()
         bant.setFixedHeight(64)
-        bant.setStyleSheet("background-color: #1E40AF;")
+        bant.setStyleSheet("background-color: #1a1a2e;")
         bant_ic = QHBoxLayout(bant)
         bant_ic.setContentsMargins(24, 0, 24, 0)
 
         baslik_lbl = QLabel("⚙  Ayarlar")
-        baslik_lbl.setFont(QFont("Noto Sans", 15, QFont.Bold))
+        baslik_lbl.setFont(QFont("Exo 2", 15, QFont.Bold))
         baslik_lbl.setStyleSheet("color: #FFFFFF;")
 
         alt_lbl = QLabel("Cihaz, kurum ve bağlantı bilgilerini düzenleyin")
-        alt_lbl.setFont(QFont("Noto Sans", 9))
-        alt_lbl.setStyleSheet("color: #93C5FD;")
+        alt_lbl.setFont(QFont("Exo 2", 9))
+        alt_lbl.setStyleSheet("color: #aab0b5;")
 
         yazi = QVBoxLayout()
         yazi.setSpacing(2)
@@ -354,7 +354,7 @@ class AyarlarPenceresi(QDialog):
 
         # Kart 1: Cihaz Kimliği
         kart1, k1 = self._kart_olustur("Cihaz Kimliği", "🖥")
-        self._tahta_id_girisi = self._girdi(readonly=True)
+        self._tahta_id_girisi = self._girdi("Tahta kimlik numarası")
         # Tahta ID satırı + kopyala butonu
         tahta_id_konteyner = QWidget()
         tahta_id_konteyner.setFixedHeight(44)
@@ -391,8 +391,8 @@ class AyarlarPenceresi(QDialog):
         self._anahtar_girisi = self._girdi("Gizli doğrulama anahtarı")
         self._anahtar_girisi.setEchoMode(QLineEdit.Password)
         k3.addWidget(self._satir_olustur("Gizli Anahtar", self._anahtar_girisi))
-        self._url_girisi = self._girdi("Örn: https://kulumtal.com/php/")
-        k3.addWidget(self._satir_olustur("WebView URL", self._url_girisi))
+        self._url_girisi = self._girdi("Örn: https://kulumtal.com")
+        k3.addWidget(self._satir_olustur("Sunucu URL", self._url_girisi))
         icerik_ic.addWidget(kart3)
 
         # Kart 4: Medya & Logo
@@ -539,6 +539,7 @@ class AyarlarPenceresi(QDialog):
         yeni_anahtar = self._anahtar_girisi.text().strip()
         yeni_kurum_adi = self._kurum_adi_girisi.text().strip()
         yeni_url = self._url_girisi.text().strip()
+        yeni_tahta_id = self._tahta_id_girisi.text().strip()
 
         if not yeni_kurum:
             from PyQt5.QtWidgets import QMessageBox
@@ -561,6 +562,9 @@ class AyarlarPenceresi(QDialog):
             # Kurum kodu değiştiyse eski kaydı güncelleyerek yeni kurum koduna taşı
             if self._kurumkodu != yeni_kurum:
                 self._vt.kurumkodu_guncelle(self._kurumkodu, yeni_kurum)
+            # Tahta ID değiştiyse güncelle
+            if yeni_tahta_id and yeni_tahta_id != mevcut.get("id", ""):
+                self._vt.id_guncelle(yeni_kurum, yeni_tahta_id)
             self._vt.tahta_kaydi_olustur(yeni_kurum, yeni_adi, durum=durum, ses=ses, anahtar=yeni_anahtar, kurum_adi=yeni_kurum_adi, url=yeni_url)
 
         # QSettings güncelle
@@ -687,7 +691,7 @@ class Kilit(QMainWindow):
         self.arayuz_baslat()
 
         # Online istemciyi başlat
-        self._online = OnlineIstemci(self._kurumkodu, tahta_adi, tahta_id=tahta_id, anahtar=tahta_anahtar, kayitli=self._sunucu_kayitli, parent=self)
+        self._online = OnlineIstemci(self._kurumkodu, tahta_adi, tahta_id=tahta_id, anahtar=tahta_anahtar, sunucu_url=tahta_kayit.get("url", "") if tahta_kayit else "", kayitli=self._sunucu_kayitli, parent=self)
         self._online.kilitle_sinyali.connect(self._online_kilitle)
         self._online.kilidi_ac_sinyali.connect(self._online_kilidi_ac)
         self._online.ses_kapat_sinyali.connect(self._online_ses_kapat)
@@ -794,55 +798,32 @@ class Kilit(QMainWindow):
         tahta_adi_metin = tahta_kayit_veri["adi"] if tahta_kayit_veri else "Tahta"
         kurum_adi_metin = tahta_kayit_veri.get("kurum_adi", "") if tahta_kayit_veri else ""
 
-        # ── Kurum & Tahta bilgi kartı ──
+        # ── Tahta bilgi kartı ──
         bilgi_karti = QFrame()
         bilgi_karti.setStyleSheet("""
             QFrame#bilgiKarti {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 #ffffff, stop:1 #eef1f5);
+                background: transparent;
                 border: none;
-                border-radius: 10px;
             }
         """)
         bilgi_karti.setObjectName("bilgiKarti")
         bilgi_kart_yerlesim = QVBoxLayout()
-        bilgi_kart_yerlesim.setContentsMargins(14, 10, 14, 10)
-        bilgi_kart_yerlesim.setSpacing(2)
+        bilgi_kart_yerlesim.setContentsMargins(8, 8, 8, 8)
+        bilgi_kart_yerlesim.setSpacing(4)
 
-        # Kurum adı
+        # Kurum adı (gizli, sunucu güncellemesi için referans tutulur)
         self._kurum_adi_etiketi = QLabel(kurum_adi_metin)
-        kurum_font = QFont("Exo 2", 13)
-        kurum_font.setWeight(QFont.DemiBold)
-        self._kurum_adi_etiketi.setFont(kurum_font)
-        self._kurum_adi_etiketi.setStyleSheet(
-            "color: #34495e; border: none; background: transparent;"
-        )
-        self._kurum_adi_etiketi.setAlignment(Qt.AlignCenter)
-        self._kurum_adi_etiketi.setWordWrap(True)
-        if not kurum_adi_metin:
-            self._kurum_adi_etiketi.hide()
-        bilgi_kart_yerlesim.addWidget(self._kurum_adi_etiketi)
-
-        # İnce ayırıcı çizgi
+        self._kurum_adi_etiketi.hide()
         self._bilgi_ayirici = QFrame()
-        self._bilgi_ayirici.setFrameShape(QFrame.HLine)
-        self._bilgi_ayirici.setFixedWidth(40)
-        self._bilgi_ayirici.setStyleSheet("color: #d0d5dc; background: #d0d5dc; border: none; max-height: 1px;")
-        if not kurum_adi_metin:
-            self._bilgi_ayirici.hide()
-        ayirici_yerlesim = QHBoxLayout()
-        ayirici_yerlesim.addStretch()
-        ayirici_yerlesim.addWidget(self._bilgi_ayirici)
-        ayirici_yerlesim.addStretch()
-        bilgi_kart_yerlesim.addLayout(ayirici_yerlesim)
+        self._bilgi_ayirici.hide()
 
         # Tahta adı
         self._tahta_adi_etiketi = QLabel(tahta_adi_metin)
-        sinif_yazi_tipi = QFont("Exo 2", 14)
-        sinif_yazi_tipi.setWeight(QFont.Bold)
+        sinif_yazi_tipi = QFont("Merriweather", 17)
+        sinif_yazi_tipi.setWeight(QFont.ExtraBold)
         self._tahta_adi_etiketi.setFont(sinif_yazi_tipi)
         self._tahta_adi_etiketi.setStyleSheet(
-            "color: #2c3e50; border: none; background: transparent;"
+            "color: #1a2533; border: none; background: transparent; letter-spacing: 1px;"
         )
         self._tahta_adi_etiketi.setAlignment(Qt.AlignCenter)
         self._tahta_adi_etiketi.setWordWrap(True)
@@ -851,7 +832,7 @@ class Kilit(QMainWindow):
         bilgi_karti.setLayout(bilgi_kart_yerlesim)
         kenar_yerlesim.addSpacing(6)
         kenar_yerlesim.addWidget(bilgi_karti)
-        kenar_yerlesim.addSpacing(10)
+        kenar_yerlesim.addSpacing(6)
 
         # ========== Sınav Takvimi ==========
         self._sinav_kart_yukseklik = 62
@@ -884,12 +865,22 @@ class Kilit(QMainWindow):
         kenar_yerlesim.addSpacing(5)
 
         # Sınav başlığı
-        self._sinav_baslik = QLabel("📅  Sınavlar")
+        sinav_baslik_layout = QHBoxLayout()
+        sinav_baslik_layout.setContentsMargins(0, 0, 0, 0)
+        sinav_baslik_layout.setSpacing(6)
+        sinav_ikon = QLabel()
+        sinav_ikon.setPixmap(qta.icon('fa5s.calendar-alt', color='#34495e').pixmap(QSize(16, 16)))
+        sinav_ikon.setFixedSize(16, 16)
+        sinav_ikon.setStyleSheet("border: none; background: transparent;")
+        sinav_baslik_layout.addWidget(sinav_ikon)
+        self._sinav_baslik = QLabel("Sınavlar")
         sinav_baslik_font = QFont("Exo 2", 10, QFont.Bold)
         self._sinav_baslik.setFont(sinav_baslik_font)
         self._sinav_baslik.setStyleSheet("color: #34495e; border: none; background: transparent;")
         self._sinav_baslik.setAlignment(Qt.AlignLeft)
-        kenar_yerlesim.addWidget(self._sinav_baslik)
+        sinav_baslik_layout.addWidget(self._sinav_baslik)
+        sinav_baslik_layout.addStretch()
+        kenar_yerlesim.addLayout(sinav_baslik_layout)
         kenar_yerlesim.addSpacing(2)
 
         # Sınav yok mesajı
@@ -1054,6 +1045,7 @@ class Kilit(QMainWindow):
 
         # Sayfa 0: Web
         self._web_alani = QWidget()
+        self._web_alani.setStyleSheet("background-color: #f5f5f5;")
         self._web_yerlesim = QVBoxLayout()
         self._web_yerlesim.setContentsMargins(0, 0, 0, 0)
         self._web_alani.setLayout(self._web_yerlesim)
@@ -1080,11 +1072,12 @@ class Kilit(QMainWindow):
         self.web_gorunum.settings().setAttribute(QWebEngineSettings.WebGLEnabled, True)
         # URL'yi veritabanından oku, yoksa varsayılanı kullan
         db_url = self._vt.url_al(self._kurumkodu)
-        webview_url = db_url if db_url else "https://kulumtal.com/php/"
+        webview_url = db_url if db_url else "https://kulumtal.com"
         webview_url = self._url_kurum_kodu_ekle(webview_url)
         self._webview_hedef_url = webview_url  # Çevrimiçi hedef URL
-        # WebView durum yönetimi: tek değişken, 3 durum
-        # 'yukluyor' = başlangıç spinner, 'online' = kurum sayfası, 'offline' = çevrimdışı HTML
+        # WebView durum yönetimi: tek değişken, 4 durum
+        # 'yukluyor' = başlangıç spinner, 'online' = kurum sayfası (canlı),
+        # 'cache' = cache'den yüklendi, 'offline' = çevrimdışı HTML
         self._webview_durum = 'yukluyor'
         self._sunucu_bagli = False    # Socket.IO bağlantı durumu
 
@@ -1095,7 +1088,7 @@ class Kilit(QMainWindow):
                 with open(CACHE_HTML_YOLU, 'r', encoding='utf-8') as f:
                     cache_html = f.read()
                 self.web_gorunum.setHtml(cache_html, QUrl(self._webview_hedef_url))
-                self._webview_durum = 'online'
+                self._webview_durum = 'cache'
                 print("[CACHE] Kurum sayfası cache'den yüklendi")
             except Exception:
                 self.web_gorunum.setHtml(self._YUKLENIYOR_HTML)
@@ -1168,13 +1161,23 @@ class Kilit(QMainWindow):
         subprocess.Popen(["systemctl", "poweroff"])
 
     def _online_hata_geldi(self, mesaj):
-        """Sunucudan hata geldi — kayıtlı değil ise çevrimdışı göster"""
-        if "kayıtlı değil" in mesaj.lower():
+        """Sunucudan hata geldi — kayıtlı değil veya kimlik doğrulama hatasında çevrimdışı göster"""
+        mesaj_lower = mesaj.lower()
+        if "kayıtlı değil" in mesaj_lower:
             if not self._sunucu_kayitli:
                 # Kayıtsız tahta: çevrimdışı sayfaya geç
                 if self._webview_durum != 'offline':
                     self._webview_sayfa_yukle('offline')
             # Kayıtlı tahta: mevcut sayfayı koru (cache veya online)
+        elif "geçersiz anahtar" in mesaj_lower or "kimlik doğrulama" in mesaj_lower:
+            # Kimlik doğrulama hatası: zaten cache gösteriliyorsa tekrar yükleme
+            if self._webview_durum == 'cache':
+                return
+            # cache varsa cache'den yükle, yoksa çevrimdışı
+            if self._sunucu_kayitli and os.path.isfile(CACHE_HTML_YOLU):
+                self._cache_yukle()
+            elif self._webview_durum != 'offline':
+                self._webview_sayfa_yukle('offline')
 
     def _online_baglanti_degisti(self, bagli):
         """Sunucu bağlantı durumu değişti"""
@@ -1253,7 +1256,7 @@ class Kilit(QMainWindow):
                 with open(CACHE_HTML_YOLU, 'r', encoding='utf-8') as f:
                     cache_html = f.read()
                 self.web_gorunum.setHtml(cache_html, QUrl(self._webview_hedef_url))
-                self._webview_durum = 'online'
+                self._webview_durum = 'cache'
                 print("[CACHE] Kurum sayfası cache'den yüklendi")
             except Exception as e:
                 print(f"[CACHE] Yükleme hatası: {e}")
@@ -1897,9 +1900,18 @@ class Kilit(QMainWindow):
             # Ayarlardan anahtar/kurum değişmiş olabilir — online istemciyi güncelle
             yeni_kayit = self._vt.tahta_kaydi_al(self._kurumkodu)
             if yeni_kayit:
+                eski_anahtar = self._online._anahtar
                 self._online._anahtar = yeni_kayit.get("anahtar", "")
                 self._online._kurum_kodu = yeni_kayit.get("kurumkodu", self._kurumkodu)
                 self._online._tahta_adi = yeni_kayit.get("adi", "")
+                self._online._tahta_id = yeni_kayit.get("id", "")
+                self._tahta_id = yeni_kayit.get("id", "")
+                yeni_sunucu_url = yeni_kayit.get("url", "") or "https://kulumtal.com"
+                eski_sunucu_url = self._online._sunucu_url
+                self._online._sunucu_url = yeni_sunucu_url
+                # Gizli anahtar veya sunucu URL değiştiyse bağlantıyı yeniden kur
+                if self._online._anahtar != eski_anahtar or yeni_sunucu_url != eski_sunucu_url:
+                    self._online.yeniden_baglan()
             self._webview_url_yenile()  # URL güncelle + bağlantı denemesi yap
         self._odak_zamanlayici.start(1000)
         QTimer.singleShot(200, self._girisleri_yakala)
@@ -2020,8 +2032,14 @@ class Kilit(QMainWindow):
             self._logo_etiketi.setPixmap(logo_pixmap.scaled(120, 120, Qt.KeepAspectRatio, Qt.SmoothTransformation))
 
     def _url_kurum_kodu_ekle(self, url):
-        """URL'ye kurum kodu ve tahta id parametresini ekle"""
-        if '/kurum' in url and 'kod=' not in url:
+        """Domain URL'sine /kurum yolunu ve parametreleri ekle"""
+        # Sondaki slash'i temizle
+        url = url.rstrip('/')
+        # /kurum yolu yoksa ekle
+        if '/kurum' not in url:
+            url = f"{url}/kurum"
+        # Parametreleri ekle
+        if 'kod=' not in url:
             ayrac = '&' if '?' in url else '?'
             url = f"{url}{ayrac}kod={self._kurumkodu}"
             if hasattr(self, '_tahta_id') and self._tahta_id:
@@ -2031,7 +2049,7 @@ class Kilit(QMainWindow):
     def _webview_url_yenile(self):
         """Ayarlar kaydedildikten sonra web görünüm URL'sini güncelle"""
         db_url = self._vt.url_al(self._kurumkodu)
-        yeni_url = db_url if db_url else "https://kulumtal.com/php/"
+        yeni_url = db_url if db_url else "https://kulumtal.com"
         yeni_url = self._url_kurum_kodu_ekle(yeni_url)
         self._webview_hedef_url = yeni_url
         # Her kaydetmede bağlantı denemesi yap (kayıtsız tahtalar için önemli)
@@ -2081,7 +2099,7 @@ class Kilit(QMainWindow):
         print(f"[WEBVIEW] loadFinished: basarili={basarili}, durum={self._webview_durum}, url={url_goster}")
         if basarili and self._webview_durum == 'online' and self._sunucu_kayitli:
             # Başarılı yükleme — yalnızca gerçek URL yüklendiyse cache'e kaydet
-            # (data: URL'li setHtml içeriğini kaydetme)
+            # (data: URL'li setHtml içeriğini kaydetme, cache'den yüklenen içeriği tekrar kaydetme)
             if not mevcut_url.startswith("data:"):
                 self._sayfa_cache_kaydet()
         if self._webview_durum == 'online' and not basarili:
@@ -2093,6 +2111,10 @@ class Kilit(QMainWindow):
                 # Kayıtlı tahta çevrimdışı — cache'den yükle
                 print("[WEBVIEW] Sayfa yüklenemedi ve çevrimdışı — cache'den yükleniyor")
                 self._cache_yukle()
+        if self._webview_durum == 'cache' and not basarili:
+            # Cache içeriği düzgün render edilemedi — çevrimdışı sayfaya geç
+            print("[WEBVIEW] Cache içeriği yüklenemedi — çevrimdışı sayfaya geçiliyor")
+            self._webview_sayfa_yukle('offline')
 
     def _kurum_sayfasi_tekrar_dene(self):
         """Sunucu bağlıysa ve hala online moddaysak kurum sayfasını tekrar yükle"""
@@ -2644,7 +2666,7 @@ class Kilit(QMainWindow):
         self._challenge_zamanlayici.start(50)
         if self._sunucu_bagli:
             self._webview_sayfa_yukle('online')
-        elif self._sunucu_kayitli and self._webview_durum == 'online':
+        elif self._sunucu_kayitli and self._webview_durum in ('online', 'cache'):
             # Kayıtlı ama bağlı değil — mevcut sayfayı koru
             pass
         self.showFullScreen()

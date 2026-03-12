@@ -8,8 +8,6 @@ import time
 import socketio
 from PyQt5.QtCore import QObject, pyqtSignal
 
-from sabitler import SUNUCU_URL
-
 
 class OnlineIstemci(QObject):
     """Sunucuya Socket.IO ile bağlanıp komutları PyQt sinyalleri olarak yayar"""
@@ -30,12 +28,13 @@ class OnlineIstemci(QObject):
     sinavlar_sinyali = pyqtSignal(list)  # Sınav listesi
     icerik_guncellendi_sinyali = pyqtSignal()  # Panel'den içerik güncellendi bildirimi
 
-    def __init__(self, kurum_kodu, tahta_adi, tahta_id="", anahtar="", kayitli=False, parent=None):
+    def __init__(self, kurum_kodu, tahta_adi, tahta_id="", anahtar="", sunucu_url="", kayitli=False, parent=None):
         super().__init__(parent)
         self._kurum_kodu = kurum_kodu
         self._tahta_adi = tahta_adi
         self._tahta_id = tahta_id
         self._anahtar = anahtar
+        self._sunucu_url = sunucu_url or "https://kulumtal.com"
         self._aktif = False
         self._kayitli = kayitli  # Daha önce sunucuya başarıyla kaydolmuş mu
         self._kayitsiz = False  # Sunucu "kayıtlı değil" dediğinde True olur
@@ -105,8 +104,9 @@ class OnlineIstemci(QObject):
         def hata_geldi(veri):
             mesaj = veri.get("mesaj", "Bilinmeyen hata")
             print(f"[ONLİNE] Sunucu hatası: {mesaj}")
-            # Kayıtsız tahta hatasında sürekli bağlanmayı durdur
-            if "kayıtlı değil" in mesaj.lower():
+            mesaj_lower = mesaj.lower()
+            # Kayıtsız tahta veya kimlik doğrulama hatasında sürekli bağlanmayı durdur
+            if "kayıtlı değil" in mesaj_lower or "geçersiz anahtar" in mesaj_lower or "kimlik doğrulama" in mesaj_lower:
                 self._kayitsiz = True
                 self._kayitsiz_deneme += 1
             self.hata_sinyali.emit(mesaj)
@@ -192,9 +192,9 @@ class OnlineIstemci(QObject):
 
             try:
                 self._sio = self._yeni_istemci_olustur()
-                print(f"[ONLİNE] Bağlanılıyor: {SUNUCU_URL}")
+                print(f"[ONLİNE] Bağlanılıyor: {self._sunucu_url}")
                 self._sio.connect(
-                    SUNUCU_URL,
+                    self._sunucu_url,
                     transports=["polling", "websocket"],
                     wait_timeout=10,
                 )
@@ -231,6 +231,15 @@ class OnlineIstemci(QObject):
             self.baglanti_durumu_sinyali.emit(False)
             self._yeniden_dene.wait(timeout=bekleme)
             self._yeniden_dene.clear()
+
+    def yeniden_baglan(self):
+        """Mevcut bağlantıyı koparıp yeni anahtarla tekrar bağlan"""
+        try:
+            if self._sio and self._sio.connected:
+                self._sio.disconnect()
+        except Exception:
+            pass
+        self.baglantiyi_kontrol_et()
 
     def baglantiyi_kontrol_et(self):
         """Bekleme süresini kırıp hemen bağlantı denemesi yap"""

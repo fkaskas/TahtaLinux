@@ -103,7 +103,7 @@ class KurulumPenceresi(QDialog):
         self.setWindowTitle("Tahta Kilit — Kurulum")
         self.setFixedSize(700, 640)
         self.setWindowFlags(Qt.Dialog | Qt.WindowStaysOnTopHint)
-        self.setStyleSheet("background-color: #F0F2F5;")
+        self.setStyleSheet("background-color: #F0F2F5; font-family: 'Exo 2', 'Exo2', sans-serif;")
 
         self._kurumkodu = ""
         self._adi = ""
@@ -119,7 +119,7 @@ class KurulumPenceresi(QDialog):
     @staticmethod
     def _etiket(metin):
         lbl = QLabel(metin)
-        lbl.setFont(QFont("Sans", 11))
+        lbl.setFont(QFont("Exo 2", 11))
         lbl.setStyleSheet("color: #475569; font-weight: 600; background: transparent;")
         lbl.setFixedWidth(130)
         lbl.setFixedHeight(36)
@@ -132,7 +132,7 @@ class KurulumPenceresi(QDialog):
         w.setPlaceholderText(placeholder)
         w.setFixedHeight(36)
         w.setReadOnly(readonly)
-        w.setFont(QFont("Sans", 11))
+        w.setFont(QFont("Exo 2", 11))
         # Dokunmatik için özel menü: QTimer ile erteleyerek touch grab sorununu önler,
         # kopyala/yapıştır/seç işlemlerine dokunmatik ekrandan erişim sağlar.
         w.setContextMenuPolicy(Qt.CustomContextMenu)
@@ -165,8 +165,8 @@ class KurulumPenceresi(QDialog):
         ic.setSpacing(8)
 
         lbl = QLabel(f"{ikon}  {baslik}" if ikon else baslik)
-        lbl.setFont(QFont("Sans", 10, QFont.Bold))
-        lbl.setStyleSheet("color: #3B82F6; background: transparent;")
+        lbl.setFont(QFont("Exo 2", 10, QFont.Bold))
+        lbl.setStyleSheet("color: #34495e; background: transparent;")
         lbl.setFixedHeight(24)
         ic.addWidget(lbl)
 
@@ -182,17 +182,17 @@ class KurulumPenceresi(QDialog):
         # ── Başlık Bandı ─────────────────────────────────────────────────────
         bant = QWidget()
         bant.setFixedHeight(60)
-        bant.setStyleSheet("background-color: #1E40AF;")
+        bant.setStyleSheet("background-color: #1a1a2e;")
         bant_ic = QHBoxLayout(bant)
         bant_ic.setContentsMargins(24, 0, 24, 0)
 
         baslik_lbl = QLabel("⚙  Tahta Kilit Kurulumu")
-        baslik_lbl.setFont(QFont("Sans", 14, QFont.Bold))
+        baslik_lbl.setFont(QFont("Exo 2", 14, QFont.Bold))
         baslik_lbl.setStyleSheet("color: #FFFFFF; background: transparent;")
 
         alt_lbl = QLabel("Cihaz kimlik ve bağlantı bilgilerini girin")
-        alt_lbl.setFont(QFont("Sans", 9))
-        alt_lbl.setStyleSheet("color: #93C5FD; background: transparent;")
+        alt_lbl.setFont(QFont("Exo 2", 9))
+        alt_lbl.setStyleSheet("color: #aab0b5; background: transparent;")
 
         yazi = QVBoxLayout()
         yazi.setSpacing(1)
@@ -245,8 +245,8 @@ class KurulumPenceresi(QDialog):
         self._anahtar_girdi = self._girdi("Gizli doğrulama anahtarı")
         self._anahtar_girdi.setEchoMode(QLineEdit.Password)
         self._satir_ekle(k3_ic, "Gizli Anahtar", self._anahtar_girdi)
-        self._url_girdi = self._girdi("Örn: https://kulumtal.com/kurum")
-        self._satir_ekle(k3_ic, "WebView URL", self._url_girdi)
+        self._url_girdi = self._girdi("Örn: https://kulumtal.com")
+        self._satir_ekle(k3_ic, "Sunucu URL", self._url_girdi)
         icerik.addWidget(k3)
 
         icerik.addStretch()
