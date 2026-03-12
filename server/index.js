@@ -295,6 +295,20 @@ async function veritabaniBaslat() {
     ) ENGINE=InnoDB
   `);
 
+  // Günün sözleri tablosu
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS gunun_sozleri (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      kurum_id INT NOT NULL,
+      ekleyen_id INT NOT NULL,
+      soz TEXT NOT NULL,
+      yazar VARCHAR(255) NOT NULL DEFAULT '',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (kurum_id) REFERENCES kurumlar(id) ON DELETE CASCADE,
+      FOREIGN KEY (ekleyen_id) REFERENCES kullanicilar(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB
+  `);
+
   console.log("Veritabanı tabloları hazır.");
 }
 
@@ -1486,6 +1500,144 @@ app.delete("/api/slider/:id", authMiddleware, async (req, res) => {
     res.json({ mesaj: "Slide silindi" });
   } catch (err) {
     console.error("Slider silme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// ===================== Günün Sözleri =====================
+
+// Söz listele (auth gerekli)
+app.get("/api/gunun-sozleri", authMiddleware, async (req, res) => {
+  try {
+    let rows;
+    if (req.kullanici.rol === "superadmin") {
+      const kurumId = req.query.kurum_id ? parseInt(req.query.kurum_id) : null;
+      if (kurumId) {
+        [rows] = await db.execute(
+          `SELECT g.*, k.ad_soyad AS ekleyen_adi
+           FROM gunun_sozleri g
+           JOIN kullanicilar k ON g.ekleyen_id = k.id
+           WHERE g.kurum_id = ? ORDER BY g.created_at DESC`,
+          [kurumId]
+        );
+      } else {
+        [rows] = await db.execute(
+          `SELECT g.*, k.ad_soyad AS ekleyen_adi
+           FROM gunun_sozleri g
+           JOIN kullanicilar k ON g.ekleyen_id = k.id
+           ORDER BY g.created_at DESC`
+        );
+      }
+    } else {
+      [rows] = await db.execute(
+        `SELECT g.*, k.ad_soyad AS ekleyen_adi
+         FROM gunun_sozleri g
+         JOIN kullanicilar k ON g.ekleyen_id = k.id
+         WHERE g.kurum_id = ? ORDER BY g.created_at DESC`,
+        [req.kullanici.kurum_id]
+      );
+    }
+    res.json(rows);
+  } catch (err) {
+    console.error("Söz listesi hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Günün sözü (genel, kurum bilgi ekranı için — tarih bazlı rastgele)
+app.get("/api/gunun-sozu-genel", async (req, res) => {
+  try {
+    const { kod, tahta_id } = req.query;
+    let kurumId = null;
+    if (tahta_id) {
+      const [t] = await db.execute("SELECT kurum_id FROM tahtalar WHERE id = ?", [tahta_id]);
+      if (t.length > 0) kurumId = t[0].kurum_id;
+    } else if (kod) {
+      const [k] = await db.execute("SELECT id FROM kurumlar WHERE kurum_kodu = ?", [kod]);
+      if (k.length > 0) kurumId = k[0].id;
+    }
+    if (!kurumId) return res.json(null);
+
+    const [rows] = await db.execute(
+      "SELECT id, soz, yazar FROM gunun_sozleri WHERE kurum_id = ? ORDER BY id",
+      [kurumId]
+    );
+    if (rows.length === 0) return res.json(null);
+
+    // Tarih bazlı rastgele seçim: bugünün tarihi seed olarak kullanılır
+    const bugun = new Date();
+    const tarihSeed = bugun.getFullYear() * 10000 + (bugun.getMonth() + 1) * 100 + bugun.getDate();
+    const idx = tarihSeed % rows.length;
+    res.json(rows[idx]);
+  } catch (err) {
+    console.error("Günün sözü genel hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Söz ekle
+app.post("/api/gunun-sozleri", authMiddleware, async (req, res) => {
+  if (req.kullanici.rol !== "ogretmen" && req.kullanici.rol !== "yonetici") {
+    return res.status(403).json({ hata: "Bu işlem için yetkiniz yok" });
+  }
+  const { soz, yazar } = req.body;
+  if (!soz || !soz.trim()) {
+    return res.status(400).json({ hata: "Söz metni gerekli" });
+  }
+  try {
+    await db.execute(
+      "INSERT INTO gunun_sozleri (kurum_id, ekleyen_id, soz, yazar) VALUES (?, ?, ?, ?)",
+      [req.kullanici.kurum_id, req.kullanici.id, soz.trim(), (yazar || "").trim()]
+    );
+    icerikGuncellendiGonder(req.kullanici.kurum_id);
+    res.json({ mesaj: "Söz eklendi" });
+  } catch (err) {
+    console.error("Söz ekleme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Söz güncelle
+app.put("/api/gunun-sozleri/:id", authMiddleware, async (req, res) => {
+  const sozId = parseInt(req.params.id);
+  const { soz, yazar } = req.body;
+  if (!soz || !soz.trim()) {
+    return res.status(400).json({ hata: "Söz metni gerekli" });
+  }
+  try {
+    const [mevcut] = await db.execute("SELECT * FROM gunun_sozleri WHERE id = ?", [sozId]);
+    if (mevcut.length === 0) return res.status(404).json({ hata: "Söz bulunamadı" });
+    const s = mevcut[0];
+    if (req.kullanici.rol === "superadmin") return res.status(403).json({ hata: "Süper yönetici bu işlemi yapamaz" });
+    if (req.kullanici.rol === "ogretmen" && s.ekleyen_id !== req.kullanici.id) return res.status(403).json({ hata: "Sadece kendi sözlerinizi düzenleyebilirsiniz" });
+    if (s.kurum_id !== req.kullanici.kurum_id) return res.status(403).json({ hata: "Bu sözü düzenleme yetkiniz yok" });
+    await db.execute(
+      "UPDATE gunun_sozleri SET soz = ?, yazar = ? WHERE id = ?",
+      [soz.trim(), (yazar || "").trim(), sozId]
+    );
+    icerikGuncellendiGonder(s.kurum_id);
+    res.json({ mesaj: "Söz güncellendi" });
+  } catch (err) {
+    console.error("Söz güncelleme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Söz sil
+app.delete("/api/gunun-sozleri/:id", authMiddleware, async (req, res) => {
+  const sozId = parseInt(req.params.id);
+  try {
+    const [mevcut] = await db.execute("SELECT * FROM gunun_sozleri WHERE id = ?", [sozId]);
+    if (mevcut.length === 0) return res.status(404).json({ hata: "Söz bulunamadı" });
+    const s = mevcut[0];
+    if (req.kullanici.rol === "superadmin") return res.status(403).json({ hata: "Süper yönetici bu işlemi yapamaz" });
+    if (req.kullanici.rol === "ogretmen" && s.ekleyen_id !== req.kullanici.id) return res.status(403).json({ hata: "Sadece kendi sözlerinizi silebilirsiniz" });
+    if (s.kurum_id !== req.kullanici.kurum_id) return res.status(403).json({ hata: "Bu sözü silme yetkiniz yok" });
+    await db.execute("DELETE FROM gunun_sozleri WHERE id = ?", [sozId]);
+    icerikGuncellendiGonder(s.kurum_id);
+    res.json({ mesaj: "Söz silindi" });
+  } catch (err) {
+    console.error("Söz silme hatası:", err);
     res.status(500).json({ hata: "Sunucu hatası" });
   }
 });

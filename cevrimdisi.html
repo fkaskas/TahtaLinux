@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tahta Kilit</title>
+<style>
+  :root {
+    --bg: #f0f2f5;
+    --surface: #ffffff;
+    --accent: #2563eb;
+    --accent2: #4f46e5;
+    --text: #1e293b;
+    --text2: #475569;
+    --text3: #94a3b8;
+    --border: #d0d5dc;
+    --border-light: rgba(0,0,0,0.06);
+    --radius: 16px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100vh;
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .sayfa {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    background: linear-gradient(to left, rgba(234,238,245,0.85) 0%, transparent 100%);
+    height: 48px;
+    padding: 0 1.5vw;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    border-bottom: 1px solid transparent;
+    border-image: linear-gradient(to left, var(--border) 0%, transparent 100%) 1;
+    flex-shrink: 0;
+    z-index: 2;
+  }
+  .header h1 {
+    font-size: clamp(16px, 2.2vw, 28px);
+    font-weight: 700;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: 0.3px;
+    text-align: right;
+  }
+
+  /* ===== ANA ALAN ===== */
+  .ana-alan {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1.6fr 1fr;
+    gap: 1.5vh 1.5vw;
+    padding: 1.5vh 1.5vw;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Parçacık arka plan */
+  .parcaciklar {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+  }
+  .parcacik {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0;
+    animation: parcacikUc 18s ease-in-out infinite;
+  }
+  @keyframes parcacikUc {
+    0%   { opacity: 0; transform: translateY(0) scale(0.5); }
+    15%  { opacity: 0.6; }
+    85%  { opacity: 0.6; }
+    100% { opacity: 0; transform: translateY(-30vh) scale(1.2); }
+  }
+
+  /* ===== KART GENEL ===== */
+  .kart {
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+    position: relative;
+    z-index: 1;
+  }
+  .kart-baslik {
+    display: flex;
+    align-items: center;
+    gap: 0.5vw;
+    padding: 0.8vh 1vw;
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+  .kart-baslik h2 {
+    font-size: clamp(11px, 1.2vw, 16px);
+    font-weight: 700;
+    color: var(--text);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .kart-baslik .baslik-ikon {
+    font-size: clamp(12px, 1.4vh, 16px);
+  }
+  .kart-icerik {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5vh 1vw;
+    min-height: 0;
+  }
+
+  /* ===== SOL SÜTUN ===== */
+  .sol-sutun {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5vh;
+    min-height: 0;
+    z-index: 1;
+  }
+
+  /* --- Mini Takvim --- */
+  .takvim-kart { flex: 1; }
+  .takvim-kart .kart-icerik { padding: 1.2vh 1vw; gap: 0.8vh; }
+  .takvim-ay-baslik {
+    font-size: clamp(14px, 1.6vw, 20px);
+    font-weight: 700;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.3vh;
+  }
+  .takvim-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    width: 100%;
+  }
+  .takvim-gun-baslik {
+    text-align: center;
+    font-size: clamp(8px, 0.8vw, 11px);
+    font-weight: 700;
+    color: var(--text3);
+    padding: 0.3vh 0;
+    text-transform: uppercase;
+  }
+  .takvim-gun {
+    text-align: center;
+    font-size: clamp(10px, 1.1vw, 14px);
+    font-weight: 600;
+    color: var(--text2);
+    padding: 0.6vh 0;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+  .takvim-gun.bos { visibility: hidden; }
+  .takvim-gun.bugun {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 800;
+  }
+  .takvim-gun.gecmis { color: var(--text3); opacity: 0.5; }
+  .takvim-gun.pazar-gunu { color: #dc3545; }
+  .takvim-gun.bugun.pazar-gunu { color: #fff; }
+
+  /* --- Geri Sayım --- */
+  .geri-sayim-kart { flex: 1; }
+  .geri-sayim-kart .kart-icerik { gap: 1.2vh; }
+  .gs-kutular {
+    display: flex;
+    align-items: center;
+    gap: 0.6vw;
+  }
+  .gs-kutu {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 1vh 0.8vw;
+    min-width: clamp(42px, 5vw, 68px);
+  }
+  .gs-kutu-rakam {
+    font-size: clamp(22px, 3.8vh, 40px);
+    font-weight: 800;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .gs-kutu-etiket {
+    font-size: clamp(7px, 0.7vw, 10px);
+    font-weight: 700;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 0.4vh;
+  }
+  .gs-ayirici {
+    font-size: clamp(18px, 2.8vh, 30px);
+    font-weight: 800;
+    color: var(--text3);
+    opacity: 0.3;
+  }
+  .gs-hedef {
+    font-size: clamp(10px, 1vw, 14px);
+    color: var(--text3);
+    font-weight: 500;
+  }
+  .gs-ilerleme {
+    width: 85%;
+    height: 8px;
+    background: var(--border-light);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .gs-ilerleme-bar {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.3s;
+  }
+  .gs-yuzde {
+    font-size: clamp(9px, 0.9vw, 12px);
+    font-weight: 700;
+    color: var(--accent);
+  }
+
+  /* ===== ORTA: ANALOG SAAT ===== */
+  .saat-kart { z-index: 1; }
+  .saat-kart .kart-icerik { gap: 1.5vh; }
+  .analog-saat-alani {
+    position: relative;
+    width: clamp(220px, 38vh, 400px);
+    height: clamp(220px, 38vh, 400px);
+    flex-shrink: 0;
+  }
+  .analog-saat-alani svg { width: 100%; height: 100%; }
+  .kadran-dis { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
+  .saat-merkez { fill: var(--accent); }
+  .akrep { stroke: var(--text); stroke-width: 3.5; stroke-linecap: round; }
+  .yelkovan { stroke: var(--text); stroke-width: 2.5; stroke-linecap: round; }
+  .saniye { stroke: var(--accent); stroke-width: 1.2; stroke-linecap: round; }
+  .saat-rakam {
+    font-size: 11px;
+    font-weight: 700;
+    fill: var(--text);
+    text-anchor: middle;
+    dominant-baseline: central;
+  }
+  .saat-cizgi-buyuk { stroke: var(--text); stroke-width: 2; stroke-linecap: round; }
+  .saat-cizgi-kucuk { stroke: var(--text3); stroke-width: 0.8; stroke-linecap: round; }
+
+  .dijital-saat-alani {
+    display: flex;
+    align-items: center;
+    gap: 1.5vw;
+  }
+  .dijital-saat {
+    font-size: clamp(28px, 5vh, 56px);
+    font-weight: 700;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+  .dijital-saat .iki-nokta {
+    animation: yanipson 1s step-end infinite;
+    color: var(--accent);
+  }
+  @keyframes yanipson {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.2; }
+  }
+  .dijital-saniye {
+    font-size: clamp(16px, 2.5vh, 28px);
+    font-weight: 600;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    opacity: 0.7;
+  }
+
+  /* Tarih Gösterimi */
+  .tarih-alani {
+    text-align: center;
+    margin-top: 0.8vh;
+  }
+  .tarih-gun-adi {
+    font-size: clamp(15px, 2vw, 24px);
+    font-weight: 800;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+  }
+  .tarih-tam {
+    font-size: clamp(12px, 1.4vw, 19px);
+    font-weight: 600;
+    color: var(--text2);
+    margin-top: 0.3vh;
+    letter-spacing: 0.5px;
+  }
+
+  /* ===== SAĞ SÜTUN ===== */
+  .sag-sutun {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5vh;
+    min-height: 0;
+    z-index: 1;
+  }
+
+  /* Günün Sözü */
+  .soz-kart { flex: 1; }
+  .soz-kart .kart-icerik {
+    text-align: center;
+    padding: 1.5vh 1.2vw;
+    gap: 0.8vh;
+  }
+  .soz-tirnak {
+    font-size: clamp(36px, 5vh, 56px);
+    color: var(--accent);
+    opacity: 0.25;
+    font-family: Georgia, serif;
+    line-height: 1;
+  }
+  .soz-metin {
+    font-size: clamp(13px, 1.4vw, 20px);
+    color: var(--text);
+    font-weight: 600;
+    font-style: italic;
+    line-height: 1.7;
+  }
+  .soz-yazar {
+    font-size: clamp(11px, 1.1vw, 16px);
+    color: var(--accent);
+    font-weight: 700;
+    margin-top: 0.3vh;
+  }
+
+  /* Durum Kartı */
+  .durum-kart { flex: 1; }
+  .durum-kart .kart-icerik { gap: 1.2vh; }
+  .durum-halka-alani {
+    position: relative;
+    width: clamp(50px, 7vh, 80px);
+    height: clamp(50px, 7vh, 80px);
+  }
+  .durum-halka-alani svg {
+    width: 100%;
+    height: 100%;
+    animation: dondur 3s linear infinite;
+  }
+  @keyframes dondur { 100% { transform: rotate(360deg); } }
+  .durum-halka-bg { fill: none; stroke: var(--border-light); stroke-width: 3; }
+  .durum-halka { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 90 160; }
+  .durum-ikon {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: clamp(16px, 2.2vh, 24px);
+  }
+  .durum-yazi {
+    font-size: clamp(12px, 1.3vw, 18px);
+    font-weight: 700;
+    color: var(--text);
+    text-align: center;
+  }
+  .durum-alt-yazi {
+    font-size: clamp(10px, 1vw, 14px);
+    color: var(--text3);
+    font-weight: 500;
+    text-align: center;
+  }
+  .durum-sinif {
+    font-size: clamp(11px, 1.2vw, 16px);
+    font-weight: 700;
+    color: var(--accent2);
+    margin-top: 0.5vh;
+    padding: 0.4vh 1.2vw;
+    background: linear-gradient(135deg, rgba(37,99,235,0.08), rgba(79,70,229,0.08));
+    border-radius: 8px;
+    letter-spacing: 0.5px;
+  }
+
+  /* ===== FOOTER BAR ===== */
+  .footer-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 21px;
+    padding: 0 1.5vw;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    z-index: 2;
+  }
+  .footer-bar .cevrimdisi-durum {
+    display: flex;
+    align-items: center;
+    gap: 0.4vw;
+  }
+  .footer-bar .f-nokta {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: nabiz 2s ease-in-out infinite;
+  }
+  .footer-bar .durum-etiket {
+    font-size: clamp(7px, 0.8vw, 11px);
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .footer-bar .versiyon {
+    font-size: clamp(7px, 0.7vw, 10px);
+    color: var(--text3);
+    font-weight: 600;
+  }
+  @keyframes nabiz {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.4); }
+  }
+</style>
+</head>
+<body>
+<div class="sayfa">
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1 id="headerKurumAdi"></h1>
+  </div>
+
+  <!-- ANA ALAN -->
+  <div class="ana-alan">
+    <div class="parcaciklar" id="parcaciklar"></div>
+
+    <!-- SOL SÜTUN -->
+    <div class="sol-sutun">
+      <!-- Mini Takvim -->
+      <div class="kart takvim-kart">
+        <div class="kart-baslik">
+          <span class="baslik-ikon">📅</span>
+          <h2>Takvim</h2>
+        </div>
+        <div class="kart-icerik">
+          <div class="takvim-ay-baslik" id="takvimAyBaslik"></div>
+          <div class="takvim-grid" id="takvimGrid"></div>
+        </div>
+      </div>
+
+      <!-- Geri Sayım -->
+      <div class="kart geri-sayim-kart">
+        <div class="kart-baslik">
+          <span class="baslik-ikon">⏳</span>
+          <h2>Geri Sayım</h2>
+        </div>
+        <div class="kart-icerik">
+          <div class="gs-kutular">
+            <div class="gs-kutu">
+              <div class="gs-kutu-rakam" id="gsGun">0</div>
+              <div class="gs-kutu-etiket">Gün</div>
+            </div>
+            <div class="gs-ayirici">:</div>
+            <div class="gs-kutu">
+              <div class="gs-kutu-rakam" id="gsSaat">0</div>
+              <div class="gs-kutu-etiket">Saat</div>
+            </div>
+            <div class="gs-ayirici">:</div>
+            <div class="gs-kutu">
+              <div class="gs-kutu-rakam" id="gsDakika">0</div>
+              <div class="gs-kutu-etiket">Dakika</div>
+            </div>
+            <div class="gs-ayirici">:</div>
+            <div class="gs-kutu">
+              <div class="gs-kutu-rakam" id="gsSaniye">0</div>
+              <div class="gs-kutu-etiket">Saniye</div>
+            </div>
+          </div>
+          <div class="gs-hedef" id="gsHedef"></div>
+          <div class="gs-ilerleme">
+            <div class="gs-ilerleme-bar" id="gsBar"></div>
+          </div>
+          <div class="gs-yuzde" id="gsYuzde"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ORTA: SAAT -->
+    <div class="kart saat-kart">
+      <div class="kart-baslik">
+        <span class="baslik-ikon">⏰</span>
+        <h2>Saat</h2>
+      </div>
+      <div class="kart-icerik">
+        <div class="analog-saat-alani">
+          <svg viewBox="0 0 200 200" id="analogSaat">
+            <circle cx="100" cy="100" r="96" class="kadran-dis" />
+            <g id="saatCizgileri"></g>
+            <line id="akrep" x1="100" y1="100" x2="100" y2="48" class="akrep" />
+            <line id="yelkovan" x1="100" y1="100" x2="100" y2="30" class="yelkovan" />
+            <line id="saniyeIbre" x1="100" y1="110" x2="100" y2="26" class="saniye" />
+            <circle cx="100" cy="100" r="4" class="saat-merkez" />
+            <circle cx="100" cy="100" r="2" fill="#fff" />
+          </svg>
+        </div>
+        <div class="dijital-saat-alani">
+          <div class="dijital-saat" id="dijitalSaat"></div>
+          <div class="dijital-saniye" id="dijitalSaniye"></div>
+        </div>
+        <div class="tarih-alani">
+          <div class="tarih-gun-adi" id="tarihGunAdi"></div>
+          <div class="tarih-tam" id="tarihTam"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SAĞ SÜTUN -->
+    <div class="sag-sutun">
+      <!-- Günün Sözü -->
+      <div class="kart soz-kart">
+        <div class="kart-baslik">
+          <span class="baslik-ikon">💬</span>
+          <h2>Günün Sözü</h2>
+        </div>
+        <div class="kart-icerik">
+          <div class="soz-tirnak">"</div>
+          <div class="soz-metin" id="sozMetin"></div>
+          <div class="soz-yazar" id="sozYazar"></div>
+        </div>
+      </div>
+
+      <!-- Bağlantı Durumu -->
+      <div class="kart durum-kart">
+        <div class="kart-baslik">
+          <span class="baslik-ikon">🔗</span>
+          <h2>Bağlantı Durumu</h2>
+        </div>
+        <div class="kart-icerik">
+          <div class="durum-halka-alani">
+            <svg viewBox="0 0 80 80">
+              <circle cx="40" cy="40" r="34" class="durum-halka-bg" />
+              <circle cx="40" cy="40" r="34" class="durum-halka" />
+            </svg>
+            <div class="durum-ikon">📡</div>
+          </div>
+          <div class="durum-yazi">Sunucu Bekleniyor</div>
+          <div class="durum-alt-yazi">Kayıt ve yapılandırma bekleniyor</div>
+          <div class="durum-sinif" id="durumSinif"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer-bar">
+    <div class="cevrimdisi-durum">
+      <span class="f-nokta"></span>
+      <span class="durum-etiket">Çevrimdışı Mod</span>
+    </div>
+    <div class="versiyon">Etap Tahta Kilit v1.0</div>
+  </div>
+
+</div>
+<script>
+  // === Parametreler ===
+  const params = new URLSearchParams(window.location.search);
+  const kurumAdi = decodeURIComponent(params.get('kurum') || '');
+  const sinifAdi = decodeURIComponent(params.get('sinif') || '');
+  document.getElementById('headerKurumAdi').textContent = (kurumAdi || 'TAHTA KİLİT').toUpperCase();
+  const durumSinifEl = document.getElementById('durumSinif');
+  if (sinifAdi) {
+    durumSinifEl.textContent = '🏫 ' + sinifAdi;
+  } else {
+    durumSinifEl.style.display = 'none';
+  }
+
+  // === Analog Saat Çizgileri ===
+  (function() {
+    const g = document.getElementById('saatCizgileri');
+    for (let i = 0; i < 60; i++) {
+      const aci = (i * 6) * Math.PI / 180;
+      const buyuk = i % 5 === 0;
+      const r1 = buyuk ? 80 : 86, r2 = 92;
+      const x1 = 100 + r1 * Math.sin(aci), y1 = 100 - r1 * Math.cos(aci);
+      const x2 = 100 + r2 * Math.sin(aci), y2 = 100 - r2 * Math.cos(aci);
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+      line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+      line.setAttribute('class', buyuk ? 'saat-cizgi-buyuk' : 'saat-cizgi-kucuk');
+      g.appendChild(line);
+      if (buyuk) {
+        const saatNo = i / 5 || 12;
+        const rN = 70;
+        const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        txt.setAttribute('x', 100 + rN * Math.sin(aci));
+        txt.setAttribute('y', 100 - rN * Math.cos(aci));
+        txt.setAttribute('class', 'saat-rakam');
+        txt.textContent = saatNo;
+        g.appendChild(txt);
+      }
+    }
+  })();
+
+  // === Saat Güncelleme ===
+  const gunler = ['Pazar','Pazartesi','Salı','Çarşamba','Perşembe','Cuma','Cumartesi'];
+  const aylar = ['Ocak','Şubat','Mart','Nisan','Mayıs','Haziran',
+                 'Temmuz','Ağustos','Eylül','Ekim','Kasım','Aralık'];
+
+  function saatGuncelle() {
+    const n = new Date();
+    const s = n.getHours(), dk = n.getMinutes(), sn = n.getSeconds(), ms = n.getMilliseconds();
+    const snA = (sn + ms/1000)*6, dkA = (dk + sn/60)*6, sA = ((s%12) + dk/60)*30;
+    document.getElementById('akrep').setAttribute('transform', 'rotate('+sA+' 100 100)');
+    document.getElementById('yelkovan').setAttribute('transform', 'rotate('+dkA+' 100 100)');
+    document.getElementById('saniyeIbre').setAttribute('transform', 'rotate('+snA+' 100 100)');
+    document.getElementById('dijitalSaat').innerHTML =
+      String(s).padStart(2,'0') + '<span class="iki-nokta">:</span>' + String(dk).padStart(2,'0');
+    document.getElementById('dijitalSaniye').textContent = ':' + String(sn).padStart(2,'0');
+    // Tarih gösterimi
+    document.getElementById('tarihGunAdi').textContent = gunler[n.getDay()];
+    document.getElementById('tarihTam').textContent = n.getDate() + ' ' + aylar[n.getMonth()] + ' ' + n.getFullYear();
+  }
+  saatGuncelle();
+  setInterval(saatGuncelle, 100);
+
+  // === Mini Takvim ===
+  (function() {
+    const bugun = new Date();
+    const yil = bugun.getFullYear(), ay = bugun.getMonth();
+    document.getElementById('takvimAyBaslik').textContent = aylar[ay] + ' ' + yil;
+    const grid = document.getElementById('takvimGrid');
+    const gunBasliklari = ['Pt','Sa','Ça','Pe','Cu','Ct','Pz'];
+    gunBasliklari.forEach(g => {
+      const d = document.createElement('div');
+      d.className = 'takvim-gun-baslik';
+      d.textContent = g;
+      grid.appendChild(d);
+    });
+    const ilkGun = new Date(yil, ay, 1);
+    let baslangic = ilkGun.getDay();
+    baslangic = baslangic === 0 ? 6 : baslangic - 1; // Pazartesi=0
+    const toplamGun = new Date(yil, ay+1, 0).getDate();
+    for (let i = 0; i < baslangic; i++) {
+      const d = document.createElement('div');
+      d.className = 'takvim-gun bos';
+      d.textContent = '';
+      grid.appendChild(d);
+    }
+    for (let g = 1; g <= toplamGun; g++) {
+      const d = document.createElement('div');
+      d.className = 'takvim-gun';
+      d.textContent = g;
+      if (g === bugun.getDate()) d.classList.add('bugun');
+      if (g < bugun.getDate()) d.classList.add('gecmis');
+      const gunHaftasi = new Date(yil, ay, g).getDay();
+      if (gunHaftasi === 0) d.classList.add('pazar-gunu');
+      grid.appendChild(d);
+    }
+  })();
+
+  // === Geri Sayım (Yaz Tatili - 20 Haziran) ===
+  (function() {
+    const yil = new Date().getFullYear();
+    let hedef = new Date(yil, 5, 20, 0, 0, 0);
+    if (new Date() > hedef) hedef = new Date(yil+1, 5, 20, 0, 0, 0);
+    document.getElementById('gsHedef').textContent = 'Yaz Tatili \u2022 ' + hedef.getDate() + ' ' + aylar[hedef.getMonth()] + ' ' + hedef.getFullYear();
+
+    function geriSayimGuncelle() {
+      const simdi = new Date();
+      const farkMs = hedef - simdi;
+      if (farkMs <= 0) {
+        document.getElementById('gsGun').textContent = '0';
+        document.getElementById('gsSaat').textContent = '0';
+        document.getElementById('gsDakika').textContent = '0';
+        document.getElementById('gsSaniye').textContent = '0';
+        return;
+      }
+      const gun = Math.floor(farkMs / (1000*60*60*24));
+      const saat = Math.floor((farkMs % (1000*60*60*24)) / (1000*60*60));
+      const dakika = Math.floor((farkMs % (1000*60*60)) / (1000*60));
+      const saniye = Math.floor((farkMs % (1000*60)) / 1000);
+      document.getElementById('gsGun').textContent = gun;
+      document.getElementById('gsSaat').textContent = String(saat).padStart(2,'0');
+      document.getElementById('gsDakika').textContent = String(dakika).padStart(2,'0');
+      document.getElementById('gsSaniye').textContent = String(saniye).padStart(2,'0');
+
+      // İlerleme
+      let donemBasi = new Date(yil, 8, 1);
+      if (simdi < donemBasi) donemBasi = new Date(yil-1, 8, 1);
+      const toplamGun = Math.ceil((hedef - donemBasi) / (1000*60*60*24));
+      const gecenGun = Math.ceil((simdi - donemBasi) / (1000*60*60*24));
+      const yuzde = Math.min(100, Math.max(0, Math.round((gecenGun / toplamGun) * 100)));
+      document.getElementById('gsBar').style.width = yuzde + '%';
+      document.getElementById('gsYuzde').textContent = '% ' + yuzde + ' tamamland\u0131';
+    }
+    geriSayimGuncelle();
+    setInterval(geriSayimGuncelle, 1000);
+  })();
+
+  // === Günün Sözü ===
+  const sozler = [
+    {metin: "Eğitim, geleceğin pasaportudur; çünkü yarın, ona bugün hazırlananlarındır.", yazar: "Malcolm X"},
+    {metin: "Bir kitap, bir kalem, bir çocuk ve bir öğretmen dünyayı değiştirebilir.", yazar: "Malala Yousafzai"},
+    {metin: "Öğretmenler, toplumun en fedakâr ve en önemli üyeleridir.", yazar: "M. Kemal Atatürk"},
+    {metin: "Hayatta en hakiki mürşit ilimdir.", yazar: "M. Kemal Atatürk"},
+    {metin: "Bir millet irfan ordusuna sahip olmadıkça, muharebe meydanlarında ne kadar parlak zaferler elde ederse etsin, o zaferlerin kalıcı sonuçlar vermesi ancak irfan ordusuyla mümkündür.", yazar: "M. Kemal Atatürk"},
+    {metin: "Başarı, her gün tekrarlanan küçük çabaların toplamıdır.", yazar: "Robert Collier"},
+    {metin: "Eğitim en güçlü silahınızdır, dünyayı değiştirmek için onu kullanabilirsiniz.", yazar: "Nelson Mandela"},
+    {metin: "Zekâ bilgiye karşı değildir. Bilgi bir araçtır, zekâ onu kullanma yeteneğidir.", yazar: "İbn-i Sina"},
+    {metin: "Bilmemek ayıp değil, öğrenmemek ayıptır.", yazar: "Türk Atasözü"},
+    {metin: "Okumak, insana yeni dünyalar açar.", yazar: "Yunus Emre"},
+    {metin: "İnsan ancak kalbiyle baktığında net görebilir. Asıl önemli olan gözle görülmez.", yazar: "Antoine de Saint-Exupéry"},
+    {metin: "Sabır acıdır, fakat meyvesi tatlıdır.", yazar: "Jean-Jacques Rousseau"},
+    {metin: "Düşünmeden öğrenmek faydasız, öğrenmeden düşünmek tehlikelidir.", yazar: "Konfüçyüs"},
+    {metin: "Her büyük başarı, başlamaya cesaret etmekle olur.", yazar: "Goethe"},
+    {metin: "İlim öğreniniz, çünkü ilim öğrenmek Allah için güzel bir iştir.", yazar: "Hz. Muhammed (s.a.v.)"},
+    {metin: "Dünyada her şey için, medeniyet için, hayat için, muvaffakiyet için en hakiki mürşit ilimdir, fendir.", yazar: "M. Kemal Atatürk"},
+    {metin: "Çalışmadan, öğrenmeden, yorulmadan rahat yaşamayı düşünmek, tembelin hayalidir.", yazar: "M. Kemal Atatürk"},
+    {metin: "Her şeyin başı sağlıktır.", yazar: "Türk Atasözü"},
+    {metin: "Az konuşan az yanılır.", yazar: "Türk Atasözü"},
+    {metin: "Damlaya damlaya göl olur.", yazar: "Türk Atasözü"},
+  ];
+  const bugun2 = new Date();
+  const gunIndeks = (bugun2.getFullYear()*366 + bugun2.getMonth()*31 + bugun2.getDate()) % sozler.length;
+  const soz = sozler[gunIndeks];
+  document.getElementById('sozMetin').textContent = '"' + soz.metin + '"';
+  document.getElementById('sozYazar').textContent = '— ' + soz.yazar;
+
+  // === Parçacık Animasyonu ===
+  (function() {
+    const k = document.getElementById('parcaciklar');
+    const r = ['rgba(37,99,235,0.15)','rgba(79,70,229,0.12)','rgba(14,154,167,0.1)','rgba(212,160,23,0.1)'];
+    for (let i = 0; i < 18; i++) {
+      const p = document.createElement('div');
+      p.className = 'parcacik';
+      const b = 4 + Math.random()*12;
+      p.style.width = b+'px'; p.style.height = b+'px';
+      p.style.left = (Math.random()*100)+'%';
+      p.style.bottom = (-10+Math.random()*20)+'%';
+      p.style.background = r[Math.floor(Math.random()*r.length)];
+      p.style.animationDelay = (Math.random()*18)+'s';
+      p.style.animationDuration = (14+Math.random()*10)+'s';
+      k.appendChild(p);
+    }
+  })();
+</script>
+</body>
+</html>

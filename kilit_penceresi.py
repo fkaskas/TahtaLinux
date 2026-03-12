@@ -2,6 +2,7 @@
 """Ana kilit ekranı penceresi"""
 
 import os
+import sys
 import glob
 import json
 import re
@@ -43,11 +44,12 @@ from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings, QWebEng
 import vlc
 import qrcode
 
-from sabitler import BETIK_DIZINI, YENILEME_ARALIGI_SANIYE, VARSAYILAN_KURUM_KODU
+from sabitler import BETIK_DIZINI, YENILEME_ARALIGI_SANIYE, VARSAYILAN_KURUM_KODU, OFFLINE_GECIKME_SANIYE, BASTANGIC_BEKLEME_SANIYE
 from servisler import KodUretici, DogrulamaServisi
 from dogrulama_penceresi import KodDogrulamaPenceresi
 from veritabani import VeritabaniYoneticisi
 from online_istemci import OnlineIstemci
+from smb_bagla import SmbBaglamaPenceresi
 
 def _fontlari_yukle():
     """Fontları yükle (QApplication oluştuktan sonra çağrılmalı)"""
@@ -147,6 +149,79 @@ class _AyarlarKartWidget(QWidget):
         p.end()
 
 
+class _DokunmatikMenu(QWidget):
+    """QMenu yerine touch-safe bağlam menüsü.
+    QMenu dahili olarak Qt.Popup bayrağı kullanır ve dokunmatik
+    girişi grab’ler; bu widget Qt.Tool kullandığı için grab yapmaz."""
+    _aktif = None
+
+    def __init__(self, hedef, global_pos):
+        if _DokunmatikMenu._aktif is not None:
+            try:
+                _DokunmatikMenu._aktif.close()
+            except RuntimeError:
+                pass
+        # hedefin üst penceresi parent olmalı ki menü onun önünde çıksın
+        ust_pencere = hedef.window()
+        super().__init__(ust_pencere)
+        _DokunmatikMenu._aktif = self
+        self.setWindowFlags(
+            Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
+        )
+        self.setAttribute(Qt.WA_ShowWithoutActivating)
+        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setFocusPolicy(Qt.NoFocus)
+        self.setStyleSheet(
+            "background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px;"
+        )
+
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(6, 4, 6, 4)
+        lay.setSpacing(2)
+
+        secili = bool(hedef.selectedText())
+        if not hedef.isReadOnly():
+            self._btn(lay, "Kes", hedef.cut, secili)
+        self._btn(lay, "Kopyala", hedef.copy, secili)
+        if not hedef.isReadOnly():
+            self._btn(lay, "Yapıştır", hedef.paste, True)
+        self._btn(lay, "Tümünü Seç", hedef.selectAll, True)
+
+        self.adjustSize()
+        self.move(global_pos.x() - self.width() // 2,
+                  global_pos.y() - self.height() - 8)
+        self.show()
+        self.raise_()
+        QApplication.instance().installEventFilter(self)
+
+    def _btn(self, lay, metin, slot, etkin):
+        b = QPushButton(metin)
+        b.setEnabled(etkin)
+        b.setFocusPolicy(Qt.NoFocus)
+        b.setStyleSheet(
+            "QPushButton{background:transparent;border:none;padding:10px 16px;"
+            "font-size:13px;color:#1E293B;border-radius:4px}"
+            "QPushButton:pressed{background:#E2E8F0}"
+            "QPushButton:disabled{color:#94A3B8}"
+        )
+        b.clicked.connect(slot)
+        b.clicked.connect(self.close)
+        lay.addWidget(b)
+
+    # -- dışına tıklayınca kapat --
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.MouseButtonPress:
+            if not self.geometry().contains(event.globalPos()):
+                self.close()
+        return super().eventFilter(obj, event)
+
+    def closeEvent(self, event):
+        QApplication.instance().removeEventFilter(self)
+        _DokunmatikMenu._aktif = None
+        super().closeEvent(event)
+
+
 class AyarlarPenceresi(QDialog):
     """Kilit ekranı ayarlar penceresi"""
 
@@ -192,6 +267,12 @@ class AyarlarPenceresi(QDialog):
         w.setFixedHeight(36)
         w.setReadOnly(readonly)
         w.setFont(QFont("Sans", 11))
+        # Dokunmatik için özel menü: QTimer ile erteleyerek touch grab sorununu önler,
+        # kopyala/yapıştır/seç işlemlerine dokunmatik ekrandan erişim sağlar.
+        w.setContextMenuPolicy(Qt.CustomContextMenu)
+        w.customContextMenuRequested.connect(
+            lambda pos, wgt=w: _DokunmatikMenu(wgt, wgt.mapToGlobal(pos))
+        )
         if readonly:
             w.setStyleSheet(
                 "background: #E8ECF0; border: 1px solid #CBD5E1;"
@@ -274,7 +355,25 @@ class AyarlarPenceresi(QDialog):
         # Kart 1: Cihaz Kimliği
         kart1, k1 = self._kart_olustur("Cihaz Kimliği", "🖥")
         self._tahta_id_girisi = self._girdi(readonly=True)
-        k1.addWidget(self._satir_olustur("Tahta ID", self._tahta_id_girisi))
+        # Tahta ID satırı + kopyala butonu
+        tahta_id_konteyner = QWidget()
+        tahta_id_konteyner.setFixedHeight(44)
+        tahta_id_satir = QHBoxLayout(tahta_id_konteyner)
+        tahta_id_satir.setContentsMargins(0, 0, 0, 0)
+        tahta_id_satir.setSpacing(12)
+        tahta_id_satir.addWidget(self._etiket("Tahta ID"), 0, Qt.AlignVCenter)
+        tahta_id_satir.addWidget(self._tahta_id_girisi, 1, Qt.AlignVCenter)
+        kopyala_btn = QPushButton()
+        kopyala_btn.setIcon(qta.icon("fa5s.copy", color="#FFFFFF"))
+        kopyala_btn.setFixedSize(36, 36)
+        kopyala_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        kopyala_btn.setToolTip("Tahta ID kopyala")
+        kopyala_btn.setStyleSheet(
+            "QPushButton{background:#3B82F6;border:none;border-radius:6px}"
+            "QPushButton:pressed{background:#2563EB}")
+        kopyala_btn.clicked.connect(self._tahta_id_kopyala)
+        tahta_id_satir.addWidget(kopyala_btn, 0, Qt.AlignVCenter)
+        k1.addWidget(tahta_id_konteyner)
         icerik_ic.addWidget(kart1)
 
         # Kart 2: Kurum Bilgileri
@@ -303,6 +402,17 @@ class AyarlarPenceresi(QDialog):
         k4.addWidget(logo_satir)
         video_satir, self._video_girisi = self._dosya_sec_satiri(
             "Video Klasörü", "Örn: /home/kullanici/Videolar", self._klasor_sec)
+        # Video satırının yanına SMB butonu ekle
+        smb_btn = QPushButton()
+        smb_btn.setIcon(qta.icon("fa5s.network-wired", color="#FFFFFF"))
+        smb_btn.setFixedSize(36, 36)
+        smb_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        smb_btn.setToolTip("Ağ Klasörü Bağla (SMB)")
+        smb_btn.setStyleSheet(
+            "QPushButton{background:#F97316;border:none;border-radius:6px}"
+            "QPushButton:pressed{background:#EA580C}")
+        smb_btn.clicked.connect(self._smb_bagla)
+        video_satir.layout().addWidget(smb_btn, 0, Qt.AlignVCenter)
         k4.addWidget(video_satir)
         icerik_ic.addWidget(kart4)
 
@@ -336,6 +446,21 @@ class AyarlarPenceresi(QDialog):
         """)
         kaydet_btn.clicked.connect(self._kaydet)
 
+        sifirla_btn = QPushButton()
+        sifirla_btn.setIcon(qta.icon("fa5s.trash-alt", color="#FFFFFF"))
+        sifirla_btn.setText(" Sıfırla")
+        sifirla_btn.setFixedSize(130, 40)
+        sifirla_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        sifirla_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #EF4444; color: #FFFFFF; border: none;
+                border-radius: 7px; font-size: 13px; font-weight: bold;
+            }
+            QPushButton:hover { background-color: #DC2626; }
+        """)
+        sifirla_btn.clicked.connect(self._sifirla)
+
+        buton_satir.addWidget(sifirla_btn)
         buton_satir.addStretch()
         buton_satir.addWidget(iptal_btn)
         buton_satir.addWidget(kaydet_btn)
@@ -396,6 +521,17 @@ class AyarlarPenceresi(QDialog):
         if klasor:
             self._video_girisi.setText(klasor)
 
+    def _tahta_id_kopyala(self):
+        """Tahta ID değerini panoya kopyala"""
+        metin = self._tahta_id_girisi.text().strip()
+        if metin:
+            QApplication.clipboard().setText(metin)
+
+    def _smb_bagla(self):
+        """SMB ağ klasörü bağlama penceresini aç"""
+        pencere = SmbBaglamaPenceresi(self)
+        pencere.exec_()
+
     def _kaydet(self):
         """Ayarları QSettings'e ve veritabanına kaydet"""
         yeni_kurum = self._kurum_girisi.text().strip()
@@ -451,9 +587,69 @@ class AyarlarPenceresi(QDialog):
 
         self.accept()
 
+    def _sifirla(self):
+        """Veritabanını sıfırla ve kurulum penceresini başlat"""
+        from PyQt5.QtWidgets import QMessageBox
+        cevap = QMessageBox.question(
+            self, "Sıfırlama Onayı",
+            "Tüm ayarlar ve veritabanı sıfırlanacak.\n"
+            "Uygulama yeniden başlatılacak ve kurulum penceresi açılacaktır.\n\n"
+            "Devam etmek istiyor musunuz?",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        if cevap != QMessageBox.Yes:
+            return
+        # Veritabanı dosyasını sil
+        try:
+            db_yolu = self._vt._db_yolu
+            if os.path.exists(db_yolu):
+                os.remove(db_yolu)
+        except Exception:
+            pass
+        # QSettings temizle
+        try:
+            ayarlar = QSettings("KulumTal", "Tahta")
+            ayarlar.clear()
+            ayarlar.sync()
+        except Exception:
+            pass
+        # Uygulamayı yeniden başlat
+        os.execv(sys.executable, [sys.executable] + sys.argv)
+
 
 class Kilit(QMainWindow):
     _video_hazir = pyqtSignal(str, list)
+
+    # Başlangıçta WebView'da gösterilecek inline yükleniyor sayfası
+    _YUKLENIYOR_HTML = """<!DOCTYPE html>
+<html lang='tr'><head><meta charset='UTF-8'/><style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #f0f2f5;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #475569;
+    user-select: none;
+  }
+  .spinner {
+    width: 52px; height: 52px;
+    border: 4px solid #e2e8f0;
+    border-top-color: #2563eb;
+    border-radius: 50%;
+    animation: spin 0.85s linear infinite;
+    margin-bottom: 22px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  p { font-size: 15px; font-weight: 500; letter-spacing: 0.3px; opacity: 0.65; }
+</style></head>
+<body>
+  <div class='spinner'></div>
+  <p>Yükleniyor\u2026</p>
+</body></html>"""
 
     def __init__(self, vt_yoneticisi=None, kurumkodu=None):
         super().__init__()
@@ -502,6 +698,7 @@ class Kilit(QMainWindow):
         self._online.kurum_kodu_sinyali.connect(self._kurum_kodu_guncelle)
         self._online.sinavlar_sinyali.connect(self._sinavlari_guncelle)
         self._online.icerik_guncellendi_sinyali.connect(self._icerik_guncellendi)
+        self._online.hata_sinyali.connect(self._online_hata_geldi)
         self._online.baslat()
 
         # Ders çıkış saatleri kontrolü (her saniye kontrol et)
@@ -857,13 +1054,32 @@ class Kilit(QMainWindow):
         profil.setPersistentStoragePath(os.path.join(os.path.expanduser('~'), '.cache', 'tahta-kilit', 'storage'))
 
         self.web_gorunum = QWebEngineView()
+        self.web_gorunum.setContextMenuPolicy(Qt.NoContextMenu)
         self.web_gorunum.settings().setAttribute(QWebEngineSettings.Accelerated2dCanvasEnabled, True)
         self.web_gorunum.settings().setAttribute(QWebEngineSettings.WebGLEnabled, True)
         # URL'yi veritabanından oku, yoksa varsayılanı kullan
         db_url = self._vt.url_al(self._kurumkodu)
         webview_url = db_url if db_url else "https://kulumtal.com/php/"
         webview_url = self._url_kurum_kodu_ekle(webview_url)
-        self.web_gorunum.setUrl(QUrl(webview_url))
+        self._webview_hedef_url = webview_url  # Çevrimiçi hedef URL
+        # WebView durum yönetimi: tek değişken, 3 durum
+        # 'yukluyor' = başlangıç spinner, 'online' = kurum sayfası, 'offline' = çevrimdışı HTML
+        self._webview_durum = 'yukluyor'
+        self._sunucu_bagli = False    # Socket.IO bağlantı durumu
+
+        # Offline gecikme zamanlayıcısı: bağlantı koptuğunda ani geçiş olmasın
+        self._offline_gecikme_zamanlayici = QTimer(self)
+        self._offline_gecikme_zamanlayici.setSingleShot(True)
+        self._offline_gecikme_zamanlayici.timeout.connect(self._cevrimdisi_moda_gec)
+        # Başlangıç zaman aşımı: bu sürede sunucu gelmezse offline moda geç
+        self._baslangic_zamanlayici = QTimer(self)
+        self._baslangic_zamanlayici.setSingleShot(True)
+        self._baslangic_zamanlayici.timeout.connect(self._baslangic_zaman_asimi)
+        self._baslangic_zamanlayici.start(BASTANGIC_BEKLEME_SANIYE * 1000)
+
+        self.web_gorunum.loadFinished.connect(self._webview_yukleme_bitti)
+        # Başlangıçta inline yükleniyor sayfası göster (dosya bağımlılığı yok)
+        self.web_gorunum.setHtml(self._YUKLENIYOR_HTML)
         self._web_yerlesim.addWidget(self.web_gorunum)
 
         ana_widget.setLayout(ana_yerlesim)
@@ -928,12 +1144,74 @@ class Kilit(QMainWindow):
         """Sunucudan kapat komutu geldi — bilgisayarı kapat"""
         subprocess.Popen(["systemctl", "poweroff"])
 
+    def _online_hata_geldi(self, mesaj):
+        """Sunucudan hata geldi — kayıtlı değil ise online moda geçme"""
+        if "kayıtlı değil" in mesaj.lower():
+            self._offline_gecikme_zamanlayici.stop()
+            if self._webview_durum == 'online':
+                self._webview_sayfa_yukle('offline')
+            elif self._webview_durum == 'yukluyor':
+                self._webview_sayfa_yukle('offline')
+
     def _online_baglanti_degisti(self, bagli):
         """Sunucu bağlantı durumu değişti"""
-        durum = "Bağlı" if bagli else "Çevrimdışı"
-        print(f"[ONLİNE] Sunucu: {durum}")
+        durum_str = "Bağlı" if bagli else "Çevrimdışı"
+        print(f"[ONLİNE] Sunucu: {durum_str}")
+        self._sunucu_bagli = bagli
         renk = '#27ae60' if bagli else '#e74c3c'
         self._kilit_ac_butonu.setIcon(qta.icon('fa5s.lock-open', color=renk))
+        if bagli:
+            # Tüm bekleme zamanlayıcılarını iptal et
+            self._baslangic_zamanlayici.stop()
+            self._offline_gecikme_zamanlayici.stop()
+            # Kurum sayfası göstermiyorsak hemen yükle
+            if self._webview_durum != 'online':
+                self._webview_sayfa_yukle('online')
+        else:
+            if self._webview_durum == 'yukluyor':
+                # Henüz yükleniyor modunda, başlangıç timer'ı yoksa başlat
+                if not self._baslangic_zamanlayici.isActive():
+                    self._baslangic_zamanlayici.start(BASTANGIC_BEKLEME_SANIYE * 1000)
+            elif self._webview_durum == 'online':
+                # Çevrimiçiyken bağlantı koptu → gecikmeli offline geçiş
+                if not self._offline_gecikme_zamanlayici.isActive():
+                    print(f"[ONLİNE] {OFFLINE_GECIKME_SANIYE}s sonra çevrimdışı moda geçilecek")
+                    self._offline_gecikme_zamanlayici.start(OFFLINE_GECIKME_SANIYE * 1000)
+            # Zaten offline ise bir şey yapma
+
+    def _webview_sayfa_yukle(self, hedef):
+        """WebView'ı hedef duruma geçir: 'online' veya 'offline'"""
+        # Stacked widget'ı her zaman web alanına geçir (video üstünde kalmasın)
+        self._icerik_yigini.setCurrentWidget(self._web_alani)
+        if hedef == 'online':
+            url = self._webview_hedef_url
+            print(f"[WEBVIEW] Kurum sayfası yükleniyor: {url}")
+            self._webview_durum = 'online'
+            self.web_gorunum.setUrl(QUrl(url))
+        elif hedef == 'offline':
+            url = self._cevrimdisi_url_olustur()
+            print(f"[WEBVIEW] Çevrimdışı sayfa yükleniyor: {url}")
+            self._webview_durum = 'offline'
+            self.web_gorunum.setUrl(QUrl(url))
+
+    def _webview_online_yenile(self):
+        """Online sayfayı güvenli yenile — URL henüz yüklenmemişse setUrl kullan"""
+        hedef = QUrl(self._webview_hedef_url)
+        if self.web_gorunum.url() == hedef:
+            self.web_gorunum.reload()
+        else:
+            print(f"[WEBVIEW] URL uyumsuz, setUrl ile yeniden yükleniyor: {self._webview_hedef_url}")
+            self.web_gorunum.setUrl(hedef)
+
+    def _cevrimdisi_moda_gec(self):
+        """Gecikme süresi doldu — hala bağlı değilse offline geç"""
+        if not self._sunucu_bagli and self._webview_durum != 'offline':
+            self._webview_sayfa_yukle('offline')
+
+    def _baslangic_zaman_asimi(self):
+        """Başlangıçta sunucuya bağlanılamadı → çevrimdışı moda geç"""
+        if self._webview_durum == 'yukluyor' and not self._sunucu_bagli:
+            self._webview_sayfa_yukle('offline')
 
     def _online_durum_senkronize(self, durum, ses):
         """Sunucudan gelen durum bilgisiyle senkronize ol (sunucu formatı: 1=kilitli, 0=açık)"""
@@ -1710,9 +1988,65 @@ class Kilit(QMainWindow):
         db_url = self._vt.url_al(self._kurumkodu)
         yeni_url = db_url if db_url else "https://kulumtal.com/php/"
         yeni_url = self._url_kurum_kodu_ekle(yeni_url)
+        self._webview_hedef_url = yeni_url
+        if self._sunucu_bagli:
+            self._baslangic_zamanlayici.stop()
+            self._offline_gecikme_zamanlayici.stop()
+            mevcut_url = self.web_gorunum.url().toString()
+            if mevcut_url != yeni_url:
+                self._webview_sayfa_yukle('online')
+
+    # ===================== ÇEVRİMDIŞI FALLBACK =====================
+
+    def _cevrimdisi_url_olustur(self):
+        """Yerel çevrimdışı HTML sayfasının URL'sini oluştur"""
+        from urllib.parse import quote
+        tahta_kayit = self._vt.tahta_kaydi_al(self._kurumkodu)
+        kurum_adi = tahta_kayit.get("kurum_adi", "") if tahta_kayit else ""
+        sinif_adi = tahta_kayit.get("adi", "") if tahta_kayit else ""
+        logo_yolu = os.path.join(BETIK_DIZINI, "resim", "logo.png")
+        logo_param = "file://" + logo_yolu if os.path.isfile(logo_yolu) else ""
+        html_yol = os.path.join(BETIK_DIZINI, "cevrimdisi.html")
+        return (f"file://{html_yol}?kurum={quote(kurum_adi)}"
+                f"&sinif={quote(sinif_adi)}&logo={quote(logo_param)}")
+
+    def _webview_yukleme_bitti(self, basarili):
+        """WebView sayfa yükleme sonucu — başarısızsa çevrimdışı sayfaya geç"""
+        # Yakınlaştırma/uzaklaştırma ve sağ tık menüsünü devre dışı bırak
+        self.web_gorunum.page().runJavaScript("""
+            document.addEventListener('contextmenu', function(e) { e.preventDefault(); }, true);
+            document.addEventListener('keydown', function(e) {
+                if ((e.ctrlKey || e.metaKey) && (e.key === '+' || e.key === '-' || e.key === '=' || e.key === '0')) {
+                    e.preventDefault();
+                }
+            }, true);
+            document.addEventListener('wheel', function(e) {
+                if (e.ctrlKey) { e.preventDefault(); }
+            }, {passive: false, capture: true});
+            document.addEventListener('touchmove', function(e) {
+                if (e.touches.length > 1) { e.preventDefault(); }
+            }, {passive: false, capture: true});
+            document.addEventListener('touchstart', function(e) {
+                if (e.touches.length > 1) { e.preventDefault(); }
+            }, {passive: false, capture: true});
+            var meta = document.querySelector('meta[name=viewport]');
+            if (!meta) { meta = document.createElement('meta'); meta.name = 'viewport'; document.head.appendChild(meta); }
+            meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
+        """)
         mevcut_url = self.web_gorunum.url().toString()
-        if mevcut_url != yeni_url:
-            self.web_gorunum.setUrl(QUrl(yeni_url))
+        url_goster = mevcut_url if not mevcut_url.startswith("data:") else mevcut_url[:40] + "…"
+        print(f"[WEBVIEW] loadFinished: basarili={basarili}, durum={self._webview_durum}, url={url_goster}")
+        if self._webview_durum == 'online' and not basarili:
+            # Kurum sayfası yüklenemedi — sunucu hala bağlıysa 5s sonra tekrar dene
+            if self._sunucu_bagli:
+                print("[WEBVIEW] Sayfa yüklenemedi, 5s sonra tekrar denenecek")
+                QTimer.singleShot(5000, self._kurum_sayfasi_tekrar_dene)
+
+    def _kurum_sayfasi_tekrar_dene(self):
+        """Sunucu bağlıysa ve hala online moddaysak kurum sayfasını tekrar yükle"""
+        if self._sunucu_bagli and self._webview_durum == 'online':
+            print("[WEBVIEW] Kurum sayfası yeniden deneniyor")
+            self.web_gorunum.setUrl(QUrl(self._webview_hedef_url))
 
     def _video_yenile(self):
         """Mevcut video katmanını temizle ve yeniden oluştur"""
@@ -1935,8 +2269,17 @@ class Kilit(QMainWindow):
         if ekran:
             geometri = ekran.geometry()
             self.setGeometry(geometri)
-        # WebView sayfasını yenile
-        self.web_gorunum.reload()
+        # WebView sayfasını duruma göre yükle
+        if self._sunucu_bagli:
+            if self._webview_durum != 'online':
+                self._webview_sayfa_yukle('online')
+            else:
+                self._webview_online_yenile()
+        elif self._webview_durum == 'yukluyor':
+            # Henüz bağlantı yok, yükleniyor ekranını korr
+            pass
+        elif self._webview_durum != 'offline':
+            self._webview_sayfa_yukle('offline')
         self.showFullScreen()
         QApplication.processEvents()
         QTimer.singleShot(200, self._icerik_yukle)
@@ -1947,12 +2290,19 @@ class Kilit(QMainWindow):
     def _icerik_yenile(self):
         """Kilit ekranı açıkken periyodik olarak webview'ı yenile"""
         if not self._kilit_acma_istendi and self.isVisible():
-            self.web_gorunum.reload()
+            if self._webview_durum == 'online':
+                self._webview_online_yenile()
 
     def _icerik_guncellendi(self):
         """Sunucudan içerik güncellemesi bildirimi geldi → webview yenile"""
         if not self._kilit_acma_istendi and self.isVisible():
-            self.web_gorunum.reload()
+            if self._webview_durum == 'online':
+                self._webview_online_yenile()
+            else:
+                # Sunucudan sinyal geldi → bağlantı kesin var, hemen online geç
+                self._baslangic_zamanlayici.stop()
+                self._offline_gecikme_zamanlayici.stop()
+                self._webview_sayfa_yukle('online')
 
     def _girisleri_yakala(self):
         """Klavyeyi yakala"""
@@ -2009,7 +2359,8 @@ class Kilit(QMainWindow):
                 self._vlc_list_player.pause()
 
         # WebView sayfasını yenile (arka planda)
-        self.web_gorunum.reload()
+        if self._webview_durum == 'online':
+            self._webview_online_yenile()
 
         self.hide()
 
@@ -2243,7 +2594,10 @@ class Kilit(QMainWindow):
         self._saat_guncelle()
         self._saat_zamanlayici.start(1000)
         self._challenge_zamanlayici.start(50)
-        self.web_gorunum.reload()
+        if self._webview_durum == 'online':
+            self._webview_online_yenile()
+        elif self._sunucu_bagli:
+            self._webview_sayfa_yukle('online')
         self.showFullScreen()
 
         # Videoyu devam ettir

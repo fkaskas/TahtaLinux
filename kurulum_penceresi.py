@@ -3,9 +3,10 @@
 
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout,
                              QLineEdit, QPushButton, QLabel, QMessageBox,
-                             QWidget, QScrollArea)
-from PyQt5.QtCore import Qt
+                             QWidget, QScrollArea, QApplication)
+from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtGui import QFont, QCursor, QPainter, QColor, QPen, QBrush
+import qtawesome as qta
 import uuid
 from smb_bagla import SmbBaglamaPenceresi
 
@@ -19,6 +20,79 @@ class KartWidget(QWidget):
         p.setBrush(QBrush(QColor("#FFFFFF")))
         p.drawRoundedRect(self.rect().adjusted(0, 0, -1, -1), 8, 8)
         p.end()
+
+
+class _DokunmatikMenu(QWidget):
+    """QMenu yerine touch-safe bağlam menüsü.
+    QMenu dahili olarak Qt.Popup bayrağı kullanır ve dokunmatik
+    girişi grab’ler; bu widget Qt.Tool kullandığı için grab yapmaz."""
+    _aktif = None
+
+    def __init__(self, hedef, global_pos):
+        if _DokunmatikMenu._aktif is not None:
+            try:
+                _DokunmatikMenu._aktif.close()
+            except RuntimeError:
+                pass
+        # hedefin üst penceresi parent olmalı ki menü onun önünde çıksın
+        ust_pencere = hedef.window()
+        super().__init__(ust_pencere)
+        _DokunmatikMenu._aktif = self
+        self.setWindowFlags(
+            Qt.Tool | Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint
+        )
+        self.setAttribute(Qt.WA_ShowWithoutActivating)
+        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setAttribute(Qt.WA_StyledBackground, True)
+        self.setFocusPolicy(Qt.NoFocus)
+        self.setStyleSheet(
+            "background:#FFFFFF; border:1px solid #CBD5E1; border-radius:8px;"
+        )
+
+        lay = QHBoxLayout(self)
+        lay.setContentsMargins(6, 4, 6, 4)
+        lay.setSpacing(2)
+
+        secili = bool(hedef.selectedText())
+        if not hedef.isReadOnly():
+            self._btn(lay, "Kes", hedef.cut, secili)
+        self._btn(lay, "Kopyala", hedef.copy, secili)
+        if not hedef.isReadOnly():
+            self._btn(lay, "Yapıştır", hedef.paste, True)
+        self._btn(lay, "Tümünü Seç", hedef.selectAll, True)
+
+        self.adjustSize()
+        self.move(global_pos.x() - self.width() // 2,
+                  global_pos.y() - self.height() - 8)
+        self.show()
+        self.raise_()
+        QApplication.instance().installEventFilter(self)
+
+    def _btn(self, lay, metin, slot, etkin):
+        b = QPushButton(metin)
+        b.setEnabled(etkin)
+        b.setFocusPolicy(Qt.NoFocus)
+        b.setStyleSheet(
+            "QPushButton{background:transparent;border:none;padding:10px 16px;"
+            "font-size:13px;color:#1E293B;border-radius:4px}"
+            "QPushButton:pressed{background:#E2E8F0}"
+            "QPushButton:disabled{color:#94A3B8}"
+        )
+        b.clicked.connect(slot)
+        b.clicked.connect(self.close)
+        lay.addWidget(b)
+
+    # -- dışına tıklayınca kapat --
+    def eventFilter(self, obj, event):
+        if event.type() == QEvent.MouseButtonPress:
+            if not self.geometry().contains(event.globalPos()):
+                self.close()
+        return super().eventFilter(obj, event)
+
+    def closeEvent(self, event):
+        QApplication.instance().removeEventFilter(self)
+        _DokunmatikMenu._aktif = None
+        super().closeEvent(event)
 
 
 class KurulumPenceresi(QDialog):
@@ -59,6 +133,12 @@ class KurulumPenceresi(QDialog):
         w.setFixedHeight(36)
         w.setReadOnly(readonly)
         w.setFont(QFont("Sans", 11))
+        # Dokunmatik için özel menü: QTimer ile erteleyerek touch grab sorununu önler,
+        # kopyala/yapıştır/seç işlemlerine dokunmatik ekrandan erişim sağlar.
+        w.setContextMenuPolicy(Qt.CustomContextMenu)
+        w.customContextMenuRequested.connect(
+            lambda pos, wgt=w: _DokunmatikMenu(wgt, wgt.mapToGlobal(pos))
+        )
         if readonly:
             w.setStyleSheet(
                 "background: #E8ECF0; border: 1px solid #CBD5E1;"
@@ -131,18 +211,32 @@ class KurulumPenceresi(QDialog):
         k1, k1_ic = self._kart_olustur("Cihaz Kimliği", "🖥")
         self._tahta_id_girdi = self._girdi(readonly=True)
         self._tahta_id_girdi.setText(self._tahta_id)
-        self._satir_ekle(k1_ic, "Tahta ID", self._tahta_id_girdi)
+        # Tahta ID satırı + kopyala butonu
+        tahta_id_row = QHBoxLayout()
+        tahta_id_row.setContentsMargins(0, 2, 0, 2)
+        tahta_id_row.setSpacing(12)
+        tahta_id_row.addWidget(self._etiket("Tahta ID"), 0, Qt.AlignVCenter)
+        tahta_id_row.addWidget(self._tahta_id_girdi, 1, Qt.AlignVCenter)
+        kopyala_btn = QPushButton()
+        kopyala_btn.setIcon(qta.icon("fa5s.copy", color="#FFFFFF"))
+        kopyala_btn.setFixedSize(36, 36)
+        kopyala_btn.setCursor(QCursor(Qt.PointingHandCursor))
+        kopyala_btn.setToolTip("Tahta ID kopyala")
+        kopyala_btn.setStyleSheet(
+            "QPushButton{background:#3B82F6;border:none;border-radius:6px}"
+            "QPushButton:pressed{background:#2563EB}")
+        kopyala_btn.clicked.connect(self._tahta_id_kopyala)
+        tahta_id_row.addWidget(kopyala_btn, 0, Qt.AlignVCenter)
+        k1_ic.addLayout(tahta_id_row)
         icerik.addWidget(k1)
 
         # Kart 2: Kurum Bilgileri
         k2, k2_ic = self._kart_olustur("Kurum Bilgileri", "🏫")
         self._kurumkodu_girdi = self._girdi("Örn: 0001")
-        self._kurumkodu_girdi.setText(mevcut_kurumkodu)
         self._satir_ekle(k2_ic, "Kurum Kodu", self._kurumkodu_girdi)
-        self._kurum_adi_girdi = self._girdi("Örn: Atatürk İlkokulu")
+        self._kurum_adi_girdi = self._girdi("Örn: Kulu Mesleki ve Teknik Anadolu Lisesi")
         self._satir_ekle(k2_ic, "Kurum Adı", self._kurum_adi_girdi)
         self._adi_girdi = self._girdi("Örn: 11E Sınıfı")
-        self._adi_girdi.setText(mevcut_adi)
         self._satir_ekle(k2_ic, "Tahta Adı", self._adi_girdi)
         icerik.addWidget(k2)
 
@@ -151,7 +245,7 @@ class KurulumPenceresi(QDialog):
         self._anahtar_girdi = self._girdi("Gizli doğrulama anahtarı")
         self._anahtar_girdi.setEchoMode(QLineEdit.Password)
         self._satir_ekle(k3_ic, "Gizli Anahtar", self._anahtar_girdi)
-        self._url_girdi = self._girdi("Örn: https://kulumtal.com/php/")
+        self._url_girdi = self._girdi("Örn: https://kulumtal.com/kurum")
         self._satir_ekle(k3_ic, "WebView URL", self._url_girdi)
         icerik.addWidget(k3)
 
@@ -212,6 +306,12 @@ class KurulumPenceresi(QDialog):
         """SMB ağ klasörü bağlama penceresini aç"""
         pencere = SmbBaglamaPenceresi(self)
         pencere.exec_()
+
+    def _tahta_id_kopyala(self):
+        """Tahta ID değerini panoya kopyala"""
+        metin = self._tahta_id_girdi.text().strip()
+        if metin:
+            QApplication.clipboard().setText(metin)
 
     @property
     def kurumkodu(self):

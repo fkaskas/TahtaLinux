@@ -45,18 +45,21 @@ class SmbBaglamaPenceresi(QDialog):
         self._sunucu_girdi = QLineEdit()
         self._sunucu_girdi.setPlaceholderText("Örn: 192.168.1.100")
         self._sunucu_girdi.setMinimumHeight(35)
+        self._sunucu_girdi.setContextMenuPolicy(Qt.NoContextMenu)
         form.addRow("Sunucu IP:", self._sunucu_girdi)
 
         # Paylaşım adı
         self._paylasim_girdi = QLineEdit()
         self._paylasim_girdi.setPlaceholderText("Örn: video")
         self._paylasim_girdi.setMinimumHeight(35)
+        self._paylasim_girdi.setContextMenuPolicy(Qt.NoContextMenu)
         form.addRow("Paylaşım Adı:", self._paylasim_girdi)
 
         # Kullanıcı adı
         self._kullanici_girdi = QLineEdit()
         self._kullanici_girdi.setPlaceholderText("Örn: admin")
         self._kullanici_girdi.setMinimumHeight(35)
+        self._kullanici_girdi.setContextMenuPolicy(Qt.NoContextMenu)
         form.addRow("Kullanıcı Adı:", self._kullanici_girdi)
 
         # Şifre
@@ -64,6 +67,7 @@ class SmbBaglamaPenceresi(QDialog):
         self._sifre_girdi.setPlaceholderText("Şifre")
         self._sifre_girdi.setEchoMode(QLineEdit.Password)
         self._sifre_girdi.setMinimumHeight(35)
+        self._sifre_girdi.setContextMenuPolicy(Qt.NoContextMenu)
         form.addRow("Şifre:", self._sifre_girdi)
 
         # Mount noktası
@@ -71,6 +75,7 @@ class SmbBaglamaPenceresi(QDialog):
         self._mount_girdi = QLineEdit()
         self._mount_girdi.setText("/mnt/video")
         self._mount_girdi.setMinimumHeight(35)
+        self._mount_girdi.setContextMenuPolicy(Qt.NoContextMenu)
         mount_layout.addWidget(self._mount_girdi)
 
         sec_btn = QPushButton("Seç...")
@@ -97,6 +102,7 @@ class SmbBaglamaPenceresi(QDialog):
         self._domain_girdi = QLineEdit()
         self._domain_girdi.setPlaceholderText("Örn: WORKGROUP (boş bırakılabilir)")
         self._domain_girdi.setMinimumHeight(35)
+        self._domain_girdi.setContextMenuPolicy(Qt.NoContextMenu)
         form.addRow("Domain/Workgroup:", self._domain_girdi)
 
         # Misafir erişimi

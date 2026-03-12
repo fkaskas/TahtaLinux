@@ -77,7 +77,8 @@ class OnlineIstemci(QObject):
                 "hmac": hmac_imza,
                 "zaman": zaman_damgasi,
             })
-            self.baglanti_durumu_sinyali.emit(True)
+            # True sinyali burada değil, durum_bilgisi gelince gönderilir
+            # Böylece kayıtsız tahta online moda geçmez
 
         @sio.event
         def disconnect():
@@ -114,6 +115,8 @@ class OnlineIstemci(QObject):
             ses = veri.get("ses", 1)
             self._durum = durum
             self._ses = ses
+            # Sunucu tahtayı kabul etti — şimdi gerçekten bağlıyız
+            self.baglanti_durumu_sinyali.emit(True)
             self.durum_bilgisi_sinyali.emit(durum, ses)
             tahta_adi = veri.get("tahta_adi", "")
             if tahta_adi:

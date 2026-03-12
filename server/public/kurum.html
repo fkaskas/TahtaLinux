@@ -163,6 +163,26 @@
     .slider-btn:hover { background: rgba(44,111,206,0.6); }
     .slider-btn.onceki { left: 0.8vw; }
     .slider-btn.sonraki { right: 0.8vw; }
+    .slider-pause-btn {
+      position: absolute;
+      top: 0.8vh;
+      right: 0.8vw;
+      width: clamp(24px, 2.5vw, 34px);
+      height: clamp(24px, 2.5vw, 34px);
+      border-radius: 50%;
+      background: rgba(26,37,51,0.55);
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      font-size: clamp(10px, 1.2vw, 15px);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+      backdrop-filter: blur(4px);
+      transition: background 0.2s;
+    }
+    .slider-pause-btn:hover { background: rgba(44,111,206,0.6); }
     .slider-dots {
       position: absolute;
       bottom: 1vh;
@@ -653,6 +673,7 @@
       </div>
       <button class="slider-btn onceki" onclick="sliderGit(-1)">&#10094;</button>
       <button class="slider-btn sonraki" onclick="sliderGit(1)">&#10095;</button>
+      <button class="slider-pause-btn" id="sliderPauseBtn" onclick="sliderToggle()" title="Durdur / Devam Et"><i class="fas fa-pause" id="sliderPauseIcon"></i></button>
       <div class="slider-dots" id="sliderDots"></div>
     </div>
 
@@ -778,12 +799,12 @@
         </div>
         <div class="bilgi-kart-icerik">
           <div class="hava-icerik">
-            <div class="hava-icon">🌤️</div>
-            <div class="hava-sicaklik">14°C</div>
-            <div class="hava-durum">Parçalı Bulutlu</div>
+            <div class="hava-icon" id="havaIcon">⏳</div>
+            <div class="hava-sicaklik" id="havaSicaklik">--°C</div>
+            <div class="hava-durum" id="havaDurum">Yükleniyor...</div>
             <div class="hava-detay">
-              <span><i class="fas fa-tint"></i> %42</span>
-              <span><i class="fas fa-wind"></i> 12 km/s</span>
+              <span><i class="fas fa-tint"></i> <span id="havaNem">--%</span></span>
+              <span><i class="fas fa-wind"></i> <span id="havaRuzgar">-- km/s</span></span>
             </div>
           </div>
         </div>
@@ -798,8 +819,8 @@
         <div class="bilgi-kart-icerik">
           <div class="soz-icerik">
             <div class="soz-tirnak">“</div>
-            <div class="soz-metin">Devletin temeli adalettir. Adaletten ayrılan devlet, yıkılmaya mahkumdur.</div>
-            <div class="soz-yazar">— Fatih Sultan Mehmet</div>
+            <div class="soz-metin" id="sozMetin">Yükleniyor...</div>
+            <div class="soz-yazar" id="sozYazar"></div>
           </div>
         </div>
       </div>
@@ -819,6 +840,7 @@
   // ===== SLIDER =====
   let mevcutSlayt = 0;
   let sliderOtomatikTimer = null;
+  let sliderDurdu = false;
   const track = document.getElementById('sliderTrack');
   const dotsKapsam = document.getElementById('sliderDots');
 
@@ -857,7 +879,10 @@
     });
 
     slaytaGit(0);
-    sliderOtomatikTimer = setInterval(() => sliderGit(1), 6000);
+    sliderDurdu = false;
+    const icon = document.getElementById('sliderPauseIcon');
+    if (icon) { icon.className = 'fas fa-pause'; }
+    sliderOtomatikTimer = setInterval(() => sliderGit(1), 10000);
   }
 
   function slaytaGit(idx) {
@@ -871,6 +896,20 @@
   }
 
   function sliderGit(yon) { slaytaGit(mevcutSlayt + yon); }
+
+  function sliderToggle() {
+    const icon = document.getElementById('sliderPauseIcon');
+    if (sliderDurdu) {
+      sliderDurdu = false;
+      if (icon) icon.className = 'fas fa-pause';
+      if (sliderOtomatikTimer) clearInterval(sliderOtomatikTimer);
+      sliderOtomatikTimer = setInterval(() => sliderGit(1), 10000);
+    } else {
+      sliderDurdu = true;
+      if (icon) icon.className = 'fas fa-play';
+      if (sliderOtomatikTimer) { clearInterval(sliderOtomatikTimer); sliderOtomatikTimer = null; }
+    }
+  }
 
   // ===== KURUM ADI =====
   (function() {
@@ -905,12 +944,76 @@
         .then(r => r.json())
         .then(liste => { duyurularGoster(liste); })
         .catch(() => { duyurularGoster([]); });
+
+      // Günün sözünü yükle
+      fetch('/api/gunun-sozu-genel?' + q.toString())
+        .then(r => r.json())
+        .then(soz => { gununSozuGoster(soz); })
+        .catch(() => { gununSozuGoster(null); });
     } else {
       sliderOlustur([]);
+      gununSozuGoster(null);
     }
   })();
 
   function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+  // ===== HAVA DURUMU (Open-Meteo, konum tabanlı) =====
+  const havaKodlari = {
+    0:'☀️',1:'🌤️',2:'⛅',3:'☁️',
+    45:'🌫️',48:'🌫️',
+    51:'🌦️',53:'🌦️',55:'🌧️',
+    61:'🌧️',63:'🌧️',65:'🌧️',
+    71:'🌨️',73:'🌨️',75:'🌨️',77:'🌨️',
+    80:'🌦️',81:'🌧️',82:'🌧️',
+    85:'🌨️',86:'🌨️',
+    95:'⛈️',96:'⛈️',99:'⛈️'
+  };
+  const havaDurumMetin = {
+    0:'Açık',1:'Az Bulutlu',2:'Parçalı Bulutlu',3:'Kapalı',
+    45:'Sisli',48:'Kırağılı Sis',
+    51:'Hafif Çisenti',53:'Çisenti',55:'Yoğun Çisenti',
+    61:'Hafif Yağmur',63:'Yağmurlu',65:'Şiddetli Yağmur',
+    71:'Hafif Kar',73:'Karlı',75:'Yoğun Kar',77:'Kar Taneleri',
+    80:'Hafif Sağanak',81:'Sağanak',82:'Şiddetli Sağanak',
+    85:'Hafif Kar Sağanağı',86:'Kar Sağanağı',
+    95:'Gök Gürültülü Fırtına',96:'Dolu ile Fırtına',99:'Şiddetli Dolu'
+  };
+
+  function havaDurumuGuncelle(lat, lon) {
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&wind_speed_unit=kmh&timezone=auto')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var c = d.current;
+        document.getElementById('havaIcon').textContent = havaKodlari[c.weather_code] || '🌡️';
+        document.getElementById('havaSicaklik').textContent = Math.round(c.temperature_2m) + '°C';
+        document.getElementById('havaDurum').textContent = havaDurumMetin[c.weather_code] || 'Bilinmiyor';
+        document.getElementById('havaNem').textContent = '%' + c.relative_humidity_2m;
+        document.getElementById('havaRuzgar').textContent = Math.round(c.wind_speed_10m) + ' km/s';
+      })
+      .catch(function() {
+        document.getElementById('havaDurum').textContent = 'Veri alınamadı';
+        document.getElementById('havaIcon').textContent = '⚠️';
+      });
+  }
+
+  // IP tabanlı konum tespiti (HTTPS uyumlu, izin gerektirmez)
+  function konumAlVeHavaGuncelle() {
+    fetch('https://ipwho.is/?fields=latitude,longitude,success')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.success) {
+          havaDurumuGuncelle(d.latitude, d.longitude);
+        } else {
+          havaDurumuGuncelle(39.93, 32.85);
+        }
+      })
+      .catch(function() {
+        havaDurumuGuncelle(39.93, 32.85);
+      });
+  }
+  konumAlVeHavaGuncelle();
+  setInterval(konumAlVeHavaGuncelle, 900000); // Her 15 dakikada güncelle
 
   function duyurularGoster(liste) {
     const sarici = document.getElementById('duyurularSarici');
@@ -989,6 +1092,18 @@
     } else {
       digerEl.style.display = 'none';
     }
+  }
+
+  function gununSozuGoster(soz) {
+    const metinEl = document.getElementById('sozMetin');
+    const yazarEl = document.getElementById('sozYazar');
+    if (!soz) {
+      metinEl.textContent = 'Henüz söz eklenmemiş';
+      yazarEl.textContent = '';
+      return;
+    }
+    metinEl.textContent = soz.soz;
+    yazarEl.textContent = soz.yazar ? '— ' + soz.yazar : '';
   }
 </script>
 

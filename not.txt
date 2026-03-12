@@ -282,3 +282,5 @@ Sınav eklerken ders saatleri seçimi kısmında ilk seçim diğerinede uygunlan
 Süper yönetici kurum seçerek kurumdaki bütün sınavları görebilsin
 
 Kilit ekranında sınav kartı daha şık ve daha anlaşılır olsun istiyorum daha farklı bir tasarım yap flat bir tasarım olsun
+
+1. tahta sunucuya kayıtlı değil 2. tahta kayıtlı ama internet yok 3. tahta kayıtlı internet var  bu 3 durumda tahtanın webviewda göstereceği içerik değişecek. 1. ve 2. durumda çevrimdışı.htnl oluşturduk bu gösterilecek

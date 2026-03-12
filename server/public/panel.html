@@ -1343,6 +1343,39 @@
     </div>
 
     <!-- Ders Saatleri Sekmesi -->
+    <div class="sekme-icerik" id="icerik-gunun-sozu">
+      <div class="yonetim-panel">
+        <h2><i class="fas fa-quote-left" style="color:#7c5cbf;"></i> Günün Sözü Yönetimi</h2>
+        <p style="color:var(--text3);font-size:13px;margin-bottom:16px;">
+          Kurum bilgi ekranında gösterilecek sözleri ekleyin. Her gün bu sözlerden biri tarih bazlı rastgele seçilerek gösterilir.
+        </p>
+
+        <div class="gizli" id="sozKurumAlan" style="margin-bottom:16px;">
+          <label style="font-size:12px;color:var(--text2);font-weight:500;margin-bottom:5px;display:block;">Kurum Seç</label>
+          <select id="sozKurumSec" onchange="sozlerYukle()" style="padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;width:100%;max-width:400px;"></select>
+        </div>
+
+        <div id="sozEklemeFormu" class="form-satir" style="flex-direction:column;gap:12px;">
+          <div class="alan" style="min-width:100%;">
+            <label>Söz</label>
+            <textarea id="sozMetin" placeholder="Sözü buraya yazın..." rows="3"
+              style="width:100%;padding:14px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;resize:vertical;font-family:inherit;"></textarea>
+          </div>
+          <div class="alan" style="min-width:100%;">
+            <label>Yazar <span style="color:var(--text3);font-size:11px;">(opsiyonel)</span></label>
+            <input type="text" id="sozYazar" />
+          </div>
+          <button class="btn-ekle" onclick="sozEkle()"><i class="fas fa-plus"></i> Söz Ekle</button>
+        </div>
+
+        <h3 style="margin-top:20px;">Kayıtlı Sözler</h3>
+        <div id="sozListesi">
+          <div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">Yükleniyor...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ders Saatleri Sekmesi -->
     <div class="sekme-icerik" id="icerik-ders-saatleri">
       <div class="yonetim-panel">
         <h2><i class="fas fa-clock"></i> Ders Çıkış Saatleri</h2>
@@ -1456,6 +1489,9 @@
     </div>
     <div class="sekme" data-sekme="slider" id="sekme-slider">
       <span class="sekme-icon"><i class="fas fa-images"></i></span> Slider
+    </div>
+    <div class="sekme" data-sekme="gunun-sozu" id="sekme-gunun-sozu">
+      <span class="sekme-icon"><i class="fas fa-quote-left"></i></span> Günün Sözü
     </div>
     <div class="sekme gizli" data-sekme="ders-saatleri" id="sekme-ders-saatleri">
       <span class="sekme-icon"><i class="fas fa-clock"></i></span> Ders Saatleri
@@ -1691,6 +1727,24 @@
     <div class="modal-butonlar">
       <button class="btn-iptal" onclick="duyuruDuzenleKapat()">İptal</button>
       <button class="btn-kaydet" onclick="duyuruGuncelle()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Slider Düzenle Modal -->
+<div class="modal-arka" id="sozDuzenleModal" onclick="sozDuzenleKapat()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3><i class="fas fa-edit"></i> Söz Düzenle</h3>
+    <input type="hidden" id="sozDuzenleId" />
+    <label>Söz</label>
+    <textarea id="sozDuzenleMetin" rows="3"
+      style="width:100%;padding:14px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;resize:vertical;font-family:inherit;margin-bottom:14px;"
+    ></textarea>
+    <label>Yazar <span style="color:var(--text3);font-size:11px;">(opsiyonel)</span></label>
+    <input type="text" id="sozDuzenleYazar" placeholder="Yazar" />
+    <div class="modal-butonlar">
+      <button class="btn-iptal" onclick="sozDuzenleKapat()">İptal</button>
+      <button class="btn-kaydet" onclick="sozGuncelle()">Kaydet</button>
     </div>
   </div>
 </div>
@@ -2092,6 +2146,7 @@
       document.getElementById("ayinKurumAlan").classList.remove("gizli");
       document.getElementById("sliderKurumAlan").classList.remove("gizli");
       document.getElementById("duyuruKurumAlan").classList.remove("gizli");
+      document.getElementById("sozKurumAlan").classList.remove("gizli");
       document.getElementById("loglarKurumAlan").classList.remove("gizli");
       // Tablo başlıklarına kurum sütunu ekle
       document.getElementById("tahtaYonetimBaslik").innerHTML = "<th>Tahta Adı</th><th>Kurum</th><th>Durum</th><th>Çevrimiçi</th><th>Son Bağlantı</th><th></th>";
@@ -2740,7 +2795,7 @@
       if (!yanit.ok) return;
       const liste = await yanit.json();
 
-      ["tahtaKurumSec", "kullaniciKurumSec", "dersSaatleriKurumSec", "sinavKurumSec", "ayinKurumSec", "sliderKurumSec", "loglarKurumSec"].forEach((id) => {
+      ["tahtaKurumSec", "kullaniciKurumSec", "dersSaatleriKurumSec", "sinavKurumSec", "ayinKurumSec", "sliderKurumSec", "sozKurumSec", "duyuruKurumSec", "loglarKurumSec"].forEach((id) => {
         const sel = document.getElementById(id);
         if (!sel) return;
         sel.innerHTML = liste.map((k) =>
@@ -3575,6 +3630,126 @@
     });
   }
 
+  // ===================== Günün Sözü Yönetimi =====================
+  let sozListeCache = [];
+
+  async function sozlerYukle() {
+    const sozFormu = document.getElementById('sozEklemeFormu');
+    if (sozFormu) sozFormu.style.display = kullanici.rol === 'superadmin' ? 'none' : '';
+    try {
+      let url = '/api/gunun-sozleri';
+      if (kullanici.rol === 'superadmin') {
+        const kurumSec = document.getElementById('sozKurumSec');
+        if (kurumSec && kurumSec.value) url += '?kurum_id=' + kurumSec.value;
+      }
+      const yanit = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+      if (!yanit.ok) { bildirimGoster('Söz listesi alınamadı', 'hata'); return; }
+      const liste = await yanit.json();
+      sozListeCache = liste;
+      const container = document.getElementById('sozListesi');
+      if (!Array.isArray(liste) || liste.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;"><i class="fas fa-quote-left" style="font-size:28px;display:block;margin-bottom:8px;opacity:0.4;color:#7c5cbf;"></i>Kayıtlı söz yok</div>';
+        return;
+      }
+      container.innerHTML = liste.map(s => sozKartHTML(s)).join('');
+    } catch (err) {
+      bildirimGoster('Söz listesi alınamadı', 'hata');
+    }
+  }
+
+  function sozKartHTML(s) {
+    const sahip = kullanici.rol === 'yonetici' || (kullanici.rol === 'ogretmen' && s.ekleyen_id === kullanici.id);
+    const tarih = new Date(s.created_at).toLocaleDateString('tr-TR', { day:'2-digit', month:'long', year:'numeric' });
+    return `<div class="duyuru-kart">
+      <div class="duyuru-ust">
+        <div class="duyuru-baslik-alan">
+          <h4 style="font-style:italic;">"${esc(s.soz)}"</h4>
+          <div class="duyuru-meta">
+            ${s.yazar ? '<span><i class="fas fa-pen-nib"></i> ' + esc(s.yazar) + '</span>' : ''}
+            <span><i class="fas fa-user"></i> ${esc(s.ekleyen_adi || '')}</span>
+            <span><i class="fas fa-calendar-alt"></i> ${tarih}</span>
+          </div>
+        </div>
+        <div class="duyuru-islem">
+          ${sahip ? `<button class="btn-duyuru-duzenle" onclick="sozDuzenleAc(${s.id})"><i class="fas fa-edit"></i></button>` : ''}
+          ${sahip ? `<button class="btn-duyuru-sil" onclick="sozSil(${s.id})"><i class="fas fa-trash-alt"></i></button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  async function sozEkle() {
+    const soz = document.getElementById('sozMetin').value.trim();
+    const yazar = document.getElementById('sozYazar').value.trim();
+    if (!soz) { bildirimGoster('Söz metni gerekli', 'hata'); return; }
+    try {
+      const yanit = await fetch('/api/gunun-sozleri', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ soz, yazar })
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+      bildirimGoster('Söz eklendi', 'basari');
+      document.getElementById('sozMetin').value = '';
+      document.getElementById('sozYazar').value = '';
+      sozlerYukle();
+    } catch (err) { bildirimGoster('Söz eklenemedi', 'hata'); }
+  }
+
+  function sozDuzenleAc(id) {
+    const s = sozListeCache.find(x => x.id === id);
+    if (!s) return;
+    document.getElementById('sozDuzenleId').value = id;
+    document.getElementById('sozDuzenleMetin').value = s.soz;
+    document.getElementById('sozDuzenleYazar').value = s.yazar || '';
+    document.getElementById('sozDuzenleModal').classList.add('goster');
+  }
+
+  function sozDuzenleKapat() {
+    document.getElementById('sozDuzenleModal').classList.remove('goster');
+  }
+
+  async function sozGuncelle() {
+    const id = document.getElementById('sozDuzenleId').value;
+    const soz = document.getElementById('sozDuzenleMetin').value.trim();
+    const yazar = document.getElementById('sozDuzenleYazar').value.trim();
+    if (!soz) { bildirimGoster('Söz metni gerekli', 'hata'); return; }
+    try {
+      const yanit = await fetch('/api/gunun-sozleri/' + id, {
+        method: 'PUT',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ soz, yazar })
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+      bildirimGoster('Söz güncellendi', 'basari');
+      sozDuzenleKapat();
+      sozlerYukle();
+    } catch (err) { bildirimGoster('Söz güncellenemedi', 'hata'); }
+  }
+
+  async function sozSil(id) {
+    onayla({
+      baslik: 'Sözü Sil',
+      mesaj: 'Bu sözü silmek istediğinize emin misiniz?',
+      onayMetni: 'Sil',
+      tehlike: true,
+      callback: async () => {
+        try {
+          const yanit = await fetch('/api/gunun-sozleri/' + id, {
+            method: 'DELETE',
+            headers: { Authorization: 'Bearer ' + token }
+          });
+          const veri = await yanit.json();
+          if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+          bildirimGoster('Söz silindi', 'basari');
+          sozlerYukle();
+        } catch (err) { bildirimGoster('Söz silinemedi', 'hata'); }
+      }
+    });
+  }
+
   // ===================== Slider Yönetimi =====================
   let sliderListeCache = [];
 
@@ -3862,6 +4037,7 @@
     if (veri === "ayin-ogrencisi") ayinOgrencileriYukle();
     if (veri === "duyurular") duyurularYukle();
     if (veri === "slider") sliderYukle();
+    if (veri === "gunun-sozu") sozlerYukle();
     if (veri === "loglar") loglarYukle();
   }
 

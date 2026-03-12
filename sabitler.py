@@ -22,3 +22,8 @@ VARSAYILAN_TAHTA_ADI = "11E"
 
 # Online sunucu ayarları
 SUNUCU_URL = "https://kulumtal.com"
+
+# WebView mod geçiş gecikmeleri
+OFFLINE_GECIKME_SANIYE = 15   # Bağlantı gidince çevrimdışı moda geçme süresi
+ONLINE_GECIKME_SANIYE = 15    # Bağlantı gelince çevrimiçi moda geçme süresi
+BASTANGIC_BEKLEME_SANIYE = 15  # Başlangıçta sunucu gelmezse offline geçme süresi

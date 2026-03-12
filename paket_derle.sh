@@ -53,6 +53,16 @@ cp "$KAYNAK/smb_bagla.sh" "$HEDEF/opt/tahta-kilit/smb_bagla.sh"
 chmod 755 "$HEDEF/opt/tahta-kilit/smb_bagla.sh"
 echo "[✓] Shell scriptleri kopyalandı"
 
+# 3.6) Çevrimdışı HTML sayfasını kopyala
+echo "[*] Çevrimdışı HTML sayfası kopyalanıyor..."
+if [ ! -f "$KAYNAK/cevrimdisi.html" ]; then
+    echo "HATA: cevrimdisi.html bulunamadı!"
+    exit 1
+fi
+cp "$KAYNAK/cevrimdisi.html" "$HEDEF/opt/tahta-kilit/cevrimdisi.html"
+chmod 644 "$HEDEF/opt/tahta-kilit/cevrimdisi.html"
+echo "[✓] Çevrimdışı HTML sayfası kopyalandı"
+
 # 4) İzinleri ayarla
 chmod 755 "$HEDEF/DEBIAN/postinst" "$HEDEF/DEBIAN/prerm" "$HEDEF/DEBIAN/postrm"
 chmod 755 "$HEDEF/opt/tahta-kilit/kilit.py"
