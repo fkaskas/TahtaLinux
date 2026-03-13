@@ -222,6 +222,11 @@ async function veritabaniBaslat() {
     await db.execute(`ALTER TABLE kurumlar ADD COLUMN ders_saatleri_aktif TINYINT NOT NULL DEFAULT 0`);
   } catch (e) { /* sütun zaten var */ }
 
+  // Kurumlara otomasyon aktif/pasif sütunu ekle (kapı kontrolü)
+  try {
+    await db.execute(`ALTER TABLE kurumlar ADD COLUMN otomasyon_aktif TINYINT NOT NULL DEFAULT 0`);
+  } catch (e) { /* sütun zaten var */ }
+
   // Sınavlar tablosu
   await db.execute(`
     CREATE TABLE IF NOT EXISTS sinavlar (
@@ -2229,9 +2234,50 @@ app.get("/api/kurum-adi", async (req, res) => {
   }
 });
 
+// ===================== Otomasyon API =====================
+
+// Otomasyon durumunu getir (kurumun otomasyon_aktif alanı)
+app.get("/api/otomasyon-durum", authMiddleware, async (req, res) => {
+  try {
+    const kurumId = req.query.kurum_id && req.kullanici.rol === "superadmin"
+      ? req.query.kurum_id
+      : req.kullanici.kurum_id;
+    const [rows] = await db.execute("SELECT otomasyon_aktif FROM kurumlar WHERE id = ?", [kurumId]);
+    if (rows.length === 0) return res.status(404).json({ hata: "Kurum bulunamadı" });
+    // Bağlı kapı cihazlarını da döndür
+    const cihazlar = [];
+    for (const [sid, bilgi] of Object.entries(bagliKapiCihazlari)) {
+      if (bilgi.kurumId === parseInt(kurumId)) {
+        cihazlar.push({ cihaz_id: bilgi.cihazId, cihaz_adi: bilgi.cihazAdi, bagli: true });
+      }
+    }
+    res.json({ aktif: rows[0].otomasyon_aktif, cihazlar });
+  } catch (err) {
+    console.error("Otomasyon durum hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Otomasyon aktif/pasif değiştir (sadece yönetici)
+app.post("/api/otomasyon-durum", authMiddleware, adminMiddleware, async (req, res) => {
+  try {
+    const { aktif, kurum_id } = req.body;
+    const kurumId = (kurum_id && req.kullanici.rol === "superadmin")
+      ? kurum_id
+      : req.kullanici.kurum_id;
+    await db.execute("UPDATE kurumlar SET otomasyon_aktif = ? WHERE id = ?", [aktif ? 1 : 0, kurumId]);
+    res.json({ mesaj: "Otomasyon durumu güncellendi" });
+  } catch (err) {
+    console.error("Otomasyon durum güncelleme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
 // ===================== Socket.IO =====================
 // Bağlı tahtaları takip eden obje: { socketId: { tahtaId, kurumId, kurumKodu } }
 const bagliTahtalar = {};
+// Bağlı kapı cihazları: { socketId: { cihazId, cihazAdi, kurumId, kurumKodu } }
+const bagliKapiCihazlari = {};
 // Kapanma geri sayımı (bellekte, VT'de değil): { tahtaId: kalanSaniye }
 const kapanmaGeriSayim = {};
 // Kilit geri sayımı (bellekte, VT'de değil): { tahtaId: kalanSaniye }
@@ -2685,8 +2731,101 @@ io.on("connection", (socket) => {
     panellereGonder(bilgi.kurumId).catch(() => {});
   });
 
+  // ---- Kapı Cihazı Kaydı (WT32-ETH01 / Arduino) ----
+  socket.on("kapi_kayit", async (veri) => {
+    const cihazId = veri.cihaz_id || veri.cihazId;
+    const cihazAdi = veri.cihaz_adi || veri.cihazAdi || cihazId;
+    const kurumKodu = veri.kurum_kodu || veri.kurumKodu;
+    if (!cihazId || !kurumKodu) {
+      socket.emit("hata", { mesaj: "Cihaz ID ve kurum kodu gerekli" });
+      return;
+    }
+    try {
+      const [kurumRows] = await db.execute("SELECT id, kurum_adi, otomasyon_aktif FROM kurumlar WHERE kurum_kodu = ?", [kurumKodu]);
+      if (kurumRows.length === 0) {
+        socket.emit("hata", { mesaj: "Kurum bulunamadı" });
+        return;
+      }
+      const kurum = kurumRows[0];
+      if (!kurum.otomasyon_aktif) {
+        socket.emit("hata", { mesaj: "Bu kurum için otomasyon aktif değil" });
+        return;
+      }
+      bagliKapiCihazlari[socket.id] = {
+        cihazId,
+        cihazAdi,
+        kurumId: kurum.id,
+        kurumKodu
+      };
+      socket.join(`kapi_kurum_${kurum.id}`);
+      socket.kapiCihaz = true;
+      socket.emit("kapi_kayit_onay", { mesaj: "Kayıt başarılı", kurum_adi: kurum.kurum_adi });
+      console.log(`[KAPI] Cihaz bağlandı: ${cihazAdi} (Kurum: ${kurumKodu})`);
+    } catch (err) {
+      console.error("Kapı cihaz kayıt hatası:", err);
+      socket.emit("hata", { mesaj: "Sunucu hatası" });
+    }
+  });
+
+  // ---- Kapı Aç (panelden) ----
+  socket.on("kapi_ac", async (veri) => {
+    if (!socket.kullanici) return;
+    const cihazId = typeof veri === "string" ? veri : (veri?.cihaz_id || "kapi_ana_giris");
+    try {
+      const kurumId = socket.kullanici.kurum_id;
+      // Otomasyon aktif mi kontrol et
+      const [kurumRows] = await db.execute("SELECT otomasyon_aktif FROM kurumlar WHERE id = ?", [kurumId]);
+      if (kurumRows.length === 0 || !kurumRows[0].otomasyon_aktif) {
+        return;
+      }
+      // Hedef cihazı bul
+      let hedefSocket = null;
+      for (const [sid, bilgi] of Object.entries(bagliKapiCihazlari)) {
+        if (bilgi.cihazId === cihazId && bilgi.kurumId === kurumId) {
+          hedefSocket = sid;
+          break;
+        }
+      }
+      // Superadmin herhangi kurumun cihazına erişebilir
+      if (!hedefSocket && socket.kullanici.rol === "superadmin") {
+        for (const [sid, bilgi] of Object.entries(bagliKapiCihazlari)) {
+          if (bilgi.cihazId === cihazId) {
+            hedefSocket = sid;
+            break;
+          }
+        }
+      }
+      if (hedefSocket) {
+        io.to(hedefSocket).emit("kapi_ac");
+        console.log(`[KAPI AÇ] ${cihazId} → ${socket.kullanici.ad_soyad}`);
+      }
+    } catch (err) {
+      console.error("Kapı açma hatası:", err);
+    }
+  });
+
+  // ---- Kapı Durum Bildirimi (cihazdan gelen) ----
+  socket.on("kapi_durum", (veri) => {
+    const bilgi = bagliKapiCihazlari[socket.id];
+    if (!bilgi) return;
+    // Panellere cihaz durumunu bildir
+    io.to(`panel_kurum_${bilgi.kurumId}`).emit("kapi_durum_guncelle", {
+      cihaz_id: bilgi.cihazId,
+      cihaz_adi: bilgi.cihazAdi,
+      durum: veri.durum,
+      sensor: veri.sensor
+    });
+  });
+
   // ---- Bağlantı Koptu ----
   socket.on("disconnect", async () => {
+    // Kapı cihazı ayrıldı mı kontrol et
+    const kapiBilgi = bagliKapiCihazlari[socket.id];
+    if (kapiBilgi) {
+      delete bagliKapiCihazlari[socket.id];
+      console.log(`[-] Kapı cihazı ayrıldı: ${kapiBilgi.cihazAdi} (${kapiBilgi.kurumKodu})`);
+    }
+
     const bilgi = bagliTahtalar[socket.id];
     if (bilgi) {
       try {

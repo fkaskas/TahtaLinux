@@ -1,0 +1,103 @@
+============================================================
+  Tahta Kilit - Kapı Otomasyon Kurulum Kılavuzu
+  WT32-ETH01 + Röle Modülü
+============================================================
+
+DONANIM GEREKSİNİMLERİ
+─────────────────────────
+• WT32-ETH01 geliştirme kartı
+• 5V Röle modülü (1 kanal)
+• Elektrikli kapı kilidi (12V/24V)
+• 12V/24V güç kaynağı (kapı kilidi için)
+• 5V USB güç kaynağı (WT32-ETH01 için) 
+• Ethernet kablosu (RJ45)
+• Jumper kablolar
+
+BAĞLANTI ŞEMASI
+─────────────────────────
+WT32-ETH01        Röle Modülü
+──────────        ────────────
+GPIO2  ────────→  IN  (Sinyal)
+3.3V   ────────→  VCC (Güç)
+GND    ────────→  GND (Toprak)
+
+Röle Modülü        Kapı Kilidi
+────────────       ────────────
+COM    ────────→  Güç kaynağı (+)
+NO     ────────→  Kapı kilidi (+)
+                   Kapı kilidi (−) → Güç kaynağı (−)
+
+Opsiyonel - Manyetik Kapı Sensörü:
+GPIO4  ────────→  Sensör ucu 1
+GND    ────────→  Sensör ucu 2
+
+YAZILIM KURULUMU
+─────────────────────────
+
+1. Arduino IDE Hazırlığı:
+   - Arduino IDE'yi açın
+   - File → Preferences → Additional Board Manager URLs:
+     https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+   - Tools → Board → Boards Manager → "esp32" aratıp yükleyin
+   - Tools → Board → ESP32 Arduino → "WT32-ETH01" seçin
+
+2. Gerekli Kütüphaneler (Sketch → Include Library → Manage Libraries):
+   - ArduinoJson (Benoit Blanchon) — versiyon 6.x+
+   - WebSockets (Markus Sattler) — versiyon 2.4.0+
+
+3. MEB Sertifikasını Hazırlama:
+   
+   a) Sertifikayı indirin:
+      wget https://sertifika.meb.gov.tr/MEB_SERTIFIKASI.cer
+   
+   b) DER formatından PEM formatına çevirin:
+      openssl x509 -inform DER -in MEB_SERTIFIKASI.cer -out meb_kök.pem
+   
+   c) meb_kök.pem dosyasının içeriğini kopyalayın
+   
+   d) kapi_kontrol.ino dosyasında "meb_kök_sertifika" değişkenine yapıştırın:
+      -----BEGIN CERTIFICATE-----
+      (sertifika içeriği)
+      -----END CERTIFICATE-----
+
+4. Yapılandırma:
+   - kapi_kontrol.ino dosyasında şu değerleri düzenleyin:
+     • KURUM_KODU  → Kurumunuzun panel kodu
+     • CIHAZ_ID    → Benzersiz cihaz kimliği (örn: "kapi_ana_giris")
+     • CIHAZ_ADI   → Panelde görünecek ad (örn: "Ana Giriş Kapısı")
+
+5. Yükleme:
+   - WT32-ETH01'i USB ile bilgisayara bağlayın
+   - IO0 pinini GND'ye bağlayarak programlama moduna girin
+   - Doğru COM portunu seçin
+   - Upload butonuna basın
+   - Yükleme bittikten sonra IO0-GND bağlantısını çıkarıp kartı resetleyin
+
+SERİ PORT KOMUTLARI (Test için)
+─────────────────────────
+Seri monitörü 115200 baud ile açın:
+  ac     → Kapıyı manuel açar (test)
+  durum  → Bağlantı durumunu gösterir
+  reset  → Kartı yeniden başlatır
+
+PANEL AYARLARI
+─────────────────────────
+1. Panele yönetici olarak giriş yapın
+2. "Ders Saatleri" sekmesine gidin
+3. "Kapı Otomasyon" bölümünden özelliği aktifleştirin
+4. Artık "Otomasyon" sekmesinde kapı açma butonu görünecektir
+5. Öğretmen kullanıcılar da bu butonu kullanabilir
+
+STABİLİTE ÖNLEMLERİ
+─────────────────────────
+• Kart her 6 saatte otomatik yeniden başlar (HW_RESET_ARALIK_MS)
+• Bağlantı koptuğunda 5 saniyede bir yeniden bağlanır
+• Sunucuya 25 saniyede bir heartbeat gönderir  
+• Ethernet kablosu çekilip takılınca otomatik yeniden bağlanır
+
+SORUN GİDERME
+─────────────────────────
+• "ETH Bağlantı yok" → Ethernet kablosunu kontrol edin
+• "WS Bağlantı kesildi" → Sunucu adresini ve sertifikayı kontrol edin
+• Röle tetiklenmiyor → GPIO2 bağlantısını ve röle modülünü kontrol edin
+• Sertifika hatası → PEM formatının doğru olduğundan emin olun

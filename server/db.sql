@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS kurumlar (
     kurum_kodu VARCHAR(20) NOT NULL UNIQUE,
     kurum_adi VARCHAR(255) NOT NULL,
     ders_saatleri_aktif TINYINT NOT NULL DEFAULT 0, -- 0=pasif, 1=aktif
+    otomasyon_aktif TINYINT NOT NULL DEFAULT 0,     -- 0=pasif, 1=aktif (kapı otomasyon)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
