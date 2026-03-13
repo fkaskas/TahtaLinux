@@ -10,6 +10,10 @@ tüm sistem kısayollarını engeller.
 
 import sys
 import os
+import multiprocessing
+
+# PyInstaller binary modunda alt süreçlerin ana pencereyi tekrar açmasını önle
+multiprocessing.freeze_support()
 
 # Root olarak çalışırken Chromium sandbox hatasını önle
 if os.getuid() == 0:

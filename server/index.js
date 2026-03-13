@@ -2090,24 +2090,32 @@ app.post("/api/dogrulama-kodu", authMiddleware, async (req, res) => {
   if (!challenge || typeof challenge !== "string") {
     return res.status(400).json({ hata: "Challenge kodu gerekli" });
   }
-  if (!tahtaId || typeof tahtaId !== "string") {
-    return res.status(400).json({ hata: "Tahta ID gerekli" });
-  }
   try {
     let rows;
-    if (req.kullanici.rol === "superadmin") {
-      [rows] = await db.execute(
-        `SELECT k.anahtar AS kurum_anahtari FROM tahtalar t
-         JOIN kurumlar k ON t.kurum_id = k.id
-         WHERE t.id = ?`, [tahtaId]);
+    if (tahtaId && typeof tahtaId === "string") {
+      // Tahta ID verilmişse tahtanın kurumunun anahtarını kullan
+      if (req.kullanici.rol === "superadmin") {
+        [rows] = await db.execute(
+          `SELECT k.anahtar AS kurum_anahtari FROM tahtalar t
+           JOIN kurumlar k ON t.kurum_id = k.id
+           WHERE t.id = ?`, [tahtaId]);
+      } else {
+        [rows] = await db.execute(
+          `SELECT k.anahtar AS kurum_anahtari FROM tahtalar t
+           JOIN kurumlar k ON t.kurum_id = k.id
+           WHERE t.id = ? AND t.kurum_id = ?`, [tahtaId, req.kullanici.kurum_id]);
+      }
+      if (rows.length === 0) {
+        return res.status(404).json({ hata: "Tahta bulunamadı" });
+      }
     } else {
+      // Tahta ID verilmemişse kullanıcının kurumunun anahtarını kullan
       [rows] = await db.execute(
-        `SELECT k.anahtar AS kurum_anahtari FROM tahtalar t
-         JOIN kurumlar k ON t.kurum_id = k.id
-         WHERE t.id = ? AND t.kurum_id = ?`, [tahtaId, req.kullanici.kurum_id]);
-    }
-    if (rows.length === 0) {
-      return res.status(404).json({ hata: "Tahta bulunamadı" });
+        `SELECT anahtar AS kurum_anahtari FROM kurumlar WHERE id = ?`,
+        [req.kullanici.kurum_id]);
+      if (rows.length === 0) {
+        return res.status(404).json({ hata: "Kurum bulunamadı" });
+      }
     }
     const anahtar = rows[0].kurum_anahtari || KILIT_GIZLI_ANAHTAR;
     const yanit = yanitUret(challenge, anahtar);

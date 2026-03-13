@@ -2,8 +2,13 @@
 """Uygulama sabitleri"""
 
 import os
+import sys
 
-BETIK_DIZINI = os.path.dirname(os.path.abspath(__file__))
+# PyInstaller binary modunda _MEIPASS kullanılır
+if getattr(sys, 'frozen', False):
+    BETIK_DIZINI = sys._MEIPASS
+else:
+    BETIK_DIZINI = os.path.dirname(os.path.abspath(__file__))
 
 KILIT_GIZLI_ANAHTAR = "tahta_ekran_secret_2024"
 KOD_UZUNLUGU = 4

@@ -41,7 +41,16 @@ from PyQt5.QtCore import Qt, QTimer, QEvent, QUrl, QTime, QDate, QLocale, QSize,
 from PyQt5.QtGui import QFont, QCursor, QPixmap, QPainter, QColor, QBrush, QPainterPath, QIcon, QRegion, QPalette, QFontDatabase, QPen
 import qtawesome as qta
 from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEngineSettings, QWebEngineProfile
+
+# PyInstaller binary modunda LD_LIBRARY_PATH'i geçici olarak orijinal haline döndür
+# vlc modülü import sırasında libvlc.so'yu ctypes ile yükler
+if getattr(sys, 'frozen', False):
+    _ld_pyinst = os.environ.get('LD_LIBRARY_PATH', '')
+    os.environ['LD_LIBRARY_PATH'] = os.environ.get('LD_LIBRARY_PATH_ORIG', '')
 import vlc
+if getattr(sys, 'frozen', False):
+    os.environ['LD_LIBRARY_PATH'] = _ld_pyinst
+
 import qrcode
 
 from sabitler import BETIK_DIZINI, YENILEME_ARALIGI_SANIYE, VARSAYILAN_KURUM_KODU, CACHE_HTML_YOLU
@@ -50,6 +59,13 @@ from dogrulama_penceresi import KodDogrulamaPenceresi
 from veritabani import VeritabaniYoneticisi
 from online_istemci import OnlineIstemci
 from smb_bagla import SmbBaglamaPenceresi
+
+
+class _PopupEngelleyiciSayfa(QWebEngineView):
+    """Popup pencere açılmasını engelleyen WebEngineView"""
+    def createWindow(self, _tip):
+        return None
+
 
 def _fontlari_yukle():
     """Fontları yükle (QApplication oluştuktan sonra çağrılmalı)"""
@@ -1067,10 +1083,11 @@ class Kilit(QMainWindow):
         profil.setCachePath(os.path.join(os.path.expanduser('~'), '.cache', 'tahta-kilit'))
         profil.setPersistentStoragePath(os.path.join(os.path.expanduser('~'), '.cache', 'tahta-kilit', 'storage'))
 
-        self.web_gorunum = QWebEngineView()
+        self.web_gorunum = _PopupEngelleyiciSayfa()
         self.web_gorunum.setContextMenuPolicy(Qt.NoContextMenu)
         self.web_gorunum.settings().setAttribute(QWebEngineSettings.Accelerated2dCanvasEnabled, True)
         self.web_gorunum.settings().setAttribute(QWebEngineSettings.WebGLEnabled, True)
+        self.web_gorunum.settings().setAttribute(QWebEngineSettings.JavascriptCanOpenWindows, False)
         # URL'yi veritabanından oku, yoksa varsayılanı kullan
         db_url = self._vt.url_al(self._kurumkodu)
         webview_url = db_url if db_url else "https://kulumtal.com"
@@ -2184,8 +2201,23 @@ class Kilit(QMainWindow):
         self._video_alani_yerlesim.addWidget(self._video_frame)
         self._video_alani_yerlesim.setContentsMargins(0, 0, 0, 0)
 
+        # PyInstaller binary modunda LD_LIBRARY_PATH'i orijinal haline döndür
+        # PyInstaller kendi kütüphanelerini LD_LIBRARY_PATH'e ekler ve VLC eklentileri
+        # bu uyumsuz kütüphaneleri yüklemeye çalışarak video oynatmayı engeller
+        _ld_orig = os.environ.get('LD_LIBRARY_PATH', '')
+        if getattr(sys, 'frozen', False):
+            os.environ['LD_LIBRARY_PATH'] = os.environ.get('LD_LIBRARY_PATH_ORIG', '')
+
         # VLC instance ve media list player
         self._vlc_instance = vlc.Instance('--no-xlib', '--quiet', '--no-video-title-show')
+
+        # LD_LIBRARY_PATH'i geri yükle (diğer bileşenler için)
+        if getattr(sys, 'frozen', False):
+            os.environ['LD_LIBRARY_PATH'] = _ld_orig
+
+        if self._vlc_instance is None:
+            print("UYARI: VLC başlatılamadı, video desteği devre dışı.")
+            return
         self._vlc_list_player = self._vlc_instance.media_list_player_new()
         self._vlc_player = self._vlc_list_player.get_media_player()
 

@@ -3,3 +3,9 @@ paket/
 __pycache__/
 *.pyc
 tahta_kilit.db
+
+# PyInstaller derleme çıktıları
+build/
+dist/
+*.spec
+paket-binary/
