@@ -7,7 +7,7 @@ import random
 import time
 
 from sabitler import (
-    KILIT_GIZLI_ANAHTAR, KOD_UZUNLUGU,
+    KOD_UZUNLUGU,
     YENILEME_ARALIGI_SANIYE, KARAKTERLER
 )
 
@@ -15,8 +15,8 @@ from sabitler import (
 class KodUretici:
     """TOTP benzeri challenge kodu üretir"""
 
-    def __init__(self, gizli_anahtar=KILIT_GIZLI_ANAHTAR):
-        self._gizli_anahtar = gizli_anahtar
+    def __init__(self, gizli_anahtar=None):
+        self._gizli_anahtar = gizli_anahtar or ""
 
     def _hashi_koda_donustur(self, hash_bytes, uzunluk):
         return "".join(str(b % len(KARAKTERLER)) for b in hash_bytes[:uzunluk])
@@ -52,7 +52,7 @@ class KodUretici:
 class DogrulamaServisi:
     """Challenge kodundan response kodu üretir ve doğrular"""
 
-    def __init__(self, gizli_anahtar=KILIT_GIZLI_ANAHTAR):
+    def __init__(self, gizli_anahtar=None):
         self._gizli_anahtar = gizli_anahtar
 
     def yanit_uret(self, dogrulama_kodu):

@@ -1,20 +1,40 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
+<!-- Yerel fontlar: Montserrat ve Exo 2 -->
+<style>
+  @font-face {
+    font-family: 'Montserrat';
+    src: url('resim/fonts/Montserrat.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'Exo2';
+    src: url('resim/fonts/Exo2-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+  }
+  @font-face {
+    font-family: 'Exo2';
+    src: url('resim/fonts/Exo2-Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+  }
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Tahta Kilit</title>
 <style>
   :root {
-    --bg: #f0f2f5;
-    --surface: #ffffff;
-    --accent: #2563eb;
-    --accent2: #4f46e5;
-    --text: #1e293b;
-    --text2: #475569;
-    --text3: #94a3b8;
-    --border: #d0d5dc;
-    --border-light: rgba(0,0,0,0.06);
+    --bg: #f7f7f7;
+    --surface: #fff;
+    --accent: #222;
+    --accent2: #444;
+    --text: #111;
+    --text2: #333;
+    --text3: #bbb;
+    --border: #e0e0e0;
+    --border-light: rgba(0,0,0,0.08);
     --radius: 16px;
   }
 
@@ -22,7 +42,7 @@
   html, body {
     height: 100vh;
     overflow: hidden;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    font-family: 'Montserrat', Arial, sans-serif;
     background: var(--bg);
     color: var(--text);
     -webkit-font-smoothing: antialiased;
@@ -62,13 +82,13 @@
   /* ===== ANA ALAN ===== */
   .ana-alan {
     flex: 1;
-    display: grid;
-    grid-template-columns: 1fr 1.6fr 1fr;
-    gap: 1.5vh 1.5vw;
-    padding: 1.5vh 1.5vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
     min-height: 0;
     overflow: hidden;
-    position: relative;
+    padding: 0;
   }
 
   /* Parçacık arka plan */
@@ -92,33 +112,7 @@
     100% { opacity: 0; transform: translateY(-30vh) scale(1.2); }
   }
 
-  /* ===== KART GENEL ===== */
-  .kart {
-    background: var(--surface);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius);
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    min-height: 0;
-    position: relative;
-    z-index: 1;
-  }
-  .kart-baslik {
-    display: flex;
-    align-items: center;
-    gap: 0.5vw;
-    padding: 0.8vh 1vw;
-    border-bottom: 1px solid var(--border-light);
-    flex-shrink: 0;
-  }
-  .kart-baslik h2 {
-    font-size: clamp(11px, 1.2vw, 16px);
-    font-weight: 700;
-    color: var(--text);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-  }
+  /* Kart yapısı kaldırıldı */
   .kart-baslik .baslik-ikon {
     font-size: clamp(12px, 1.4vh, 16px);
   }
@@ -247,78 +241,99 @@
     color: var(--accent);
   }
 
-  /* ===== ORTA: ANALOG SAAT ===== */
-  .saat-kart { z-index: 1; }
-  .saat-kart .kart-icerik { gap: 1.5vh; }
+  /* Sade saat ve tarih */
+  .saat-tarih-alani {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+    background: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 0;
+    min-width: 0;
+    min-height: 0;
+    width: 100%;
+    height: 100%;
+  }
   .analog-saat-alani {
     position: relative;
-    width: clamp(220px, 38vh, 400px);
-    height: clamp(220px, 38vh, 400px);
+    width: clamp(320px, 40vw, 420px);
+    height: clamp(320px, 40vw, 420px);
     flex-shrink: 0;
-  }
-  .analog-saat-alani svg { width: 100%; height: 100%; }
-  .kadran-dis { fill: var(--surface); stroke: var(--border); stroke-width: 1.5; }
-  .saat-merkez { fill: var(--accent); }
-  .akrep { stroke: var(--text); stroke-width: 3.5; stroke-linecap: round; }
-  .yelkovan { stroke: var(--text); stroke-width: 2.5; stroke-linecap: round; }
-  .saniye { stroke: var(--accent); stroke-width: 1.2; stroke-linecap: round; }
-  .saat-rakam {
-    font-size: 11px;
-    font-weight: 700;
-    fill: var(--text);
-    text-anchor: middle;
-    dominant-baseline: central;
-  }
-  .saat-cizgi-buyuk { stroke: var(--text); stroke-width: 2; stroke-linecap: round; }
-  .saat-cizgi-kucuk { stroke: var(--text3); stroke-width: 0.8; stroke-linecap: round; }
-
-  .dijital-saat-alani {
+    margin-bottom: 2vh;
+    filter: drop-shadow(0 4px 32px #0002);
+    background: rgba(255,255,255,0.18);
+    border-radius: 50%;
     display: flex;
     align-items: center;
-    gap: 1.5vw;
+    justify-content: center;
   }
-  .dijital-saat {
-    font-size: clamp(28px, 5vh, 56px);
+  .analog-saat-alani svg { width: 100%; height: 100%; }
+  .kadran-dis { fill: #fff; stroke: #222; stroke-width: 2.5; }
+  .saat-merkez { fill: #222; }
+  .akrep { stroke: #111; stroke-width: 5; stroke-linecap: round; }
+  .yelkovan { stroke: #444; stroke-width: 3.5; stroke-linecap: round; }
+  .saniye { stroke: #bbb; stroke-width: 2.2; stroke-linecap: round; }
+  .saat-rakam {
+    font-size: 18px;
     font-weight: 700;
-    color: var(--text);
+    fill: #444;
+    text-anchor: middle;
+    dominant-baseline: central;
+    filter: drop-shadow(0 1px 2px #fff8);
+  }
+  .saat-cizgi-buyuk { stroke: #444; stroke-width: 3; stroke-linecap: round; }
+  .saat-cizgi-kucuk { stroke: #bbb; stroke-width: 1.2; stroke-linecap: round; }
+  .dijital-saat {
+    font-size: clamp(56px, 10vw, 110px);
+    font-weight: 900;
+    color: #222;
     font-variant-numeric: tabular-nums;
-    letter-spacing: 2px;
+    letter-spacing: 4px;
     line-height: 1;
+    margin-top: 2vh;
+    text-shadow: 0 2px 16px #0002, 0 1px 0 #fff;
+    text-align: center;
   }
   .dijital-saat .iki-nokta {
     animation: yanipson 1s step-end infinite;
-    color: var(--accent);
+    color: #444;
+    text-shadow: 0 2px 16px #0002, 0 1px 0 #fff;
   }
   @keyframes yanipson {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.2; }
   }
   .dijital-saniye {
-    font-size: clamp(16px, 2.5vh, 28px);
-    font-weight: 600;
-    color: var(--accent);
+    font-size: clamp(22px, 3vw, 38px);
+    font-weight: 700;
+    color: #e11d48;
     font-variant-numeric: tabular-nums;
-    opacity: 0.7;
+    opacity: 0.85;
+    margin-left: 16px;
+    text-shadow: 0 2px 16px #e11d4822, 0 1px 0 #fff;
   }
-
-  /* Tarih Gösterimi */
   .tarih-alani {
     text-align: center;
-    margin-top: 0.8vh;
+    margin-top: 3vh;
   }
   .tarih-gun-adi {
-    font-size: clamp(15px, 2vw, 24px);
+    font-size: clamp(22px, 2.5vw, 36px);
     font-weight: 800;
-    color: var(--accent);
+    color: #222;
     text-transform: uppercase;
     letter-spacing: 3px;
+    text-shadow: 0 1px 0 #fff, 0 2px 8px #0001;
   }
   .tarih-tam {
-    font-size: clamp(12px, 1.4vw, 19px);
+    font-size: clamp(16px, 1.6vw, 26px);
     font-weight: 600;
-    color: var(--text2);
-    margin-top: 0.3vh;
+    color: #333;
+    margin-top: 0.6vh;
     letter-spacing: 0.5px;
+    text-shadow: 0 1px 0 #fff;
   }
 
   /* ===== SAĞ SÜTUN ===== */
@@ -414,6 +429,7 @@
     border-top: 1px solid var(--border);
     flex-shrink: 0;
     z-index: 2;
+    font-family: 'Exo 2', Arial, sans-serif;
   }
   .footer-bar .cevrimdisi-durum {
     display: flex;
@@ -455,123 +471,24 @@
   <!-- ANA ALAN -->
   <div class="ana-alan">
     <div class="parcaciklar" id="parcaciklar"></div>
-
-    <!-- SOL SÜTUN -->
-    <div class="sol-sutun">
-      <!-- Mini Takvim -->
-      <div class="kart takvim-kart">
-        <div class="kart-baslik">
-          <span class="baslik-ikon">📅</span>
-          <h2>Takvim</h2>
-        </div>
-        <div class="kart-icerik">
-          <div class="takvim-ay-baslik" id="takvimAyBaslik"></div>
-          <div class="takvim-grid" id="takvimGrid"></div>
-        </div>
+    <div class="saat-tarih-alani">
+      <div class="analog-saat-alani">
+        <svg viewBox="0 0 200 200" id="analogSaat">
+          <circle cx="100" cy="100" r="96" class="kadran-dis" />
+          <g id="saatCizgileri"></g>
+          <line id="akrep" x1="100" y1="100" x2="100" y2="48" class="akrep" />
+          <line id="yelkovan" x1="100" y1="100" x2="100" y2="30" class="yelkovan" />
+          <line id="saniyeIbre" x1="100" y1="110" x2="100" y2="26" class="saniye" />
+          <circle cx="100" cy="100" r="4" class="saat-merkez" />
+          <circle cx="100" cy="100" r="2" fill="#fff" />
+        </svg>
       </div>
-
-      <!-- Geri Sayım -->
-      <div class="kart geri-sayim-kart">
-        <div class="kart-baslik">
-          <span class="baslik-ikon">⏳</span>
-          <h2>Geri Sayım</h2>
-        </div>
-        <div class="kart-icerik">
-          <div class="gs-kutular">
-            <div class="gs-kutu">
-              <div class="gs-kutu-rakam" id="gsGun">0</div>
-              <div class="gs-kutu-etiket">Gün</div>
-            </div>
-            <div class="gs-ayirici">:</div>
-            <div class="gs-kutu">
-              <div class="gs-kutu-rakam" id="gsSaat">0</div>
-              <div class="gs-kutu-etiket">Saat</div>
-            </div>
-            <div class="gs-ayirici">:</div>
-            <div class="gs-kutu">
-              <div class="gs-kutu-rakam" id="gsDakika">0</div>
-              <div class="gs-kutu-etiket">Dakika</div>
-            </div>
-            <div class="gs-ayirici">:</div>
-            <div class="gs-kutu">
-              <div class="gs-kutu-rakam" id="gsSaniye">0</div>
-              <div class="gs-kutu-etiket">Saniye</div>
-            </div>
-          </div>
-          <div class="gs-hedef" id="gsHedef"></div>
-          <div class="gs-ilerleme">
-            <div class="gs-ilerleme-bar" id="gsBar"></div>
-          </div>
-          <div class="gs-yuzde" id="gsYuzde"></div>
-        </div>
+      <div class="dijital-saat" id="dijitalSaat"></div>
+      <div class="tarih-alani">
+        <div class="tarih-gun-adi" id="tarihGunAdi"></div>
+        <div class="tarih-tam" id="tarihTam"></div>
       </div>
     </div>
-
-    <!-- ORTA: SAAT -->
-    <div class="kart saat-kart">
-      <div class="kart-baslik">
-        <span class="baslik-ikon">⏰</span>
-        <h2>Saat</h2>
-      </div>
-      <div class="kart-icerik">
-        <div class="analog-saat-alani">
-          <svg viewBox="0 0 200 200" id="analogSaat">
-            <circle cx="100" cy="100" r="96" class="kadran-dis" />
-            <g id="saatCizgileri"></g>
-            <line id="akrep" x1="100" y1="100" x2="100" y2="48" class="akrep" />
-            <line id="yelkovan" x1="100" y1="100" x2="100" y2="30" class="yelkovan" />
-            <line id="saniyeIbre" x1="100" y1="110" x2="100" y2="26" class="saniye" />
-            <circle cx="100" cy="100" r="4" class="saat-merkez" />
-            <circle cx="100" cy="100" r="2" fill="#fff" />
-          </svg>
-        </div>
-        <div class="dijital-saat-alani">
-          <div class="dijital-saat" id="dijitalSaat"></div>
-          <div class="dijital-saniye" id="dijitalSaniye"></div>
-        </div>
-        <div class="tarih-alani">
-          <div class="tarih-gun-adi" id="tarihGunAdi"></div>
-          <div class="tarih-tam" id="tarihTam"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- SAĞ SÜTUN -->
-    <div class="sag-sutun">
-      <!-- Günün Sözü -->
-      <div class="kart soz-kart">
-        <div class="kart-baslik">
-          <span class="baslik-ikon">💬</span>
-          <h2>Günün Sözü</h2>
-        </div>
-        <div class="kart-icerik">
-          <div class="soz-tirnak">"</div>
-          <div class="soz-metin" id="sozMetin"></div>
-          <div class="soz-yazar" id="sozYazar"></div>
-        </div>
-      </div>
-
-      <!-- Bağlantı Durumu -->
-      <div class="kart durum-kart">
-        <div class="kart-baslik">
-          <span class="baslik-ikon">🔗</span>
-          <h2>Bağlantı Durumu</h2>
-        </div>
-        <div class="kart-icerik">
-          <div class="durum-halka-alani">
-            <svg viewBox="0 0 80 80">
-              <circle cx="40" cy="40" r="34" class="durum-halka-bg" />
-              <circle cx="40" cy="40" r="34" class="durum-halka" />
-            </svg>
-            <div class="durum-ikon">📡</div>
-          </div>
-          <div class="durum-yazi">Sunucu Bekleniyor</div>
-          <div class="durum-alt-yazi">Kayıt ve yapılandırma bekleniyor</div>
-          <div class="durum-sinif" id="durumSinif"></div>
-        </div>
-      </div>
-    </div>
-
   </div>
 
   <!-- FOOTER -->
@@ -590,12 +507,7 @@
   const kurumAdi = decodeURIComponent(params.get('kurum') || '');
   const sinifAdi = decodeURIComponent(params.get('sinif') || '');
   document.getElementById('headerKurumAdi').textContent = (kurumAdi || 'TAHTA KİLİT').toUpperCase();
-  const durumSinifEl = document.getElementById('durumSinif');
-  if (sinifAdi) {
-    durumSinifEl.textContent = '🏫 ' + sinifAdi;
-  } else {
-    durumSinifEl.style.display = 'none';
-  }
+  // Sınıf adı ve durum kartı kaldırıldı
 
   // === Analog Saat Çizgileri ===
   (function() {
@@ -638,7 +550,6 @@
     document.getElementById('saniyeIbre').setAttribute('transform', 'rotate('+snA+' 100 100)');
     document.getElementById('dijitalSaat').innerHTML =
       String(s).padStart(2,'0') + '<span class="iki-nokta">:</span>' + String(dk).padStart(2,'0');
-    document.getElementById('dijitalSaniye').textContent = ':' + String(sn).padStart(2,'0');
     // Tarih gösterimi
     document.getElementById('tarihGunAdi').textContent = gunler[n.getDay()];
     document.getElementById('tarihTam').textContent = n.getDate() + ' ' + aylar[n.getMonth()] + ' ' + n.getFullYear();

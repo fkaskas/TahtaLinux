@@ -2053,7 +2053,7 @@ app.delete("/api/duyurular/:id", authMiddleware, async (req, res) => {
 });
 
 // ===================== Doğrulama Kodu Üretici =====================
-const KILIT_GIZLI_ANAHTAR = "tahta_ekran_secret_2024";
+
 const KOD_UZUNLUGU = 4;
 const KARAKTERLER = "0123456789";
 
@@ -2122,7 +2122,8 @@ app.post("/api/dogrulama-kodu", authMiddleware, async (req, res) => {
         return res.status(404).json({ hata: "Kurum bulunamadı" });
       }
     }
-    const anahtar = rows[0].kurum_anahtari || KILIT_GIZLI_ANAHTAR;
+    const anahtar = rows[0].kurum_anahtari;
+    if (!anahtar) return res.status(400).json({ hata: "Kurum anahtarı tanımlı değil" });
     const yanit = yanitUret(challenge, anahtar);
     res.json({ yanit });
   } catch (err) {
@@ -2482,7 +2483,8 @@ io.on("connection", (socket) => {
         return cb({ basarili: false, hata: "Tahta bulunamadı" });
       }
       // Challenge kodunu doğrula (kurum anahtarı kullanılır)
-      const anahtar = tahta.kurum_anahtari || KILIT_GIZLI_ANAHTAR;
+      const anahtar = tahta.kurum_anahtari;
+      if (!anahtar) return cb({ basarili: false, hata: "Kurum anahtarı tanımlı değil" });
       if (!challengeDogrula(challenge, anahtar)) {
         console.log(`[QR REDDEDILDI] ${tahta.tahta_adi} — geçersiz/süresi dolmuş challenge (${socket.kullanici.ad_soyad})`);
         return cb({ basarili: false, hata: "Challenge kodu geçersiz veya süresi dolmuş. Lütfen güncel QR kodu okutun." });

@@ -174,6 +174,16 @@ class KurulumPenceresi(QDialog):
 
     # ── Ana Arayüz ────────────────────────────────────────────────────────────
 
+    def closeEvent(self, event):
+        """Dış kapatılma isteklerini (WM, X butonu, child widget close vb.) engelle"""
+        event.ignore()
+
+    def keyPressEvent(self, event):
+        """Escape / Enter tuşlarıyla diyaloğun kapanmasını engelle"""
+        if event.key() in (Qt.Key_Escape, Qt.Key_Return, Qt.Key_Enter):
+            return
+        super().keyPressEvent(event)
+
     def _arayuz_olustur(self, mevcut_kurumkodu, mevcut_adi):
         ana = QVBoxLayout(self)
         ana.setContentsMargins(0, 0, 0, 0)
@@ -225,6 +235,8 @@ class KurulumPenceresi(QDialog):
         kopyala_btn.setStyleSheet(
             "QPushButton{background:#3B82F6;border:none;border-radius:6px}"
             "QPushButton:pressed{background:#2563EB}")
+        kopyala_btn.setAutoDefault(False)
+        kopyala_btn.setDefault(False)
         kopyala_btn.clicked.connect(self._tahta_id_kopyala)
         tahta_id_row.addWidget(kopyala_btn, 0, Qt.AlignVCenter)
         k1_ic.addLayout(tahta_id_row)
@@ -261,6 +273,8 @@ class KurulumPenceresi(QDialog):
         smb_btn.setStyleSheet(
             "background: #F97316; color: #FFF; border: none;"
             "border-radius: 7px; font-size: 12px; font-weight: bold;")
+        smb_btn.setAutoDefault(False)
+        smb_btn.setDefault(False)
         smb_btn.clicked.connect(self._smb_bagla)
 
         kaydet_btn = QPushButton("Kaydet ve Başlat")
@@ -269,6 +283,8 @@ class KurulumPenceresi(QDialog):
         kaydet_btn.setStyleSheet(
             "background: #3B82F6; color: #FFF; border: none;"
             "border-radius: 7px; font-size: 13px; font-weight: bold;")
+        kaydet_btn.setAutoDefault(False)
+        kaydet_btn.setDefault(False)
         kaydet_btn.clicked.connect(self._kaydet)
 
         buton.addWidget(smb_btn)

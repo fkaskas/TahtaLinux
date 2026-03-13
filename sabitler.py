@@ -10,7 +10,6 @@ if getattr(sys, 'frozen', False):
 else:
     BETIK_DIZINI = os.path.dirname(os.path.abspath(__file__))
 
-KILIT_GIZLI_ANAHTAR = "tahta_ekran_secret_2024"
 KOD_UZUNLUGU = 4
 YENILEME_ARALIGI_SANIYE = 30
 KARAKTERLER = "0123456789"
