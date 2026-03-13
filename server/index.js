@@ -32,6 +32,29 @@ const ayinUpload = multer({
   }
 });
 
+// ---- Bulmaca Görsel Yükleme ----
+const BULMACA_UPLOAD_DIR = path.join(__dirname, "public", "uploads", "bulmaca");
+if (!fs.existsSync(BULMACA_UPLOAD_DIR)) fs.mkdirSync(BULMACA_UPLOAD_DIR, { recursive: true });
+
+const bulmacaStorage = multer.diskStorage({
+  destination: (req, file, cb) => cb(null, BULMACA_UPLOAD_DIR),
+  filename: (req, file, cb) => {
+    const uzanti = path.extname(file.originalname).toLowerCase();
+    const benzersiz = Date.now() + '-' + crypto.randomBytes(6).toString('hex');
+    cb(null, benzersiz + uzanti);
+  }
+});
+const bulmacaUpload = multer({
+  storage: bulmacaStorage,
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const izinli = ['.jpg', '.jpeg', '.png', '.webp'];
+    const uzanti = path.extname(file.originalname).toLowerCase();
+    if (izinli.includes(uzanti)) cb(null, true);
+    else cb(new Error('Sadece JPG, PNG ve WebP formatları kabul edilir'));
+  }
+});
+
 // ---- Slider Yükleme ----
 const SLIDER_UPLOAD_DIR = path.join(__dirname, "public", "uploads", "slider");
 if (!fs.existsSync(SLIDER_UPLOAD_DIR)) fs.mkdirSync(SLIDER_UPLOAD_DIR, { recursive: true });
@@ -304,6 +327,23 @@ async function veritabaniBaslat() {
       soz TEXT NOT NULL,
       yazar VARCHAR(255) NOT NULL DEFAULT '',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (kurum_id) REFERENCES kurumlar(id) ON DELETE CASCADE,
+      FOREIGN KEY (ekleyen_id) REFERENCES kullanicilar(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB
+  `);
+
+  // Zeka bulmacaları tablosu
+  await db.execute(`
+    CREATE TABLE IF NOT EXISTS zeka_bulmacalari (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      kurum_id INT NOT NULL,
+      ekleyen_id INT NOT NULL,
+      soru_metni TEXT DEFAULT NULL,
+      soru_gorsel VARCHAR(500) DEFAULT NULL,
+      cevap TEXT NOT NULL,
+      aktif_tarih DATE NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY unik_kurum_tarih (kurum_id, aktif_tarih),
       FOREIGN KEY (kurum_id) REFERENCES kurumlar(id) ON DELETE CASCADE,
       FOREIGN KEY (ekleyen_id) REFERENCES kullanicilar(id) ON DELETE CASCADE
     ) ENGINE=InnoDB
@@ -1649,6 +1689,205 @@ function icerikGuncellendiGonder(kurumId) {
   }
 }
 
+// ===================== Zeka Bulmacaları =====================
+
+// Bulmaca görseli silen yardımcı
+function bulmacaGorselSil(gorselUrl) {
+  if (!gorselUrl) return;
+  const dosyaAdi = path.basename(gorselUrl);
+  const dosyaYolu = path.join(BULMACA_UPLOAD_DIR, dosyaAdi);
+  fs.unlink(dosyaYolu, () => {});
+}
+
+// Bulmaca listele (auth gerekli)
+app.get("/api/zeka-bulmacalari", authMiddleware, async (req, res) => {
+  try {
+    let url_kurum_id;
+    if (req.kullanici.rol === "superadmin" && req.query.kurum_id) {
+      url_kurum_id = parseInt(req.query.kurum_id);
+    } else {
+      url_kurum_id = req.kullanici.kurum_id;
+    }
+    const [rows] = await db.execute(
+      `SELECT z.*, k.ad_soyad AS ekleyen_adi
+       FROM zeka_bulmacalari z
+       JOIN kullanicilar k ON z.ekleyen_id = k.id
+       WHERE z.kurum_id = ?
+       ORDER BY z.aktif_tarih DESC`,
+      [url_kurum_id]
+    );
+    res.json(rows);
+  } catch (err) {
+    console.error("Bulmaca listesi hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Bulmaca genel (kurum.html için — auth gerektirmez)
+app.get("/api/zeka-bulmacasi-genel", async (req, res) => {
+  try {
+    const { kod, tahta_id } = req.query;
+    let kurumId = null;
+    if (tahta_id) {
+      const [t] = await db.execute("SELECT kurum_id FROM tahtalar WHERE id = ?", [tahta_id]);
+      if (t.length > 0) kurumId = t[0].kurum_id;
+    } else if (kod) {
+      const [k] = await db.execute("SELECT id FROM kurumlar WHERE kurum_kodu = ?", [kod]);
+      if (k.length > 0) kurumId = k[0].id;
+    }
+    if (!kurumId) return res.json({ bugunun: null, oncekinin_cevabi: null });
+
+    // Bugünün bulmacası
+    const [bugun] = await db.execute(
+      "SELECT soru_metni, soru_gorsel, aktif_tarih FROM zeka_bulmacalari WHERE kurum_id = ? AND aktif_tarih = CURDATE()",
+      [kurumId]
+    );
+
+    // Bir önceki günün bulmacası (cevabını göstermek için)
+    const [onceki] = await db.execute(
+      `SELECT soru_metni, soru_gorsel, cevap, aktif_tarih FROM zeka_bulmacalari
+       WHERE kurum_id = ? AND aktif_tarih < CURDATE()
+       ORDER BY aktif_tarih DESC LIMIT 1`,
+      [kurumId]
+    );
+
+    res.json({
+      bugunun: bugun.length > 0 ? bugun[0] : null,
+      oncekinin_cevabi: onceki.length > 0 ? onceki[0] : null,
+    });
+  } catch (err) {
+    console.error("Bulmaca genel hatası:", err);
+    res.json({ bugunun: null, oncekinin_cevabi: null });
+  }
+});
+
+// Bulmaca ekle (multipart/form-data)
+app.post("/api/zeka-bulmacalari", authMiddleware, (req, res, next) => {
+  bulmacaUpload.single('gorsel')(req, res, (err) => {
+    if (err) return res.status(400).json({ hata: err.message });
+    next();
+  });
+}, async (req, res) => {
+  if (req.kullanici.rol !== "ogretmen" && req.kullanici.rol !== "yonetici") {
+    if (req.file) bulmacaGorselSil('/uploads/bulmaca/' + req.file.filename);
+    return res.status(403).json({ hata: "Bu işlem için yetkiniz yok" });
+  }
+  const { soru_metni, cevap, aktif_tarih } = req.body;
+  if (!cevap || !cevap.trim()) {
+    if (req.file) bulmacaGorselSil('/uploads/bulmaca/' + req.file.filename);
+    return res.status(400).json({ hata: "Cevap alanı zorunludur" });
+  }
+  if (!aktif_tarih) {
+    if (req.file) bulmacaGorselSil('/uploads/bulmaca/' + req.file.filename);
+    return res.status(400).json({ hata: "Tarih alanı zorunludur" });
+  }
+  // Soru metni veya görsel en az birisi olmalı
+  if ((!soru_metni || !soru_metni.trim()) && !req.file) {
+    return res.status(400).json({ hata: "Soru metni veya görsel en az birisi gereklidir" });
+  }
+
+  const kurumId = req.kullanici.kurum_id;
+  const gorselUrl = req.file ? '/uploads/bulmaca/' + req.file.filename : null;
+
+  try {
+    await db.execute(
+      `INSERT INTO zeka_bulmacalari (kurum_id, ekleyen_id, soru_metni, soru_gorsel, cevap, aktif_tarih)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [kurumId, req.kullanici.id, (soru_metni || '').trim() || null, gorselUrl, cevap.trim(), aktif_tarih]
+    );
+    icerikGuncellendiGonder(kurumId);
+    res.json({ mesaj: "Bulmaca eklendi" });
+  } catch (err) {
+    if (req.file) bulmacaGorselSil(gorselUrl);
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(400).json({ hata: "Bu tarihte zaten bir bulmaca mevcut" });
+    }
+    console.error("Bulmaca ekleme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Bulmaca güncelle
+app.put("/api/zeka-bulmacalari/:id", authMiddleware, (req, res, next) => {
+  bulmacaUpload.single('gorsel')(req, res, (err) => {
+    if (err) return res.status(400).json({ hata: err.message });
+    next();
+  });
+}, async (req, res) => {
+  const bulmacaId = parseInt(req.params.id);
+  const { soru_metni, cevap, aktif_tarih } = req.body;
+  try {
+    const [mevcut] = await db.execute("SELECT * FROM zeka_bulmacalari WHERE id = ?", [bulmacaId]);
+    if (mevcut.length === 0) {
+      if (req.file) bulmacaGorselSil('/uploads/bulmaca/' + req.file.filename);
+      return res.status(404).json({ hata: "Bulmaca bulunamadı" });
+    }
+    const b = mevcut[0];
+    if (req.kullanici.rol === "superadmin") {
+      if (req.file) bulmacaGorselSil('/uploads/bulmaca/' + req.file.filename);
+      return res.status(403).json({ hata: "Süper yönetici bu işlemi yapamaz" });
+    }
+    if (req.kullanici.rol === "ogretmen" && b.ekleyen_id !== req.kullanici.id) {
+      if (req.file) bulmacaGorselSil('/uploads/bulmaca/' + req.file.filename);
+      return res.status(403).json({ hata: "Sadece kendi eklediğiniz bulmacaları düzenleyebilirsiniz" });
+    }
+    if (b.kurum_id !== req.kullanici.kurum_id) {
+      if (req.file) bulmacaGorselSil('/uploads/bulmaca/' + req.file.filename);
+      return res.status(403).json({ hata: "Bu bulmacayı düzenleme yetkiniz yok" });
+    }
+
+    const yeniSoruMetni = soru_metni !== undefined ? ((soru_metni || '').trim() || null) : b.soru_metni;
+    const yeniCevap = cevap ? cevap.trim() : b.cevap;
+    const yeniTarih = aktif_tarih || b.aktif_tarih;
+
+    let yeniGorselUrl = b.soru_gorsel;
+    if (req.file) {
+      bulmacaGorselSil(b.soru_gorsel);
+      yeniGorselUrl = '/uploads/bulmaca/' + req.file.filename;
+    }
+
+    // Soru metni veya görsel en az birisi olmalı
+    if (!yeniSoruMetni && !yeniGorselUrl) {
+      if (req.file) bulmacaGorselSil(yeniGorselUrl);
+      return res.status(400).json({ hata: "Soru metni veya görsel en az birisi gereklidir" });
+    }
+
+    await db.execute(
+      `UPDATE zeka_bulmacalari SET soru_metni = ?, soru_gorsel = ?, cevap = ?, aktif_tarih = ? WHERE id = ?`,
+      [yeniSoruMetni, yeniGorselUrl, yeniCevap, yeniTarih, bulmacaId]
+    );
+    icerikGuncellendiGonder(b.kurum_id);
+    res.json({ mesaj: "Bulmaca güncellendi" });
+  } catch (err) {
+    if (req.file) bulmacaGorselSil('/uploads/bulmaca/' + req.file.filename);
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(400).json({ hata: "Bu tarihte zaten bir bulmaca mevcut" });
+    }
+    console.error("Bulmaca güncelleme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
+// Bulmaca sil
+app.delete("/api/zeka-bulmacalari/:id", authMiddleware, async (req, res) => {
+  const bulmacaId = parseInt(req.params.id);
+  try {
+    const [mevcut] = await db.execute("SELECT * FROM zeka_bulmacalari WHERE id = ?", [bulmacaId]);
+    if (mevcut.length === 0) return res.status(404).json({ hata: "Bulmaca bulunamadı" });
+    const b = mevcut[0];
+    if (req.kullanici.rol === "superadmin") return res.status(403).json({ hata: "Süper yönetici bu işlemi yapamaz" });
+    if (req.kullanici.rol === "ogretmen" && b.ekleyen_id !== req.kullanici.id) return res.status(403).json({ hata: "Sadece kendi eklediğiniz bulmacaları silebilirsiniz" });
+    if (b.kurum_id !== req.kullanici.kurum_id) return res.status(403).json({ hata: "Bu bulmacayı silme yetkiniz yok" });
+    bulmacaGorselSil(b.soru_gorsel);
+    await db.execute("DELETE FROM zeka_bulmacalari WHERE id = ?", [bulmacaId]);
+    icerikGuncellendiGonder(b.kurum_id);
+    res.json({ mesaj: "Bulmaca silindi" });
+  } catch (err) {
+    console.error("Bulmaca silme hatası:", err);
+    res.status(500).json({ hata: "Sunucu hatası" });
+  }
+});
+
 // ===================== Duyurular =====================
 
 // Duyuru listele (auth gerekli)
@@ -2241,6 +2480,21 @@ io.on("connection", (socket) => {
         socket.kullanici.ad_soyad, socket.kullanici.rol, 'ses_ac');
     } catch (err) {
       console.error("Ses açma hatası:", err);
+    }
+  });
+
+  // ---- Video Aç/Kapat ----
+  socket.on("video_toggle", async (tahtaId) => {
+    if (!socket.kullanici) return;
+    try {
+      const tahta = await tahtaBul(tahtaId, socket.kullanici.kurum_id, socket.kullanici.rol);
+      if (!tahta) return;
+      tahtayaKomutGonder(tahtaId, "video_toggle");
+      logKaydet(tahta.kurum_id, tahtaId, tahta.tahta_adi,
+        socket.kullanici.id, socket.kullanici.kullanici_adi,
+        socket.kullanici.ad_soyad, socket.kullanici.rol, 'video_toggle');
+    } catch (err) {
+      console.error("Video toggle hatası:", err);
     }
   });
 

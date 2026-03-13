@@ -207,20 +207,6 @@ class KodDogrulamaPenceresi(QDialog):
 
         yerlesim.addLayout(buton_yerlesim)
 
-        # TEST BUTONU — her şartta kilidi açar (geliştirme aşaması)
-        test_butonu = QPushButton("⚠ TEST: Kilidi Aç")
-        test_butonu.setCursor(QCursor(Qt.PointingHandCursor))
-        test_butonu.setStyleSheet("""
-            QPushButton {
-                background-color: #f39c12; color: white; border: none;
-                border-radius: 6px; padding: 8px 20px; font-weight: bold;
-                font-size: 12px;
-            }
-            QPushButton:hover { background-color: #e67e22; }
-        """)
-        test_butonu.clicked.connect(self._test_kilidi_ac)
-        yerlesim.addWidget(test_butonu)
-
         self.setLayout(yerlesim)
 
     def paintEvent(self, event):
@@ -320,12 +306,6 @@ class KodDogrulamaPenceresi(QDialog):
             self.acik_kalma_suresi = 0
         else:
             self._giris_kutusu.clear()
-
-    def _test_kilidi_ac(self):
-        """Test amaçlı — doğrulama olmadan kilidi açar"""
-        self.dogrulandi = True
-        self.releaseKeyboard()
-        self.accept()
 
     def reject(self):
         self.releaseKeyboard()

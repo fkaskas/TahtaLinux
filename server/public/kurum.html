@@ -485,7 +485,7 @@
     .bilgi-alani {
       grid-column: 1 / -1;
       display: grid;
-      grid-template-columns: 1.2fr 0.8fr 0.5fr 0.8fr;
+      grid-template-columns: 1.5fr 0.5fr 0.8fr;
       gap: 0.8vw;
       min-height: 0;
       overflow: hidden;
@@ -522,62 +522,78 @@
       min-height: 0;
     }
 
-    /* Ders Programı */
-    .ders-satir {
+    /* Zeka Bulmacası */
+    .kart-icon.bulmaca { background: #8b5cf6; }
+    .bulmaca-icerik {
       display: flex;
-      align-items: center;
-      gap: 0.5vw;
-      padding: 0.3vh 0;
-      border-bottom: 1px solid rgba(208,213,220,0.4);
+      gap: 0.8vw;
+      height: 100%;
+      min-height: 0;
     }
-    .ders-satir:last-child { border-bottom: none; }
-    .ders-saat {
-      font-size: clamp(9px, 0.9vw, 12px);
-      font-weight: 700;
-      color: var(--accent);
-      min-width: clamp(42px, 4vw, 55px);
-      flex-shrink: 0;
-    }
-    .ders-ad {
-      font-size: clamp(9px, 0.95vw, 13px);
-      font-weight: 600;
-      color: var(--text);
+    .bulmaca-sol {
       flex: 1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0;
+      padding: 0.3vh 0;
     }
-    .ders-ogretmen {
-      font-size: clamp(8px, 0.8vw, 11px);
-      color: var(--text3);
-      white-space: nowrap;
+    .bulmaca-sag {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 0;
+      padding: 0.3vh 0;
+      border-left: 1px solid var(--border);
+      padding-left: 0.8vw;
     }
-    .ders-aktif {
-      background: rgba(44,111,206,0.06);
+    .bulmaca-etiket {
+      font-size: clamp(9px, 0.85vw, 12px);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.3vh;
+    }
+    .bulmaca-etiket.soru { color: #8b5cf6; }
+    .bulmaca-etiket.cevap { color: var(--success); }
+    .bulmaca-metin {
+      font-size: clamp(10px, 1.05vw, 15px);
+      color: var(--text);
+      font-weight: 600;
+      line-height: 1.45;
+    }
+    .bulmaca-gorsel {
+      max-width: 100%;
+      max-height: 10vh;
+      object-fit: contain;
       border-radius: 6px;
-      padding: 0.3vh 0.4vw;
+      margin-top: 0.3vh;
     }
-
-    /* Yemek Menüsü */
-    .yemek-satir {
+    .bulmaca-soru-yanyana {
       display: flex;
       align-items: center;
-      gap: 0.4vw;
-      padding: 0.35vh 0;
+      gap: 0.6vw;
+      margin-top: 0.3vh;
     }
-    .yemek-icon {
-      font-size: clamp(12px, 1.2vw, 16px);
+    .bulmaca-soru-yanyana .bulmaca-gorsel {
+      max-width: 45%;
+      margin-top: 0;
       flex-shrink: 0;
     }
-    .yemek-ad {
-      font-size: clamp(9px, 0.95vw, 13px);
-      color: var(--text);
-      font-weight: 500;
+    .bulmaca-soru-yanyana .bulmaca-metin {
+      flex: 1;
+      min-width: 0;
     }
-    .yemek-kalori {
+    .bulmaca-bos {
+      font-size: clamp(10px, 1vw, 14px);
+      color: var(--text3);
+      font-style: italic;
+    }
+    .bulmaca-onceki-tarih {
       font-size: clamp(8px, 0.75vw, 11px);
       color: var(--text3);
-      margin-left: auto;
+      margin-bottom: 0.2vh;
     }
 
     /* Hava Durumu */
@@ -727,82 +743,23 @@
     <!-- ALT: BİLGİ KARTLARI -->
     <div class="bilgi-alani">
 
-      <!-- 1. DERS PROGRAMI -->
+      <!-- 1. ZEKA BULMACASI -->
       <div class="bilgi-kart">
         <div class="bilgi-kart-baslik">
-          <div class="kart-icon ders"><i class="fas fa-book-open"></i></div>
-          <h3>Bugünün Dersleri</h3>
+          <div class="kart-icon bulmaca"><i class="fas fa-puzzle-piece"></i></div>
+          <h3>Günün Bulmacası</h3>
         </div>
         <div class="bilgi-kart-icerik">
-          <div class="ders-satir">
-            <span class="ders-saat">08:30</span>
-            <span class="ders-ad">Matematik</span>
-            <span class="ders-ogretmen">A. Yılmaz</span>
-          </div>
-          <div class="ders-satir">
-            <span class="ders-saat">09:20</span>
-            <span class="ders-ad">Fizik</span>
-            <span class="ders-ogretmen">M. Demir</span>
-          </div>
-          <div class="ders-satir ders-aktif">
-            <span class="ders-saat">10:10</span>
-            <span class="ders-ad">Türk Dili ve Edebiyatı</span>
-            <span class="ders-ogretmen">S. Kaya</span>
-          </div>
-          <div class="ders-satir">
-            <span class="ders-saat">11:00</span>
-            <span class="ders-ad">Tarih</span>
-            <span class="ders-ogretmen">E. Öztürk</span>
-          </div>
-          <div class="ders-satir">
-            <span class="ders-saat">13:00</span>
-            <span class="ders-ad">Beden Eğitimi</span>
-            <span class="ders-ogretmen">K. Arslan</span>
-          </div>
-          <div class="ders-satir">
-            <span class="ders-saat">13:50</span>
-            <span class="ders-ad">İngilizce</span>
-            <span class="ders-ogretmen">Z. Akın</span>
+          <div class="bulmaca-icerik" id="bulmacaIcerik">
+            <div style="display:flex;align-items:center;justify-content:center;width:100%;color:#95a5a6;font-size:clamp(11px,1.1vw,14px);">
+              <i class="fas fa-puzzle-piece" style="font-size:clamp(18px,2vw,28px);margin-right:0.5vw;opacity:0.3;color:#8b5cf6;"></i>
+              Yükleniyor...
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- 2. YEMEK MENÜSÜ -->
-      <div class="bilgi-kart">
-        <div class="bilgi-kart-baslik">
-          <div class="kart-icon yemek"><i class="fas fa-utensils"></i></div>
-          <h3>Yemek Menüsü</h3>
-        </div>
-        <div class="bilgi-kart-icerik">
-          <div class="yemek-satir">
-            <span class="yemek-icon">🍜</span>
-            <span class="yemek-ad">Mercimek Çorbası</span>
-            <span class="yemek-kalori">110 kcal</span>
-          </div>
-          <div class="yemek-satir">
-            <span class="yemek-icon">🍖</span>
-            <span class="yemek-ad">Tavuk Sote</span>
-            <span class="yemek-kalori">280 kcal</span>
-          </div>
-          <div class="yemek-satir">
-            <span class="yemek-icon">🍚</span>
-            <span class="yemek-ad">Pilav</span>
-            <span class="yemek-kalori">200 kcal</span>
-          </div>
-          <div class="yemek-satir">
-            <span class="yemek-icon">🥗</span>
-            <span class="yemek-ad">Çoban Salata</span>
-            <span class="yemek-kalori">65 kcal</span>
-          </div>
-          <div class="yemek-satir">
-            <span class="yemek-icon">🍮</span>
-            <span class="yemek-ad">Sütlaç</span>
-            <span class="yemek-kalori">180 kcal</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 3. HAVA DURUMU -->
+      <!-- 2. HAVA DURUMU -->
       <div class="bilgi-kart">
         <div class="bilgi-kart-baslik">
           <div class="kart-icon hava"><i class="fas fa-cloud-sun"></i></div>
@@ -821,7 +778,7 @@
         </div>
       </div>
 
-      <!-- 4. GÜNÜN SÖZÜ -->
+      <!-- 3. GÜNÜN SÖZÜ -->
       <div class="bilgi-kart">
         <div class="bilgi-kart-baslik">
           <div class="kart-icon soz"><i class="fas fa-quote-left"></i></div>
@@ -996,9 +953,16 @@
         .then(r => r.json())
         .then(soz => { gununSozuGoster(soz); })
         .catch(() => { gununSozuGoster(null); });
+
+      // Zeka bulmacasını yükle
+      fetch('/api/zeka-bulmacasi-genel?' + q.toString())
+        .then(r => r.json())
+        .then(veri => { bulmacaGoster(veri); })
+        .catch(() => { bulmacaGoster({ bugunun: null, oncekinin_cevabi: null }); });
     } else {
       sliderOlustur([]);
       gununSozuGoster(null);
+      bulmacaGoster({ bugunun: null, oncekinin_cevabi: null });
     }
   })();
 
@@ -1138,6 +1102,52 @@
     } else {
       digerEl.style.display = 'none';
     }
+  }
+
+  function bulmacaGoster(veri) {
+    const el = document.getElementById('bulmacaIcerik');
+    if (!el) return;
+    const bugunun = veri && veri.bugunun;
+    const onceki = veri && veri.oncekinin_cevabi;
+
+    if (!bugunun && !onceki) {
+      el.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;width:100%;color:#95a5a6;font-size:clamp(11px,1.1vw,14px);"><i class="fas fa-puzzle-piece" style="font-size:clamp(18px,2vw,28px);margin-right:0.5vw;opacity:0.3;color:#8b5cf6;"></i>Henüz bulmaca eklenmemiş</div>';
+      return;
+    }
+
+    var solHTML = '';
+    if (bugunun) {
+      solHTML = '<div class="bulmaca-etiket soru"><i class="fas fa-lightbulb"></i> Bugünün Sorusu</div>';
+      if (bugunun.soru_gorsel && bugunun.soru_metni) {
+        solHTML += '<div class="bulmaca-soru-yanyana">';
+        solHTML += '<img src="' + esc(bugunun.soru_gorsel) + '" class="bulmaca-gorsel" alt="Bulmaca görseli" />';
+        solHTML += '<div class="bulmaca-metin">' + esc(bugunun.soru_metni) + '</div>';
+        solHTML += '</div>';
+      } else if (bugunun.soru_gorsel) {
+        solHTML += '<img src="' + esc(bugunun.soru_gorsel) + '" class="bulmaca-gorsel" alt="Bulmaca görseli" />';
+      } else if (bugunun.soru_metni) {
+        solHTML += '<div class="bulmaca-metin">' + esc(bugunun.soru_metni) + '</div>';
+      }
+    } else {
+      solHTML = '<div class="bulmaca-bos">Bugün için bulmaca eklenmemiş</div>';
+    }
+
+    var sagHTML = '';
+    if (onceki) {
+      var aylar = ['Oca','Şub','Mar','Nis','May','Haz','Tem','Ağu','Eyl','Eki','Kas','Ara'];
+      var dt = new Date(onceki.aktif_tarih);
+      var tarihStr = dt.getDate() + ' ' + aylar[dt.getMonth()];
+      sagHTML = '<div class="bulmaca-etiket cevap"><i class="fas fa-check-circle"></i> Önceki Cevap</div>';
+      sagHTML += '<div class="bulmaca-onceki-tarih">' + tarihStr + ' bulmacasının cevabı:</div>';
+      sagHTML += '<div class="bulmaca-metin" style="color:var(--success);">' + esc(onceki.cevap) + '</div>';
+      if (onceki.soru_metni) {
+        sagHTML += '<div style="font-size:clamp(9px,0.85vw,12px);color:var(--text3);margin-top:0.3vh;">Soru: ' + esc(onceki.soru_metni) + '</div>';
+      }
+    } else {
+      sagHTML = '<div class="bulmaca-bos">Henüz önceki cevap yok</div>';
+    }
+
+    el.innerHTML = '<div class="bulmaca-sol">' + solHTML + '</div><div class="bulmaca-sag">' + sagHTML + '</div>';
   }
 
   function gununSozuGoster(soz) {

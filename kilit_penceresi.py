@@ -697,6 +697,7 @@ class Kilit(QMainWindow):
         self._online.ses_kapat_sinyali.connect(self._online_ses_kapat)
         self._online.ses_ac_sinyali.connect(self._online_ses_ac)
         self._online.kapat_sinyali.connect(self._online_kapat)
+        self._online.video_toggle_sinyali.connect(self._video_gizle_goster)
         self._online.baglanti_durumu_sinyali.connect(self._online_baglanti_degisti)
         self._online.durum_bilgisi_sinyali.connect(self._online_durum_senkronize)
         self._online.ders_saatleri_sinyali.connect(self._ders_saatleri_guncelle)
@@ -1193,12 +1194,10 @@ class Kilit(QMainWindow):
                 self._vt.sunucu_kayitli_yap()
                 self._online.kayitli_yap()
                 print("[ONLİNE] Tahta sunucuya kaydedildi — kayıtlı olarak işaretlendi")
-            # Kurum sayfasını yükle veya yenile
-            if self._webview_durum != 'online':
+            # Kurum sayfasını yükle (henüz yüklenmemişse)
+            if self._webview_durum not in ('online', 'cache'):
                 self._webview_sayfa_yukle('online')
-            else:
-                # Zaten kurum sayfası gösteriliyor — gereksiz setUrl yapmadan yenile
-                self._webview_online_yenile()
+            # Zaten online veya cache ise mevcut sayfayı koru
         else:
             if not self._sunucu_kayitli:
                 # Kayıtsız tahta — yükleniyor gösteriliyorsa çevrimdışı göster
@@ -1208,8 +1207,9 @@ class Kilit(QMainWindow):
 
     def _webview_sayfa_yukle(self, hedef):
         """WebView'ı hedef duruma geçir: 'online' veya 'offline'"""
-        # Stacked widget'ı her zaman web alanına geçir (video üstünde kalmasın)
-        self._icerik_yigini.setCurrentWidget(self._web_alani)
+        # Video oynatılıyorsa stacked widget'ı değiştirme, web içeriğini arka planda güncelle
+        if not (self._video_katmani and not self._video_gizli):
+            self._icerik_yigini.setCurrentWidget(self._web_alani)
         if hedef == 'online':
             url = self._webview_hedef_url
             print(f"[WEBVIEW] Kurum sayfası yükleniyor: {url}")
@@ -2249,6 +2249,8 @@ class Kilit(QMainWindow):
         """Video katmanını gizle veya göster"""
         if self._video_katmani is None:
             return
+        if self._kilit_acma_istendi:
+            return
 
         if self._video_gizli:
             self._icerik_yigini.setCurrentWidget(self._video_alani)
@@ -2421,16 +2423,9 @@ class Kilit(QMainWindow):
         except Exception:
             pass
 
-        # Videoyu duraklat veya durdur
+        # Videoyu tamamen durdur (kilit açıkken video oynatılmaz)
         if self._video_katmani and hasattr(self, '_vlc_list_player') and self._vlc_list_player:
-            if self._video_gizli:
-                self._vlc_list_player.stop()
-            else:
-                self._vlc_list_player.pause()
-
-        # WebView sayfasını yenile (arka planda)
-        if self._webview_durum == 'online':
-            self._webview_online_yenile()
+            self._vlc_list_player.stop()
 
         self.hide()
 
@@ -2664,16 +2659,22 @@ class Kilit(QMainWindow):
         self._saat_guncelle()
         self._saat_zamanlayici.start(1000)
         self._challenge_zamanlayici.start(50)
-        if self._sunucu_bagli:
-            self._webview_sayfa_yukle('online')
-        elif self._sunucu_kayitli and self._webview_durum in ('online', 'cache'):
-            # Kayıtlı ama bağlı değil — mevcut sayfayı koru
-            pass
+        if self._webview_durum not in ('online', 'cache'):
+            # Sadece henüz yüklenmemişse veya çevrimdışıysa yeniden yükle
+            if self._sunucu_bagli:
+                self._webview_sayfa_yukle('online')
+        # Zaten online veya cache ise mevcut sayfayı koru (gereksiz yeniden yükleme yok)
         self.showFullScreen()
 
-        # Videoyu devam ettir
-        if self._video_katmani and hasattr(self, '_vlc_list_player') and self._vlc_list_player and not self._video_gizli:
+        # Videoyu her zaman başlat (kilit aktifken video açık gelir)
+        if self._video_katmani and hasattr(self, '_vlc_list_player') and self._vlc_list_player:
+            self._video_gizli = False
+            self._icerik_yigini.setCurrentWidget(self._video_alani)
+            if hasattr(self, '_vlc_player') and self._vlc_player and hasattr(self, '_video_frame') and self._video_frame:
+                self._vlc_player.set_xwindow(int(self._video_frame.winId()))
             self._vlc_list_player.play()
+            self._video_toggle_btn.setIcon(qta.icon('fa5s.eye-slash', color='#95a5a6'))
+            self._video_toggle_btn.setToolTip("Videoyu Gizle")
         # VLC sesini güvenceye al (susturma sonrası)
         QTimer.singleShot(300, self._vlc_unmute_guvence)
 

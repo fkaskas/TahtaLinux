@@ -18,6 +18,7 @@ class OnlineIstemci(QObject):
     ses_kapat_sinyali = pyqtSignal()
     ses_ac_sinyali = pyqtSignal()
     kapat_sinyali = pyqtSignal()
+    video_toggle_sinyali = pyqtSignal()
     baglanti_durumu_sinyali = pyqtSignal(bool)  # True=bağlı, False=koptu
     hata_sinyali = pyqtSignal(str)  # Sunucudan gelen hata mesajı
     durum_bilgisi_sinyali = pyqtSignal(int, int)  # durum, ses
@@ -99,6 +100,8 @@ class OnlineIstemci(QObject):
                 self.ses_ac_sinyali.emit()
             elif aksiyon == "tahta_kapat":
                 self.kapat_sinyali.emit()
+            elif aksiyon == "video_toggle":
+                self.video_toggle_sinyali.emit()
 
         @sio.on("hata")
         def hata_geldi(veri):

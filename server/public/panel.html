@@ -1342,7 +1342,54 @@
       </div>
     </div>
 
-    <!-- Ders Saatleri Sekmesi -->
+    <!-- Zeka Bulmacası Sekmesi -->
+    <div class="sekme-icerik" id="icerik-zeka-bulmacasi">
+      <div class="yonetim-panel">
+        <h2><i class="fas fa-puzzle-piece" style="color:#8b5cf6;"></i> Zeka Bulmacası Yönetimi</h2>
+        <p style="color:var(--text3);font-size:13px;margin-bottom:16px;">
+          Kurum bilgi ekranında gösterilecek günlük zeka bulmacalarını yönetin. Her gün belirlenen tarihte bulmaca gösterilir ve bir önceki günün cevabı paylaşılır.
+          <br><span style="color:var(--warn);font-size:12px;">Görsel önerisi: Max 2MB, JPG/PNG/WebP. Kart alanına sığacak boyutta (önerilen: max 600×400px). Soru sadece görselden de oluşabilir.</span>
+        </p>
+
+        <div class="gizli" id="bulmacaKurumAlan" style="margin-bottom:16px;">
+          <label style="font-size:12px;color:var(--text2);font-weight:500;margin-bottom:5px;display:block;">Kurum Seç</label>
+          <select id="bulmacaKurumSec" onchange="bulmacalarYukle()" style="padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;width:100%;max-width:400px;"></select>
+        </div>
+
+        <div id="bulmacaEklemeFormu" class="form-satir" style="flex-direction:column;gap:12px;">
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <div class="alan" style="flex:2;min-width:200px;">
+              <label>Soru Metni <span style="color:var(--text3);font-size:11px;">(opsiyonel — görsel varsa boş bırakılabilir)</span></label>
+              <textarea id="bulmacaSoruMetni" placeholder="Bulmaca sorusunu yazın..." rows="3"
+                style="width:100%;padding:14px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;resize:vertical;font-family:inherit;"></textarea>
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <div class="alan" style="flex:1;min-width:200px;">
+              <label>Cevap <span style="color:var(--danger);font-size:11px;">(zorunlu)</span></label>
+              <input type="text" id="bulmacaCevap" placeholder="Bulmaca cevabı..." />
+            </div>
+            <div class="alan" style="flex:1;min-width:160px;">
+              <label>Gösterim Tarihi <span style="color:var(--danger);font-size:11px;">(zorunlu)</span></label>
+              <input type="date" id="bulmacaTarih" />
+            </div>
+          </div>
+          <div class="alan">
+            <label>Soru Görseli <span style="color:var(--text3);font-size:11px;">(opsiyonel, max 2MB, JPG/PNG/WebP, önerilen: max 600×400px)</span></label>
+            <input type="file" id="bulmacaGorsel" accept=".jpg,.jpeg,.png,.webp" style="padding:10px;" />
+            <div id="bulmacaGorselOnizleme" style="margin-top:8px;"></div>
+          </div>
+          <button class="btn-ekle" onclick="bulmacaEkle()"><i class="fas fa-plus"></i> Bulmaca Ekle</button>
+        </div>
+
+        <h3 style="margin-top:20px;">Kayıtlı Bulmacalar</h3>
+        <div id="bulmacaListesi">
+          <div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;">Yükleniyor...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Günün Sözü Sekmesi -->
     <div class="sekme-icerik" id="icerik-gunun-sozu">
       <div class="yonetim-panel">
         <h2><i class="fas fa-quote-left" style="color:#7c5cbf;"></i> Günün Sözü Yönetimi</h2>
@@ -1439,6 +1486,7 @@
               <option value="ses_kapat">🔇 Ses Kapatma</option>
               <option value="ses_ac">🔊 Ses Açma</option>
               <option value="tahta_kapat">⏻ Tahta Kapatma</option>
+              <option value="video_toggle">🎬 Video Aç/Kapat</option>
               <option value="tumu_kilitle">🔒 Tümünü Kilitle</option>
               <option value="tumu_ac">🔓 Tümünü Aç</option>
               <option value="tumu_kapat">⏻ Tümünü Kapat</option>
@@ -1489,6 +1537,9 @@
     </div>
     <div class="sekme" data-sekme="slider" id="sekme-slider">
       <span class="sekme-icon"><i class="fas fa-images"></i></span> Slider
+    </div>
+    <div class="sekme" data-sekme="zeka-bulmacasi" id="sekme-zeka-bulmacasi">
+      <span class="sekme-icon"><i class="fas fa-puzzle-piece"></i></span> Bulmaca
     </div>
     <div class="sekme" data-sekme="gunun-sozu" id="sekme-gunun-sozu">
       <span class="sekme-icon"><i class="fas fa-quote-left"></i></span> Günün Sözü
@@ -1773,6 +1824,29 @@
     <div class="modal-butonlar">
       <button class="btn-iptal" onclick="sliderDuzenleKapat()">İptal</button>
       <button class="btn-kaydet" onclick="sliderGuncelle()">Kaydet</button>
+    </div>
+  </div>
+</div>
+
+<!-- Bulmaca Düzenle Modal -->
+<div class="modal-arka" id="bulmacaDuzenleModal" onclick="bulmacaDuzenleKapat()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <h3><i class="fas fa-edit"></i> Bulmaca Düzenle</h3>
+    <input type="hidden" id="bulmacaDuzenleId" />
+    <label>Soru Metni <span style="color:var(--text3);font-size:11px;">(opsiyonel — görsel varsa boş bırakılabilir)</span></label>
+    <textarea id="bulmacaDuzenleSoruMetni" rows="3"
+      style="width:100%;padding:14px 16px;border-radius:10px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:15px;resize:vertical;font-family:inherit;margin-bottom:14px;"
+    ></textarea>
+    <label>Cevap <span style="color:var(--danger);font-size:11px;">(zorunlu)</span></label>
+    <input type="text" id="bulmacaDuzenleCevap" placeholder="Cevap" />
+    <label>Gösterim Tarihi</label>
+    <input type="date" id="bulmacaDuzenleTarih" style="margin-bottom:12px;" />
+    <label>Soru Görseli <span style="color:var(--text3);font-size:11px;">(yeni görsel seçilmezse mevcut korunur, max 2MB)</span></label>
+    <input type="file" id="bulmacaDuzenleGorsel" accept=".jpg,.jpeg,.png,.webp" style="padding:10px;" />
+    <div id="bulmacaDuzenleGorselOnizleme" style="margin-top:8px;"></div>
+    <div class="modal-butonlar">
+      <button class="btn-iptal" onclick="bulmacaDuzenleKapat()">İptal</button>
+      <button class="btn-kaydet" onclick="bulmacaGuncelle()">Kaydet</button>
     </div>
   </div>
 </div>
@@ -2145,6 +2219,7 @@
       document.getElementById("sinavKurumAlan").classList.remove("gizli");
       document.getElementById("ayinKurumAlan").classList.remove("gizli");
       document.getElementById("sliderKurumAlan").classList.remove("gizli");
+      document.getElementById("bulmacaKurumAlan").classList.remove("gizli");
       document.getElementById("duyuruKurumAlan").classList.remove("gizli");
       document.getElementById("sozKurumAlan").classList.remove("gizli");
       document.getElementById("loglarKurumAlan").classList.remove("gizli");
@@ -2254,6 +2329,7 @@
               ? `<button style="background:rgba(245,158,11,0.15);color:#f59e0b${!t.cevrimici ? ";opacity:0.4" : ""}" onclick="sesKapat('${esc(t.id)}')" ${!t.cevrimici ? "disabled" : ""}><i class="fas fa-volume-mute"></i> Ses Kapat</button>`
               : `<button style="background:rgba(34,197,94,0.15);color:#22c55e${!t.cevrimici ? ";opacity:0.4" : ""}" onclick="sesAc('${esc(t.id)}')" ${!t.cevrimici ? "disabled" : ""}><i class="fas fa-volume-up"></i> Ses Aç</button>`
           }
+          <button style="background:rgba(139,92,246,0.15);color:#8b5cf6${!t.cevrimici || t.durum === 0 ? ";opacity:0.4" : ""}" onclick="videoToggle('${esc(t.id)}')" ${!t.cevrimici || t.durum === 0 ? "disabled" : ""}><i class="fas fa-film"></i> Video</button>
           ${kullanici && (kullanici.rol === 'yonetici' || kullanici.rol === 'superadmin')
             ? `<button class="btn-kapat" onclick="tahtaKapatOnayla('${esc(t.id)}','${esc(t.tahta_adi || t.id.substring(0,8))}')" ${!t.cevrimici ? "disabled style='opacity:0.4'" : ""}><i class="fas fa-power-off"></i> Kapat</button>`
             : ''}
@@ -2269,6 +2345,7 @@
   function ac(id) { socket.emit("kilidi_ac", id); }
   function sesKapat(id) { socket.emit("ses_kapat", id); }
   function sesAc(id) { socket.emit("ses_ac", id); }
+  function videoToggle(id) { socket.emit("video_toggle", id); }
   function topluKilitle() { socket.emit("tumu_kilitle"); }
   function topluAc() { socket.emit("tumu_ac"); }
   function tahtaKapatOnayla(id, ad) {
@@ -2795,7 +2872,7 @@
       if (!yanit.ok) return;
       const liste = await yanit.json();
 
-      ["tahtaKurumSec", "kullaniciKurumSec", "dersSaatleriKurumSec", "sinavKurumSec", "ayinKurumSec", "sliderKurumSec", "sozKurumSec", "duyuruKurumSec", "loglarKurumSec"].forEach((id) => {
+      ["tahtaKurumSec", "kullaniciKurumSec", "dersSaatleriKurumSec", "sinavKurumSec", "ayinKurumSec", "sliderKurumSec", "bulmacaKurumSec", "sozKurumSec", "duyuruKurumSec", "loglarKurumSec"].forEach((id) => {
         const sel = document.getElementById(id);
         if (!sel) return;
         sel.innerHTML = liste.map((k) =>
@@ -3750,6 +3827,169 @@
     });
   }
 
+  // ===================== Zeka Bulmacası Yönetimi =====================
+  let bulmacaListeCache = [];
+
+  async function bulmacalarYukle() {
+    const bulmacaFormu = document.getElementById('bulmacaEklemeFormu');
+    if (bulmacaFormu) bulmacaFormu.style.display = kullanici.rol === 'superadmin' ? 'none' : '';
+    try {
+      let url = '/api/zeka-bulmacalari';
+      if (kullanici.rol === 'superadmin') {
+        const kurumSec = document.getElementById('bulmacaKurumSec');
+        if (kurumSec && kurumSec.value) url += '?kurum_id=' + kurumSec.value;
+      }
+      const yanit = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+      if (!yanit.ok) { bildirimGoster('Bulmaca listesi alınamadı', 'hata'); return; }
+      const liste = await yanit.json();
+      bulmacaListeCache = liste;
+      const container = document.getElementById('bulmacaListesi');
+      if (!Array.isArray(liste) || liste.length === 0) {
+        container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:20px;font-size:13px;"><i class="fas fa-puzzle-piece" style="font-size:28px;display:block;margin-bottom:8px;opacity:0.4;color:#8b5cf6;"></i>Kayıtlı bulmaca yok</div>';
+        return;
+      }
+      container.innerHTML = liste.map(b => bulmacaKartHTML(b)).join('');
+    } catch (err) {
+      bildirimGoster('Bulmaca listesi alınamadı', 'hata');
+    }
+  }
+
+  function bulmacaKartHTML(b) {
+    const sahip = kullanici.rol === 'yonetici' || (kullanici.rol === 'ogretmen' && b.ekleyen_id === kullanici.id);
+    const tarih = tarihFormatSadeceTarih(b.aktif_tarih);
+    const bugun = new Date().toISOString().split('T')[0];
+    const isBugun = b.aktif_tarih === bugun;
+    return `<div class="duyuru-kart" style="${isBugun ? 'border-left:3px solid #8b5cf6;' : ''}">
+      <div class="duyuru-ust">
+        <div class="duyuru-baslik-alan">
+          <h4>${b.soru_metni ? esc(b.soru_metni) : '<span style="color:var(--text3);font-style:italic;">Sadece görsel</span>'}</h4>
+          <div class="duyuru-meta">
+            <span><i class="fas fa-calendar-alt"></i> ${tarih}${isBugun ? ' <span style="color:#8b5cf6;font-weight:700;">(Bugün)</span>' : ''}</span>
+            <span><i class="fas fa-check-circle" style="color:var(--success);"></i> Cevap: ${esc(b.cevap)}</span>
+            <span><i class="fas fa-user"></i> ${esc(b.ekleyen_adi || '')}</span>
+            ${b.soru_gorsel ? '<span><i class="fas fa-image" style="color:#8b5cf6;"></i> Görsel var</span>' : ''}
+          </div>
+          ${b.soru_gorsel ? '<img src="' + esc(b.soru_gorsel) + '" style="max-width:120px;max-height:80px;object-fit:contain;border-radius:6px;margin-top:6px;" />' : ''}
+        </div>
+        <div class="duyuru-islem">
+          ${sahip ? '<button class="btn-duyuru-duzenle" onclick="bulmacaDuzenleAc(' + b.id + ')"><i class="fas fa-edit"></i></button>' : ''}
+          ${sahip ? '<button class="btn-duyuru-sil" onclick="bulmacaSil(' + b.id + ')"><i class="fas fa-trash-alt"></i></button>' : ''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  async function bulmacaEkle() {
+    const soruMetni = document.getElementById('bulmacaSoruMetni').value.trim();
+    const cevap = document.getElementById('bulmacaCevap').value.trim();
+    const aktifTarih = document.getElementById('bulmacaTarih').value;
+    const gorselInput = document.getElementById('bulmacaGorsel');
+
+    if (!cevap) { bildirimGoster('Cevap alanı zorunludur', 'hata'); return; }
+    if (!aktifTarih) { bildirimGoster('Tarih alanı zorunludur', 'hata'); return; }
+    if (!soruMetni && (!gorselInput.files || !gorselInput.files[0])) {
+      bildirimGoster('Soru metni veya görsel en az birisi gereklidir', 'hata'); return;
+    }
+
+    const formData = new FormData();
+    if (soruMetni) formData.append('soru_metni', soruMetni);
+    formData.append('cevap', cevap);
+    formData.append('aktif_tarih', aktifTarih);
+    if (gorselInput.files && gorselInput.files[0]) {
+      formData.append('gorsel', gorselInput.files[0]);
+    }
+
+    try {
+      const yanit = await fetch('/api/zeka-bulmacalari', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + token },
+        body: formData
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+      bildirimGoster('Bulmaca eklendi', 'basari');
+      document.getElementById('bulmacaSoruMetni').value = '';
+      document.getElementById('bulmacaCevap').value = '';
+      document.getElementById('bulmacaTarih').value = '';
+      gorselInput.value = '';
+      document.getElementById('bulmacaGorselOnizleme').innerHTML = '';
+      bulmacalarYukle();
+    } catch (err) { bildirimGoster('Bulmaca eklenemedi', 'hata'); }
+  }
+
+  function bulmacaDuzenleAc(id) {
+    const b = bulmacaListeCache.find(x => x.id === id);
+    if (!b) return;
+    document.getElementById('bulmacaDuzenleId').value = id;
+    document.getElementById('bulmacaDuzenleSoruMetni').value = b.soru_metni || '';
+    document.getElementById('bulmacaDuzenleCevap').value = b.cevap || '';
+    document.getElementById('bulmacaDuzenleTarih').value = b.aktif_tarih || '';
+    const onizleme = document.getElementById('bulmacaDuzenleGorselOnizleme');
+    if (b.soru_gorsel) {
+      onizleme.innerHTML = '<img src="' + esc(b.soru_gorsel) + '" style="max-width:150px;max-height:100px;object-fit:contain;border-radius:8px;" />';
+    } else {
+      onizleme.innerHTML = '';
+    }
+    document.getElementById('bulmacaDuzenleGorsel').value = '';
+    document.getElementById('bulmacaDuzenleModal').classList.add('goster');
+  }
+
+  function bulmacaDuzenleKapat() {
+    document.getElementById('bulmacaDuzenleModal').classList.remove('goster');
+  }
+
+  async function bulmacaGuncelle() {
+    const id = document.getElementById('bulmacaDuzenleId').value;
+    const soruMetni = document.getElementById('bulmacaDuzenleSoruMetni').value.trim();
+    const cevap = document.getElementById('bulmacaDuzenleCevap').value.trim();
+    const aktifTarih = document.getElementById('bulmacaDuzenleTarih').value;
+    const gorselInput = document.getElementById('bulmacaDuzenleGorsel');
+
+    if (!cevap) { bildirimGoster('Cevap alanı zorunludur', 'hata'); return; }
+
+    const formData = new FormData();
+    formData.append('soru_metni', soruMetni);
+    formData.append('cevap', cevap);
+    if (aktifTarih) formData.append('aktif_tarih', aktifTarih);
+    if (gorselInput.files && gorselInput.files[0]) {
+      formData.append('gorsel', gorselInput.files[0]);
+    }
+
+    try {
+      const yanit = await fetch('/api/zeka-bulmacalari/' + id, {
+        method: 'PUT',
+        headers: { Authorization: 'Bearer ' + token },
+        body: formData
+      });
+      const veri = await yanit.json();
+      if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+      bildirimGoster('Bulmaca güncellendi', 'basari');
+      bulmacaDuzenleKapat();
+      bulmacalarYukle();
+    } catch (err) { bildirimGoster('Bulmaca güncellenemedi', 'hata'); }
+  }
+
+  async function bulmacaSil(id) {
+    onayla({
+      baslik: 'Bulmacayı Sil',
+      mesaj: 'Bu bulmacayı silmek istediğinize emin misiniz?',
+      onayMetni: 'Sil',
+      tehlike: true,
+      callback: async () => {
+        try {
+          const yanit = await fetch('/api/zeka-bulmacalari/' + id, {
+            method: 'DELETE',
+            headers: { Authorization: 'Bearer ' + token }
+          });
+          const veri = await yanit.json();
+          if (!yanit.ok) { bildirimGoster(veri.hata, 'hata'); return; }
+          bildirimGoster('Bulmaca silindi', 'basari');
+          bulmacalarYukle();
+        } catch (err) { bildirimGoster('Bulmaca silinemedi', 'hata'); }
+      }
+    });
+  }
+
   // ===================== Slider Yönetimi =====================
   let sliderListeCache = [];
 
@@ -4037,6 +4277,7 @@
     if (veri === "ayin-ogrencisi") ayinOgrencileriYukle();
     if (veri === "duyurular") duyurularYukle();
     if (veri === "slider") sliderYukle();
+    if (veri === "zeka-bulmacasi") bulmacalarYukle();
     if (veri === "gunun-sozu") sozlerYukle();
     if (veri === "loglar") loglarYukle();
   }
@@ -4280,6 +4521,7 @@
       ses_kapat: '#f59e0b',
       ses_ac: '#3b82f6',
       tahta_kapat: '#8b5cf6',
+      video_toggle: '#a855f7',
       tumu_kilitle: '#dc2626',
       tumu_ac: '#16a34a',
       tumu_kapat: '#7c3aed',
@@ -4290,6 +4532,7 @@
       ses_kapat: '🔇 Ses Kapatma',
       ses_ac: '🔊 Ses Açma',
       tahta_kapat: '⏻ Tahta Kapatma',
+      video_toggle: '🎬 Video Aç/Kapat',
       tumu_kilitle: '🔒 Tümünü Kilitle',
       tumu_ac: '🔓 Tümünü Aç',
       tumu_kapat: '⏻ Tümünü Kapat',
