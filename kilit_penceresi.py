@@ -813,7 +813,6 @@ class Kilit(QMainWindow):
 
         tahta_kayit_veri = self._vt.tahta_kaydi_al(self._kurumkodu)
         tahta_adi_metin = tahta_kayit_veri["adi"] if tahta_kayit_veri else "Tahta"
-        kurum_adi_metin = tahta_kayit_veri.get("kurum_adi", "") if tahta_kayit_veri else ""
 
         # ── Tahta bilgi kartı ──
         bilgi_karti = QFrame()
@@ -827,12 +826,6 @@ class Kilit(QMainWindow):
         bilgi_kart_yerlesim = QVBoxLayout()
         bilgi_kart_yerlesim.setContentsMargins(8, 8, 8, 8)
         bilgi_kart_yerlesim.setSpacing(4)
-
-        # Kurum adı (gizli, sunucu güncellemesi için referans tutulur)
-        self._kurum_adi_etiketi = QLabel(kurum_adi_metin)
-        self._kurum_adi_etiketi.hide()
-        self._bilgi_ayirici = QFrame()
-        self._bilgi_ayirici.hide()
 
         # Tahta adı
         self._tahta_adi_etiketi = QLabel(tahta_adi_metin)
@@ -1421,10 +1414,7 @@ class Kilit(QMainWindow):
 
     def _kurum_adi_guncelle(self, yeni_kurum_adi):
         """Sunucudan gelen kurum adını güncelle"""
-        if yeni_kurum_adi and self._kurum_adi_etiketi.text() != yeni_kurum_adi:
-            self._kurum_adi_etiketi.setText(yeni_kurum_adi)
-            self._kurum_adi_etiketi.show()
-            self._bilgi_ayirici.show()
+        if yeni_kurum_adi:
             kayit = self._vt.tahta_kaydi_al(self._kurumkodu)
             if kayit:
                 self._vt.tahta_kaydi_olustur(
@@ -2571,11 +2561,26 @@ class Kilit(QMainWindow):
         self._tray_icon.setToolTip(self._kalan_sure_metni())
         self._tray_icon.activated.connect(self._tray_tiklandi)
         self._tray_icon.show()
-        self._tray_icon.showMessage(
-            "Tahta Kilit",
-            f"Kilit {sure_dakika} dakika açık kalacak.\nPanelden kontrol edebilirsiniz.",
-            QSystemTrayIcon.Information, 3000
-        )
+        # Geçici bildirim gönder — bildirim merkezinde kalmasın
+        try:
+            subprocess.Popen(
+                [
+                    "notify-send",
+                    "--transient",
+                    "--expire-time=3000",
+                    "--app-name=Tahta Kilit",
+                    "Tahta Kilit",
+                    f"Kilit {sure_dakika} dakika açık kalacak.\nPanelden kontrol edebilirsiniz.",
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except FileNotFoundError:
+            self._tray_icon.showMessage(
+                "Tahta Kilit",
+                f"Kilit {sure_dakika} dakika açık kalacak.\nPanelden kontrol edebilirsiniz.",
+                QSystemTrayIcon.Information, 3000
+            )
 
         # Pencereyi göster
         self._kilitle_pencere.show()

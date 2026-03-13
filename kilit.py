@@ -120,7 +120,9 @@ def main():
         vt.durum_guncelle(kurumkodu, 0)
 
     kilit = Kilit(vt_yoneticisi=vt, kurumkodu=kurumkodu)
-    kilit.show()
+    # Not: kilit.show() çağrılmıyor — _baslangic_durumu_uygula() içinde
+    # sistemi_kilitle() zaten showFullScreen() çağırır.
+    # Ek show() çağrısı tam ekran modunu bozabilir.
     sys.exit(app.exec_())
 
 

@@ -15,7 +15,7 @@ echo ""
 echo "[1/4] PyInstaller ile derleniyor..."
 rm -rf build/ dist/ *.spec
 
-pyinstaller \
+python3 -m PyInstaller \
     --name tahta-kilit \
     --onefile \
     --add-data "resim:resim" \
